@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
 ;;; Timestamp: <2025-05-09 09:25:29>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/ecc-state/ecc-state.el
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state/ecc-state.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
@@ -129,9 +129,8 @@ Supports both vterm and standard buffers."
       nil)))
 
 
-;; Provide both features to maintain backward compatibility
+;; Provide feature without slashes for better compatibility
 (provide 'ecc-state)
-(provide 'ecc-state/ecc-state)
 
 (when
     (not load-file-name)

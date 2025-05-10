@@ -40,9 +40,8 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, :running, or nil."
          (t nil)))
     nil))
 
-;; Provide both features to maintain backward compatibility
+;; Provide feature without slashes for better compatibility
 (provide 'ecc-state-detect)
-(provide 'ecc-state/ecc-state-detect)
 
 (when (not load-file-name)
   (message "ecc-state-detect.el loaded: %s"
