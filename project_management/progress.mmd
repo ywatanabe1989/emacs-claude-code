@@ -1,0 +1,198 @@
+graph TD
+    %% Title and Legend
+    subgraph Legend
+        Z1[Todo]:::todo
+        Z2[In Progress]:::inProgress
+        Z3[Done]:::done
+        Z4[Directory]:::directory
+    end
+    
+    %% Project Title
+    title[Emacs Claude Code - Streamlined Claude AI Interface]:::done
+    
+    %% Project Structure
+    subgraph ProjectStructure[Project Structure]
+        Root["/.emacs.d/lisp/emacs-claude-code"]:::directory
+        Core["emacs-claude-code.el"]:::done
+        BufferDir["ecc-buffer/"]:::directory
+        StateDir["ecc-state/"]:::directory
+        TemplateDir["ecc-template/"]:::directory
+        TemplatesDir["templates/"]:::directory
+        DocsDir["docs/"]:::directory
+        TestsDir["tests/"]:::directory
+    end
+    
+    %% Goals Overview
+    subgraph Goals[Project Goals]
+        Goal1[Goal 1: Buffer Management]:::done
+        Goal2[Goal 2: State Detection]:::done
+        Goal3[Goal 3: Template System]:::done
+        Goal4[Goal 4: User Interaction]:::done
+        Goal5[Goal 5: Test Infrastructure]:::done
+        Goal6[Goal 6: Additional Features]:::inProgress
+        Goal7[Goal 7: Repository Integration]:::todo
+        Goal8[Goal 8: Performance Optimization]:::todo
+        Goal9[Goal 9: User Experience]:::inProgress
+    end
+    
+    %% Goal 1 Details
+    subgraph Goal1Details[Buffer Management System]
+        M1_1[Buffer Registry]:::done
+        
+        subgraph M1_1Tasks[Registry Tasks]
+            T1_1_1[Registration System]:::done
+            T1_1_2[Current Buffer Tracking]:::done
+            T1_1_3[Stale Buffer Detection]:::done
+            T1_1_4[Buffer State Management]:::done
+            T1_1_5[Timestamp Tracking]:::done
+            T1_1_6[Navigation Capabilities]:::done
+            T1_1_7[Umbrella Module]:::done
+        end
+    end
+    
+    %% Goal 2 Details
+    subgraph Goal2Details[State Detection System]
+        M2_1[State Detection]:::done
+        M2_2[Auto-response System]:::done
+        
+        subgraph M2_1Tasks[Detection Tasks]
+            T2_1_1[Detect Waiting State]:::done
+            T2_1_2[Detect Y/N Prompt]:::done
+            T2_1_3[Detect Y/Y/N Prompt]:::done
+        end
+        
+        subgraph M2_2Tasks[Auto-response Tasks]
+            T2_2_1[Auto-accept for Prompts]:::done
+            T2_2_2[Notification System]:::done
+        end
+    end
+    
+    %% Goal 3 Details
+    subgraph Goal3Details[Template System]
+        M3_1[Template Management]:::done
+        M3_2[Default Templates]:::done
+        
+        subgraph M3_1Tasks[Management Tasks]
+            T3_1_1[Template File Loading]:::done
+            T3_1_2[Template Caching]:::done
+            T3_1_3[Directory Management]:::done
+        end
+        
+        subgraph M3_2Tasks[Template Tasks]
+            T3_2_1[Programming Template]:::done
+            T3_2_2[Additional Templates]:::done
+        end
+    end
+    
+    %% Goal 6 Details (Additional Features)
+    subgraph Goal6Details[Additional Features]
+        M6_1[Repository Integration]:::done
+        M6_2[Performance Optimizations]:::done
+        M6_3[Documentation Improvements]:::done
+        
+        subgraph M6_1Tasks[Repository Tasks]
+            T6_1_1[Copy Repository Contents]:::done
+            T6_1_2[Enhanced Selection]:::done
+        end
+        
+        subgraph M6_2Tasks[Performance Tasks]
+            T6_2_1[Buffer Handling for Large Files]:::done
+            T6_2_2[Template Caching Improvements]:::done
+        end
+        
+        subgraph M6_3Tasks[Documentation Tasks]
+            T6_3_1[Claude Settings Documentation]:::done
+            T6_3_2[Code Organization and Cleanup]:::done
+        end
+    end
+    
+    %% Goal 9 Details (User Experience - Partial Implementation)
+    subgraph Goal9Details[User Experience]
+        M9_1[Enhanced Visualization]:::todo
+        M9_2[History Management]:::done
+        M9_3[Mode Management]:::done
+        
+        subgraph M9_2Tasks[History Tasks]
+            T9_2_1[History Browser Implementation]:::done
+            T9_2_2[Interaction Statistics Dashboard]:::todo
+        end
+        
+        subgraph M9_3Tasks[Mode Tasks]
+            T9_3_1[Dedicated Mode Implementation]:::done
+            T9_3_2[Dired Integration]:::done
+        end
+    end
+    
+    %% Future Goals
+    subgraph FutureGoals[Planned Enhancements]
+        subgraph Goal7Details[Repository Integration]
+            M7_1[Advanced Repository Selection]:::todo
+            M7_2[Repository Context Awareness]:::todo
+        end
+        
+        subgraph Goal8Details[Performance Optimization]
+            M8_1[Buffer Optimization]:::todo
+            M8_2[Template Enhancements]:::todo
+            M8_3[Memory Management]:::todo
+        end
+    end
+    
+    %% Connections
+    title --> ProjectStructure
+    title --> Goals
+    
+    Goals --> Goal1Details
+    Goals --> Goal2Details
+    Goals --> Goal3Details
+    Goals --> Goal6Details
+    Goals --> Goal9Details
+    Goals --> FutureGoals
+    
+    Goal1 --> M1_1
+    M1_1 --> M1_1Tasks
+    
+    Goal2 --> M2_1
+    Goal2 --> M2_2
+    M2_1 --> M2_1Tasks
+    M2_2 --> M2_2Tasks
+    
+    Goal3 --> M3_1
+    Goal3 --> M3_2
+    M3_1 --> M3_1Tasks
+    M3_2 --> M3_2Tasks
+    
+    Goal6 --> M6_1
+    Goal6 --> M6_2
+    Goal6 --> M6_3
+    M6_1 --> M6_1Tasks
+    M6_2 --> M6_2Tasks
+    M6_3 --> M6_3Tasks
+    
+    Goal7 --> Goal7Details
+    Goal8 --> Goal8Details
+    Goal9 --> Goal9Details
+    
+    M9_2 --> M9_2Tasks
+    M9_3 --> M9_3Tasks
+    
+    Root --> Core
+    Root --> BufferDir
+    Root --> StateDir
+    Root --> TemplateDir
+    Root --> TemplatesDir
+    Root --> DocsDir
+    Root --> TestsDir
+    
+    %% Styling
+    classDef done fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef inProgress fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef todo fill:#fff,stroke:#333,stroke-width:2px;
+    classDef directory fill:#e0f0ff,stroke:#333,stroke-width:1px;
+    
+    %% Apply styling
+    class T1_1_1,T1_1_2,T1_1_3,T1_1_4,T1_1_5,T1_1_6,T1_1_7 done;
+    class T2_1_1,T2_1_2,T2_1_3,T2_2_1,T2_2_2 done;
+    class T3_1_1,T3_1_2,T3_1_3,T3_2_1,T3_2_2 done;
+    class T6_1_1,T6_1_2,T6_2_1,T6_2_2,T6_3_1,T6_3_2 done;
+    class T9_2_1,T9_3_1,T9_3_2 done;
+    class T9_2_2 todo;

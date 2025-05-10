@@ -2,11 +2,30 @@
   "permissions": {
     "allow": [
       "Bash(ls:*)",
-      "Bash(find:*)",
-      "Bash(emacs:*)",
+      "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(./run-tests.sh:*)"
+      "Bash(tests/test-*.el)",
+      "Bash(emacs-claude-code.el:*)",
+      "Bash(git commit:*)",
+      "Bash(./run_tests.sh:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(./tmp/run-diagnostic.sh:*)",
+      "Bash(./tmp/fix-tests.sh:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git mv:*)",
+      "Bash(mv:*)",
+      "Bash(tests/test-ecc-buffer-:*)",
+      "Bash(tests/buffer/)",
+      "Bash(for file in)",
+      "Bash(tests/test-ecc-buffer:*)",
+      "Bash(do mv \"$file\" tests/buffer/)",
+      "Bash(done)",
+      "Bash(tests/*.el)",
+      "Bash(./tmp/run-diagnostics.sh:*)",
+      "Bash(ln:*)",
+      "Bash(ELISP-TEST-REPORT*)"
     ],
     "deny": []
   }

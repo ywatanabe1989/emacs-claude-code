@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-07 12:27:11>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/test-emacs-claude-code-update-mode-line.el
+;;; Timestamp: <2025-05-08 21:20:11>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-update-mode-line.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
@@ -44,12 +44,12 @@
       (setq global-mode-string orig-global-mode-string))))
 
 (ert-deftest test-ecc-update-mode-line-adds-overlay ()
-  (let ((orig-buffer ecc-active-buffer)
+  (let ((orig-buffer ecc-buffer-current-active-buffer)
         (mock-buffer (generate-new-buffer "*MOCK-CLAUDE*"))
         (overlay-created nil))
     (unwind-protect
         (progn
-          (setq ecc-active-buffer mock-buffer)
+          (setq ecc-buffer-current-active-buffer mock-buffer)
           (cl-letf (((symbol-function 'make-overlay)
                      (lambda (&rest _) 
                        (setq overlay-created t)
@@ -62,16 +62,16 @@
             (should overlay-created)))
       (when (buffer-live-p mock-buffer)
         (kill-buffer mock-buffer))
-      (setq ecc-active-buffer orig-buffer))))
+      (setq ecc-buffer-current-active-buffer orig-buffer))))
 
 (ert-deftest test-ecc-update-mode-line-removes-overlay ()
-  (let ((orig-buffer ecc-active-buffer)
+  (let ((orig-buffer ecc-buffer-current-active-buffer)
         (mock-buffer (generate-new-buffer "*MOCK-CLAUDE*"))
         (overlay-deleted nil)
         (mock-overlay (make-overlay (point-min) (point-min))))
     (unwind-protect
         (progn
-          (setq ecc-active-buffer mock-buffer)
+          (setq ecc-buffer-current-active-buffer mock-buffer)
           (with-current-buffer mock-buffer
             (setq-local ecc-buffer-name-overlay mock-overlay))
           (cl-letf (((symbol-function 'delete-overlay)
@@ -82,15 +82,15 @@
             (should overlay-deleted)))
       (when (buffer-live-p mock-buffer)
         (kill-buffer mock-buffer))
-      (setq ecc-active-buffer orig-buffer))))
+      (setq ecc-buffer-current-active-buffer orig-buffer))))
 
 (ert-deftest test-ecc-update-mode-line-force-updates ()
   (let ((mode-line-updated nil)
-        (orig-active-buffer ecc-active-buffer))
+        (orig-active-buffer ecc-buffer-current-active-buffer))
     (unwind-protect
         (progn
           ;; Mock active buffer to avoid overlay errors
-          (setq ecc-active-buffer nil)
+          (setq ecc-buffer-current-active-buffer nil)
           (cl-letf (((symbol-function 'force-mode-line-update)
                      (lambda (&rest _) (setq mode-line-updated t)))
                     ((symbol-function 'make-overlay)
@@ -101,13 +101,12 @@
                      (lambda (&rest _) nil)))
             (ecc-update-mode-line t)
             (should mode-line-updated)))
-      (setq ecc-active-buffer orig-active-buffer))))
+      (setq ecc-buffer-current-active-buffer orig-active-buffer))))
 
 
-(provide 'test-emacs-claude-code-update-mode-line)
+(provide 'test-ecc-update-mode-line)
 
-(when
-    (not load-file-name)
-  (message "test-emacs-claude-code-update-mode-line.el loaded."
+(when (not load-file-name)
+  (message "test-ecc-update-mode-line.el loaded: %s"
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))
