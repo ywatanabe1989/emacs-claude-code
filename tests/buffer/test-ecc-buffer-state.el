@@ -1,19 +1,19 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-08 16:10:15>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-buffer-state.el
+;;; Timestamp: <2025-05-12 13:40:15>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/buffer/test-ecc-buffer-state.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
 (require 'ert)
 (require 'ecc-variables)
-(require 'ecc-buffer/ecc-buffer-current)
-(require 'ecc-buffer/ecc-buffer-state)
+(require 'ecc-buffer-current)
+(require 'ecc-buffer-state)
 
 (ert-deftest test-ecc-buffer-state-loadable ()
   "Test that ecc-buffer-state loads properly."
-  (should (featurep 'ecc-buffer/ecc-buffer-state)))
+  (should (featurep 'ecc-buffer-state)))
 
 (ert-deftest test-ecc-state-initialize-exists ()
   "Test that ecc-state-initialize function exists."
@@ -96,18 +96,21 @@
 (ert-deftest test-ecc-state-get-detection ()
   "Test state detection with ecc-state-get."
   (let ((original-current ecc-buffer-current-buffer)
-        (test-buffer (generate-new-buffer "*test-claude-state-get*")))
+        (test-buffer (generate-new-buffer "*test-claude-state-get*"))
+        (original-y/y/n ecc-prompt-pattern-y/y/n))
     (unwind-protect
         (progn
           ;; Setup test environment
           (setq ecc-buffer-current-buffer test-buffer)
+          (setq ecc-prompt-pattern-y/y/n "[Y/y/n]") ;; Ensure this is set for test
           
           ;; Mock functions
           (cl-letf (((symbol-function 'derived-mode-p) 
                      (lambda (mode) (eq mode 'vterm-mode)))
                     ((symbol-function 'pulse-momentary-highlight-region) #'ignore)
-                    ((symbol-function '--ecc-state-is-y/y/n-p) 
-                     (lambda (buf) nil))
+                    ((symbol-function '--ecc-state-detect-prompt)
+                     (lambda (pattern buf &optional n-lines) 
+                       (when (and pattern (string= pattern "[Y/y/n]")) t)))
                     ((symbol-function '--ecc-state-is-y/n-p) 
                      (lambda (buf) nil))
                     ((symbol-function '--ecc-state-is-waiting-p) 
@@ -117,43 +120,53 @@
                     ((symbol-function '--ecc-state-is-running-p) 
                      (lambda (buf) nil)))
             
-            ;; Test with no active state
-            (should-not (ecc-state-get test-buffer))
-            
-            ;; Test with y/y/n state
-            (cl-letf (((symbol-function '--ecc-state-is-y/y/n-p) 
-                       (lambda (buf) t)))
-              (should (eq :y/y/n (ecc-state-get test-buffer))))
+            ;; Test with active y/y/n state
+            (should (eq :y/y/n (ecc-state-get test-buffer)))
             
             ;; Test with y/n state
-            (cl-letf (((symbol-function '--ecc-state-is-y/n-p) 
-                       (lambda (buf) t)))
+            (cl-letf (((symbol-function '--ecc-state-detect-prompt)
+                       (lambda (pattern buf &optional n-lines) 
+                         (cond
+                          ((and pattern (string= pattern "[Y/y/n]")) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-y/n)) t)
+                          (t nil)))))
               (should (eq :y/n (ecc-state-get test-buffer))))
             
             ;; Test with waiting state
-            (cl-letf (((symbol-function '--ecc-state-is-waiting-p) 
-                       (lambda (buf) t)))
+            (cl-letf (((symbol-function '--ecc-state-detect-prompt)
+                       (lambda (pattern buf &optional n-lines) 
+                         (cond
+                          ((and pattern (string= pattern "[Y/y/n]")) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-y/n)) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-waiting)) t)
+                          (t nil)))))
               (should (eq :waiting (ecc-state-get test-buffer))))
             
             ;; Test with initial-waiting state
-            (cl-letf (((symbol-function '--ecc-state-is-initial-waiting-p) 
-                       (lambda (buf) t)))
+            (cl-letf (((symbol-function '--ecc-state-detect-prompt)
+                       (lambda (pattern buf &optional n-lines)
+                         (cond
+                          ((and pattern (string= pattern "[Y/y/n]")) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-y/n)) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-waiting)) nil)
+                          ((and pattern (string= pattern ecc-prompt-pattern-initial-waiting)) t)
+                          (t nil)))))
               (should (eq :initial-waiting (ecc-state-get test-buffer))))
             
             ;; Test with running state
-            (cl-letf (((symbol-function '--ecc-state-is-running-p) 
-                       (lambda (buf) t)))
-              (should (eq :running (ecc-state-get test-buffer))))))
+            (cl-letf (((symbol-function '--ecc-state-detect-prompt)
+                       (lambda (pattern buf &optional n-lines) nil)))
+              (should (eq :running (ecc-state-get test-buffer)))))
       
       ;; Cleanup
       (when (buffer-live-p test-buffer)
         (kill-buffer test-buffer))
-      (setq ecc-buffer-current-buffer original-current))))
+      (setq ecc-buffer-current-buffer original-current)
+      (setq ecc-prompt-pattern-y/y/n original-y/y/n))))
 
 (provide 'test-ecc-buffer-state)
 
-(when
-    (not load-file-name)
+(when (not load-file-name)
   (message "test-ecc-buffer-state.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

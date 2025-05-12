@@ -239,7 +239,9 @@ HOOK-TYPE should be 'enter or 'exit."
 
 (defun ecc-state-engine--handle-yes-yes-no ()
   "Handle the yes/yes/no state."
-  (message "Claude is asking a yes/yes/no question"))
+  (message "Claude is asking a yes/yes/no question")
+  ;; Don't return any values that could be misinterpreted as markers
+  nil)
 
 (defun ecc-state-engine--handle-error ()
   "Handle the error state."

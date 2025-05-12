@@ -224,9 +224,13 @@ If NO-RETURN is non-nil, don't send return after the input."
       (progn
         ;; Register with buffer manager if not already
         (let ((claude-buffer (ecc-buffer-manager-get-by-buffer (current-buffer))))
-          (unless claude-buffer
-            (ecc-buffer-manager-create (buffer-name) (current-buffer))
-            (ecc-buffer-manager-set-metadata claude-buffer 'vterm t)))
+          (if claude-buffer
+              ;; If we already have a buffer record, use it
+              (ecc-buffer-manager-set-metadata claude-buffer 'vterm t)
+            ;; Otherwise, create a new one and then set metadata
+            (setq claude-buffer (ecc-buffer-manager-create (buffer-name) (current-buffer)))
+            (when claude-buffer
+              (ecc-buffer-manager-set-metadata claude-buffer 'vterm t))))
         
         ;; Setup state detection
         (when ecc-vterm-auto-detect-state

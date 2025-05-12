@@ -6,11 +6,11 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 (require 'cl-lib)
-(require 'ecc-buffer/ecc-buffer-variables)
-(require 'ecc-buffer/ecc-buffer-registry)
-(require 'ecc-buffer/ecc-buffer-current)
-(require 'ecc-buffer/ecc-buffer-stale)
-(require 'ecc-buffer/ecc-buffer-timestamp)
+(require 'ecc-buffer-variables)
+(require 'ecc-buffer-registry)
+(require 'ecc-buffer-current)
+(require 'ecc-buffer-stale)
+(require 'ecc-buffer-timestamp)
 (require 'ecc-update-mode-line)
 
 ;; Buffer switching functions
@@ -108,7 +108,12 @@ Returns the buffer it switched to, or nil if no buffer is available."
         ;; Return the buffer we switched to
         prev-buffer))))
 
+;; Register this feature with standard naming
+(provide 'ecc-buffer-navigation)
+
+;; Also provide with prefix to match test expectations
 (provide 'ecc-buffer/ecc-buffer-navigation)
+
 
 (when (not load-file-name)
   (message "%s loaded."

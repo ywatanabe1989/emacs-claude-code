@@ -7,7 +7,13 @@
 
 
 (require 'ert)
+(require 'ecc-variables)
 (require 'ecc-state)
+
+;; Define test variables if not already defined
+(unless (boundp 'ecc-buffer-current-active-buffer)
+  (defvar ecc-buffer-current-active-buffer nil
+    "Buffer variable used in tests for backward compatibility."))
 
 (ert-deftest test-ecc-detect-prompt-loadable ()
   (should (featurep 'ecc-state)))

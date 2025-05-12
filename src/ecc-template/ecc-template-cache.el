@@ -168,5 +168,4 @@ Returns a string with a human-readable summary."
             --ecc-template-cache-hits --ecc-template-cache-misses)))
 
 (provide 'ecc-template-cache)
-(provide 'ecc-template/ecc-template-cache)
 ;;; ecc-template-cache.el ends here

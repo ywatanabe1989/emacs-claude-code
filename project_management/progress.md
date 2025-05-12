@@ -272,6 +272,68 @@
 | 📋 T | [x]  | Add Dired integration                        | 👍 A |
 |      | [x]  | 📌 `/ecc-dired.el`                           | 👍 A |
 
+** 🎯 Goal 10: Simple Apptainer integration
+
+| Type | Stat | Description                                     | User |
+|------|------|-------------------------------------------------|------|
+| 🎯 G | [x]  | Simple Apptainer integration                    | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 🏁 M | [x]  | Simplified container definition                 | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Create lightweight Apptainer definition file    | 👍 A |
+|      | [x]  | 📌 `/apptainer/claude-vterm-simple.def`         | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Optimize container dependencies                 | 👍 A |
+|      | [x]  | 📌 Reduced dependencies in simple container     | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 🏁 M | [x]  | Streamlined launcher                            | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Create simplified launch script                 | 👍 A |
+|      | [x]  | 📌 `/launch-claude-simple.sh`                   | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Add automated environment detection             | 👍 A |
+|      | [x]  | 📌 Implemented in launch-claude-simple.sh       | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 🏁 M | [x]  | Documentation                                   | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Create user-friendly quick start guide          | 👍 A |
+|      | [x]  | 📌 `/docs/simple-apptainer.md`                  | 👍 A |
+|------|------|-------------------------------------------------|------|
+| 📋 T | [x]  | Add troubleshooting section                     | 👍 A |
+|      | [x]  | 📌 Included in simple-apptainer.md              | 👍 A |
+
+** 🎯 Goal 11: Remove Apptainer Integration (New)
+
+| Type | Stat | Description                                         | User |
+|------|------|-----------------------------------------------------|------|
+| 🎯 G | [x]  | Remove Apptainer integration                        | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 🏁 M | [x]  | Remove Apptainer files                              | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Remove Apptainer documentation                      | 👍 A |
+|      | [x]  | 📌 Remove `/docs/apptainer.md`                      | 👍 A |
+|      | [x]  | 📌 Remove `/docs/simple-apptainer.md`               | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Remove Apptainer plan files                         | 👍 A |
+|      | [x]  | 📌 Remove `/project_management/simple-apptainer-plan.md` | 👍 A |
+|      | [x]  | 📌 Remove `/project_management/full-apptainer-plan.md` | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 🏁 M | [x]  | Update documentation                                | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Update README.md to remove Apptainer references     | 👍 A |
+|      | [x]  | 📌 Update README.md                                 | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Update project plans                                | 👍 A |
+|      | [x]  | 📌 Update emacs-claude-code.el                      | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 🏁 M | [x]  | Verify functionality                                | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Run tests to ensure no regressions                  | 👍 A |
+|      | [x]  | 📌 ./run_tests.sh --debug                           | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Manual testing of core functionality                | 👍 A |
+|      | [x]  | 📌 Verify emacs-claude-code works without Apptainer | 👍 A |
+
 * Methods
 
 ** Tools
