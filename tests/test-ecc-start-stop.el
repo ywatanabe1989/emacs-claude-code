@@ -49,7 +49,7 @@
       (unwind-protect
           (progn
             (setq ecc-timer t  ;; Set timer to non-nil to indicate active state
-                  vterm-update-functions '(ecc-send-accept))  ;; Add hook to show it's active
+                  vterm-update-functions '(ecc-term-send-accept))  ;; Add hook to show it's active
             (cl-letf
                 (((symbol-function 'ecc-auto-enable)
                   (lambda () (setq started nil)))
@@ -210,7 +210,7 @@
                ((symbol-function 'vterm-send-key) #'ignore)
                ((symbol-function 'ecc-buffer-registry-cleanup-buffers) #'ignore))
             (ecc-auto-enable)
-            (should (eq hook-added 'ecc-send-accept))
+            (should (eq hook-added 'ecc-term-send-accept))
             (should (eq timer-started 'ecc-auto-check-and-restart))
             (should (eq ecc-timer 'mock-timer))))
       (setq ecc-buffer-current-buffer orig-active-buffer
@@ -228,7 +228,7 @@
           (cl-letf (((symbol-function 'remove-hook)
                      (lambda (hook function)
                        (when (and (eq hook 'vterm-update-functions)
-                                  (eq function 'ecc-send-accept))
+                                  (eq function 'ecc-term-send-accept))
                          (setq hook-removed t))))
                     ((symbol-function 'cancel-timer)
                      (lambda (timer)
@@ -265,7 +265,7 @@
             ;; Mock necessary functions
             (cl-letf (((symbol-function 'derived-mode-p) (lambda (&rest _) t))
                       ((symbol-function 'buffer-live-p) (lambda (&rest _) t))
-                      ((symbol-function 'ecc-send-accept) #'ignore)
+                      ((symbol-function 'ecc-term-send-accept) #'ignore)
                       ((symbol-function 'ecc-update-mode-line-all-buffers) #'ignore)
                       ;; Mock add-hook to modify vterm-update-functions directly
                       ((symbol-function 'add-hook) 
@@ -277,7 +277,7 @@
               (--ecc-auto-check-and-restart)
               
               ;; Verify that the hook was added
-              (should (member 'ecc-send-accept vterm-update-functions))))
+              (should (member 'ecc-term-send-accept vterm-update-functions))))
         
         ;; Clean up
         (when (buffer-live-p test-buffer)

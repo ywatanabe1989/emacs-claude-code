@@ -35,13 +35,14 @@
 (require 'ecc-update-mode-line)
 (require 'ecc-bindings)
 (require 'ecc-mode)
+(require 'ecc-ui-command)
+(require 'ecc-ui-dired)
 
 ;; Auto-response functionality
 (require 'ecc-auto)
 
 ;; Command execution
 (require 'ecc-run)
-(require 'ecc-send)
 
 ;; Buffer management
 (require 'ecc-buffer-manager)
@@ -70,17 +71,16 @@
 ;; Repository integration
 (require 'ecc-repository)
 (require 'ecc-repository-view)
-(require 'ecc-dired)
 
 ;; Integration with other tools
 (require 'ecc-integration)
-(require 'ecc-command)
 
 ;; Terminal integration (optional)
 (condition-case nil
     (progn
-      (require 'ecc-claude-vterm-mode)
-      (require 'ecc-run-vterm))
+      (require 'ecc-term-claude-mode)
+      (require 'ecc-term-run)
+      (require 'ecc-term-send))
   (error (message "Claude vterm mode could not be loaded (vterm may not be installed)")))
 
 ;; History and session management

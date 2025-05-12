@@ -1,4 +1,4 @@
-;;; ecc-command.el --- Command system for Claude AI -*- lexical-binding: t -*-
+;;; ecc-ui-command.el --- Command system for Claude AI -*- lexical-binding: t -*-
 
 ;; Author: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
 ;; Maintainer: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
@@ -25,8 +25,8 @@
 ;; Command structures and registry
 ;; ------------------------------
 
-(cl-defstruct (ecc-command (:constructor ecc-command--create)
-                          (:copier nil))
+(cl-defstruct (ecc-ui-command (:constructor ecc-ui-command--create)
+                        (:copier nil))
   "Structure representing a Claude command."
   (id nil :read-only t :documentation "Unique identifier for this command")
   (name "" :read-only t :documentation "Human-readable name")
@@ -35,141 +35,141 @@
   (usage "" :read-only t :documentation "Usage instructions")
   (aliases nil :read-only t :documentation "Alternative command names"))
 
-(defvar ecc-command--registry (make-hash-table :test 'equal)
+(defvar ecc-ui-command--registry (make-hash-table :test 'equal)
   "Registry of all Claude commands, keyed by command ID.")
 
-(defvar ecc-command--history nil
+(defvar ecc-ui-command--history nil
   "History of Claude commands executed.")
 
-(defvar ecc-command--history-size 100
+(defvar ecc-ui-command--history-size 100
   "Maximum size of the command history.")
 
 ;; Core command functions
 ;; ------------------------------
 
-(defun ecc-command-init ()
+(defun ecc-ui-command-init ()
   "Initialize the command system."
-  (setq ecc-command--registry (make-hash-table :test 'equal))
-  (setq ecc-command--history nil)
+  (setq ecc-ui-command--registry (make-hash-table :test 'equal))
+  (setq ecc-ui-command--history nil)
   
   ;; Register built-in commands
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "help"
     :name "Help"
-    :handler 'ecc-command--handle-help
+    :handler 'ecc-ui-command--handle-help
     :description "Display help information about Claude commands"
     :usage "/help [command]"
     :aliases '("?" "h")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "clear"
     :name "Clear"
-    :handler 'ecc-command--handle-clear
+    :handler 'ecc-ui-command--handle-clear
     :description "Clear the current conversation"
     :usage "/clear"
     :aliases '("clear-history" "reset")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "new"
     :name "New"
-    :handler 'ecc-command--handle-new
+    :handler 'ecc-ui-command--handle-new
     :description "Start a new Claude conversation"
     :usage "/new [name]"
     :aliases '("create")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "switch"
     :name "Switch"
-    :handler 'ecc-command--handle-switch
+    :handler 'ecc-ui-command--handle-switch
     :description "Switch to another Claude conversation"
     :usage "/switch [name]"
     :aliases '("use" "select")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "list"
     :name "List"
-    :handler 'ecc-command--handle-list
+    :handler 'ecc-ui-command--handle-list
     :description "List all Claude conversations"
     :usage "/list"
     :aliases '("ls" "buffers")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "rename"
     :name "Rename"
-    :handler 'ecc-command--handle-rename
+    :handler 'ecc-ui-command--handle-rename
     :description "Rename the current Claude conversation"
-    :usage "/rename <name>"
+    :usage "/rename <n>"
     :aliases '("name")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "kill"
     :name "Kill"
-    :handler 'ecc-command--handle-kill
+    :handler 'ecc-ui-command--handle-kill
     :description "Kill a Claude conversation"
     :usage "/kill [name]"
     :aliases '("close" "remove")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "compact"
     :name "Compact"
-    :handler 'ecc-command--handle-compact
+    :handler 'ecc-ui-command--handle-compact
     :description "Compact the conversation history to save tokens"
     :usage "/compact"
     :aliases '("compress")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "template"
     :name "Template"
-    :handler 'ecc-command--handle-template
+    :handler 'ecc-ui-command--handle-template
     :description "Use a template for a new prompt"
-    :usage "/template <name>"
+    :usage "/template <n>"
     :aliases '("t" "temp")))
   
-  (ecc-command-register
-   (ecc-command--create
+  (ecc-ui-command-register
+   (ecc-ui-command--create
     :id "retry"
     :name "Retry"
-    :handler 'ecc-command--handle-retry
+    :handler 'ecc-ui-command--handle-retry
     :description "Retry the last prompt"
     :usage "/retry"
     :aliases '("again"))))
 
-(defun ecc-command-register (command)
+(defun ecc-ui-command-register (command)
   "Register COMMAND with the command system."
-  (puthash (ecc-command-id command) command ecc-command--registry)
+  (puthash (ecc-ui-command-id command) command ecc-ui-command--registry)
   
   ;; Also register aliases
-  (dolist (alias (ecc-command-aliases command))
-    (puthash alias command ecc-command--registry))
+  (dolist (alias (ecc-ui-command-aliases command))
+    (puthash alias command ecc-ui-command--registry))
   
   command)
 
-(defun ecc-command-get (command-id)
+(defun ecc-ui-command-get (command-id)
   "Get the command with COMMAND-ID."
-  (gethash command-id ecc-command--registry))
+  (gethash command-id ecc-ui-command--registry))
 
-(defun ecc-command-exists-p (command-id)
+(defun ecc-ui-command-exists-p (command-id)
   "Check if a command with COMMAND-ID exists."
-  (not (null (ecc-command-get command-id))))
+  (not (null (ecc-ui-command-get command-id))))
 
-(defun ecc-command-list-all ()
+(defun ecc-ui-command-list-all ()
   "Get all registered commands as a list.
 Excludes aliases."
   (let ((commands (make-hash-table :test 'equal))
         (result nil))
     ;; Remove duplicates from aliases
     (maphash (lambda (_id command)
-               (puthash (ecc-command-id command) command commands))
-             ecc-command--registry)
+               (puthash (ecc-ui-command-id command) command commands))
+             ecc-ui-command--registry)
     
     ;; Convert to list
     (maphash (lambda (_id command)
@@ -177,9 +177,9 @@ Excludes aliases."
              commands)
     
     ;; Sort by name
-    (seq-sort-by #'ecc-command-name #'string< result)))
+    (seq-sort-by #'ecc-ui-command-name #'string< result)))
 
-(defun ecc-command-execute (input)
+(defun ecc-ui-command-execute (input)
   "Execute the command in INPUT.
 If INPUT starts with '/', treat it as a command.
 Otherwise, send it as a message to Claude."
@@ -187,63 +187,63 @@ Otherwise, send it as a message to Claude."
       ;; Command
       (let* ((command-name (match-string 1 input))
              (args (match-string 2 input))
-             (command (ecc-command-get command-name)))
+             (command (ecc-ui-command-get command-name)))
         (if command
             (progn
               ;; Add to history
-              (ecc-command--add-to-history input)
+              (ecc-ui-command--add-to-history input)
               
               ;; Execute command
-              (funcall (ecc-command-handler command) args))
+              (funcall (ecc-ui-command-handler command) args))
           
           ;; Unknown command
           (message "Unknown command: /%s" command-name)))
     
     ;; Normal message - send to Claude
-    (ecc-command--add-to-history input)
-    (ecc-command--send-to-claude input)))
+    (ecc-ui-command--add-to-history input)
+    (ecc-ui-command--send-to-claude input)))
 
-(defun ecc-command--add-to-history (input)
+(defun ecc-ui-command--add-to-history (input)
   "Add INPUT to the command history."
-  (push input ecc-command--history)
+  (push input ecc-ui-command--history)
   
   ;; Trim history if needed
-  (when (> (length ecc-command--history) ecc-command--history-size)
-    (setq ecc-command--history (seq-take ecc-command--history ecc-command--history-size))))
+  (when (> (length ecc-ui-command--history) ecc-ui-command--history-size)
+    (setq ecc-ui-command--history (seq-take ecc-ui-command--history ecc-ui-command--history-size))))
 
-(defun ecc-command-get-history ()
+(defun ecc-ui-command-get-history ()
   "Get the command history."
-  ecc-command--history)
+  ecc-ui-command--history)
 
 ;; Command handlers
 ;; ------------------------------
 
-(defun ecc-command--handle-help (args)
+(defun ecc-ui-command--handle-help (args)
   "Handle the help command with ARGS."
   (if args
       ;; Help for specific command
-      (let ((command (ecc-command-get args)))
+      (let ((command (ecc-ui-command-get args)))
         (if command
             (message "%s: %s\nUsage: %s\nAliases: %s"
-                     (ecc-command-name command)
-                     (ecc-command-description command)
-                     (ecc-command-usage command)
-                     (mapconcat #'identity (ecc-command-aliases command) ", "))
+                     (ecc-ui-command-name command)
+                     (ecc-ui-command-description command)
+                     (ecc-ui-command-usage command)
+                     (mapconcat #'identity (ecc-ui-command-aliases command) ", "))
           (message "Unknown command: /%s" args)))
     
     ;; General help
-    (let ((commands (ecc-command-list-all))
+    (let ((commands (ecc-ui-command-list-all))
           (help-text "Available Claude commands:\n\n"))
       (dolist (command commands)
         (setq help-text
               (concat help-text
                       (format "/%s - %s\n"
-                              (ecc-command-id command)
-                              (ecc-command-description command)))))
+                              (ecc-ui-command-id command)
+                              (ecc-ui-command-description command)))))
       (with-output-to-temp-buffer "*Claude Help*"
         (princ help-text)))))
 
-(defun ecc-command--handle-clear (_args)
+(defun ecc-ui-command--handle-clear (_args)
   "Handle the clear command."
   (let* ((current (ecc-buffer-manager-get-current))
          (buffer (and current (ecc-buffer-buffer current))))
@@ -255,7 +255,7 @@ Otherwise, send it as a message to Claude."
           (message "Claude conversation cleared"))
       (message "No active Claude conversation"))))
 
-(defun ecc-command--handle-new (args)
+(defun ecc-ui-command--handle-new (args)
   "Handle the new command with ARGS."
   (let ((name (if (and args (not (string-empty-p args)))
                  args
@@ -264,7 +264,7 @@ Otherwise, send it as a message to Claude."
       (ecc-buffer-manager-set-current claude-buffer)
       (message "Created new Claude conversation: %s" name))))
 
-(defun ecc-command--handle-switch (args)
+(defun ecc-ui-command--handle-switch (args)
   "Handle the switch command with ARGS."
   (if (and args (not (string-empty-p args)))
       ;; Switch to named buffer
@@ -290,7 +290,7 @@ Otherwise, send it as a message to Claude."
                 (message "Switched to Claude conversation: %s" selected))))
         (message "No Claude conversations available")))))
 
-(defun ecc-command--handle-list (_args)
+(defun ecc-ui-command--handle-list (_args)
   "Handle the list command."
   (let ((buffers (ecc-buffer-manager-get-all))
         (current (ecc-buffer-manager-get-current)))
@@ -304,7 +304,7 @@ Otherwise, send it as a message to Claude."
                            (ecc-buffer-state cb)))))
       (message "No Claude conversations available"))))
 
-(defun ecc-command--handle-rename (args)
+(defun ecc-ui-command--handle-rename (args)
   "Handle the rename command with ARGS."
   (if (and args (not (string-empty-p args)))
       (let ((current (ecc-buffer-manager-get-current)))
@@ -313,9 +313,9 @@ Otherwise, send it as a message to Claude."
               (ecc-buffer-manager-rename current args)
               (message "Renamed to: %s" args))
           (message "No active Claude conversation")))
-    (message "Usage: /rename <name>")))
+    (message "Usage: /rename <n>")))
 
-(defun ecc-command--handle-kill (args)
+(defun ecc-ui-command--handle-kill (args)
   "Handle the kill command with ARGS."
   (if (and args (not (string-empty-p args)))
       ;; Kill named buffer
@@ -336,26 +336,26 @@ Otherwise, send it as a message to Claude."
             (message "Killed current Claude conversation"))
         (message "No active Claude conversation")))))
 
-(defun ecc-command--handle-compact (_args)
+(defun ecc-ui-command--handle-compact (_args)
   "Handle the compact command."
   (message "Compacting conversation history..."))
 
-(defun ecc-command--handle-template (args)
+(defun ecc-ui-command--handle-template (args)
   "Handle the template command with ARGS."
   (if (and args (not (string-empty-p args)))
       (message "Using template: %s" args)
-    (message "Usage: /template <name>")))
+    (message "Usage: /template <n>")))
 
-(defun ecc-command--handle-retry (_args)
+(defun ecc-ui-command--handle-retry (_args)
   "Handle the retry command."
-  (if (car ecc-command--history)
-      (let ((last-input (car ecc-command--history)))
+  (if (car ecc-ui-command--history)
+      (let ((last-input (car ecc-ui-command--history)))
         ;; Don't re-add to history
-        (ecc-command--send-to-claude last-input)
+        (ecc-ui-command--send-to-claude last-input)
         (message "Retrying: %s" last-input))
     (message "No previous input to retry")))
 
-(defun ecc-command--send-to-claude (text)
+(defun ecc-ui-command--send-to-claude (text)
   "Send TEXT to the current Claude conversation."
   (let* ((current (ecc-buffer-manager-get-current))
          (buffer (and current (ecc-buffer-buffer current))))
@@ -368,7 +368,26 @@ Otherwise, send it as a message to Claude."
       (message "No active Claude conversation"))))
 
 ;; Initialize the command system
-(ecc-command-init)
+(ecc-ui-command-init)
 
+;; Backward compatibility for ecc-command functions
+(defalias 'ecc-command--create 'ecc-ui-command--create)
+(defalias 'ecc-command-id 'ecc-ui-command-id)
+(defalias 'ecc-command-name 'ecc-ui-command-name)
+(defalias 'ecc-command-handler 'ecc-ui-command-handler)
+(defalias 'ecc-command-description 'ecc-ui-command-description)
+(defalias 'ecc-command-usage 'ecc-ui-command-usage)
+(defalias 'ecc-command-aliases 'ecc-ui-command-aliases)
+(defalias 'ecc-command-init 'ecc-ui-command-init)
+(defalias 'ecc-command-register 'ecc-ui-command-register)
+(defalias 'ecc-command-get 'ecc-ui-command-get)
+(defalias 'ecc-command-exists-p 'ecc-ui-command-exists-p)
+(defalias 'ecc-command-list-all 'ecc-ui-command-list-all)
+(defalias 'ecc-command-execute 'ecc-ui-command-execute)
+(defalias 'ecc-command-get-history 'ecc-ui-command-get-history)
+
+;; Provide both new and old feature names for backward compatibility
+(provide 'ecc-ui-command)
 (provide 'ecc-command)
-;;; ecc-command.el ends here
+
+;;; ecc-ui-command.el ends here

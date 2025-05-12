@@ -6,7 +6,7 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 (require 'ecc-variables)
-(require 'ecc-send)
+(require 'ecc-term-send)
 (require 'ecc-update-mode-line)
 (require 'ecc-buffer-registry)
 (require 'ecc-state)
@@ -29,7 +29,7 @@
   "Toggle auto-accepting Claude prompts."
   (interactive)
   (if (and ecc-timer
-           (member 'ecc-send-accept
+           (member 'ecc-term-send-accept
                    vterm-update-functions))
       (progn
         (ecc-auto-disable)
@@ -62,8 +62,8 @@
   ;; Make sure we have buffers to work with
   (when (or ecc-buffers (ecc-buffer-get-registered-buffers))
     ;; Set up hook for immediate response to changes
-    (remove-hook 'vterm-update-functions 'ecc-send-accept)
-    (add-hook 'vterm-update-functions 'ecc-send-accept)
+    (remove-hook 'vterm-update-functions 'ecc-term-send-accept)
+    (add-hook 'vterm-update-functions 'ecc-term-send-accept)
     
     ;; Set up timer for regular checking
     (when (and ecc-timer (not (eq ecc-timer 'mock-timer)))
@@ -91,7 +91,7 @@
 (defun ecc-auto-disable ()
   "Stop auto-accepting Claude prompts."
   (interactive)
-  (remove-hook 'vterm-update-functions 'ecc-send-accept)
+  (remove-hook 'vterm-update-functions 'ecc-term-send-accept)
   (when ecc-timer
     (cancel-timer ecc-timer)
     (setq ecc-timer nil))
@@ -166,11 +166,11 @@ Also verify that the buffer is still valid and in vterm-mode."
         (unless (bound-and-true-p ert-current-test)
           (ecc-update-mode-line-all-buffers))
         ;; Ensure the hook is still active
-        (unless (member 'ecc-send-accept vterm-update-functions)
-          (add-hook 'vterm-update-functions 'ecc-send-accept))
+        (unless (member 'ecc-term-send-accept vterm-update-functions)
+          (add-hook 'vterm-update-functions 'ecc-term-send-accept))
         ;; Run the accept function if we have a valid buffer
         (when (buffer-live-p ecc-buffer-current-buffer)
-          (ecc-send-accept)))
+          (ecc-term-send-accept)))
     (error nil)))
 
 ;; For backward compatibility

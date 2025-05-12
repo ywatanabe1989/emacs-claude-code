@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-12 13:14:30>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-run-vterm.el
+;;; Timestamp: <2025-05-13 04:53:30>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-term/ecc-term-run.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
@@ -10,14 +10,14 @@
 (require 'ecc-variables)
 
 ;; Check if vterm mode is available
-(defvar ecc-run-vterm--vterm-available
+(defvar ecc-term-run--vterm-available
   (condition-case nil 
-      (progn (require 'ecc-claude-vterm-mode) t)
+      (progn (require 'ecc-term-claude-mode) t)
     (error nil))
   "Whether the Claude vterm mode is available.")
 
 ;;;###autoload
-(defun ecc-run-vterm-claude ()
+(defun ecc-term-run-claude ()
   "Run Claude in a VTerm buffer with optimized settings.
 This function creates a new VTerm buffer configured specifically
 for Claude interaction, with performance optimizations and
@@ -25,9 +25,9 @@ Claude-specific features enabled.
 
 Falls back to a simpler mode if VTerm is not available."
   (interactive)
-  (if (not ecc-run-vterm--vterm-available)
-      (ecc-run-vterm-fallback)
-    (let ((buffer (ecc-claude-vterm)))
+  (if (not ecc-term-run--vterm-available)
+      (ecc-term-run-fallback)
+    (let ((buffer (ecc-term-claude)))
       (with-current-buffer buffer
         ;; Display welcome message in the buffer
         (when (fboundp 'vterm-send-string)
@@ -39,7 +39,7 @@ Falls back to a simpler mode if VTerm is not available."
       ;; Return the buffer
       buffer)))
 
-(defun ecc-run-vterm-fallback ()
+(defun ecc-term-run-fallback ()
   "Fallback function when VTerm is not available.
 Creates a buffer with instructions for using Claude without VTerm."
   (interactive)
@@ -66,7 +66,7 @@ Creates a buffer with instructions for using Claude without VTerm."
     buffer))
 
 ;;;###autoload
-(defun ecc-run-vterm-help ()
+(defun ecc-term-run-help ()
   "Display help information for Claude VTerm mode.
 Shows relevant information based on whether VTerm mode is available."
   (interactive)
@@ -74,7 +74,7 @@ Shows relevant information based on whether VTerm mode is available."
     (princ "Claude VTerm Mode Help\n")
     (princ "====================\n\n")
     
-    (if (not ecc-run-vterm--vterm-available)
+    (if (not ecc-term-run--vterm-available)
         (progn
           (princ "VTerm integration is not currently available.\n\n")
           (princ "Requirements:\n")
@@ -116,14 +116,18 @@ Shows relevant information based on whether VTerm mode is available."
         (princ "  - Create multiple Claude sessions with C-c C-t\n")
         (princ "  - Navigate between them with C-c C-p and C-c C-f\n")))))
 
-;; When loaded directly, output a message
-(when (not load-file-name)
-  (message "ecc-run-vterm.el loaded."))
+;; Backward compatibility
+(defalias 'ecc-run-vterm--vterm-available 'ecc-term-run--vterm-available)
+(defalias 'ecc-run-vterm-claude 'ecc-term-run-claude)
+(defalias 'ecc-run-vterm-fallback 'ecc-term-run-fallback)
+(defalias 'ecc-run-vterm-help 'ecc-term-run-help)
 
+;; Provide both new and old feature names for backward compatibility
+(provide 'ecc-term-run)
 (provide 'ecc-run-vterm)
 
 (when
     (not load-file-name)
-  (message "ecc-run-vterm.el loaded."
+  (message "ecc-term-run.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

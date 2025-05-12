@@ -9,7 +9,7 @@
 (require 'ecc-auto)
 (require 'ecc-mode)
 (require 'ecc-variables)
-(require 'ecc-send)
+(require 'ecc-term-send)
 
 ;; Mock external functions and variables for testing
 (defvar test-ecc-auto-notifications '()
@@ -166,23 +166,23 @@
     ;; Mock functions to avoid external dependencies
     (cl-letf (((symbol-function 'ecc-auto-enable)
               (lambda ()
-                (add-hook 'vterm-update-functions 'ecc-send-accept)
+                (add-hook 'vterm-update-functions 'ecc-term-send-accept)
                 (setq ecc-timer 'mock-timer)
                 (setq ecc-auto-accept t)))
               ((symbol-function 'ecc-auto-disable)
                (lambda ()
-                 (remove-hook 'vterm-update-functions 'ecc-send-accept)
+                 (remove-hook 'vterm-update-functions 'ecc-term-send-accept)
                  (setq ecc-timer nil)
                  (setq ecc-auto-accept nil))))
       
       ;; First toggle (on)
       (should (ecc-auto-toggle))
-      (should (member 'ecc-send-accept vterm-update-functions))
+      (should (member 'ecc-term-send-accept vterm-update-functions))
       (should ecc-timer)
       
       ;; Second toggle (off)
       (should-not (ecc-auto-toggle))
-      (should-not (member 'ecc-send-accept vterm-update-functions))
+      (should-not (member 'ecc-term-send-accept vterm-update-functions))
       (should-not ecc-timer)))))
 
 (ert-deftest test-ecc-auto-check-and-restart-function ()
@@ -193,21 +193,21 @@
          (ecc-buffers (list (current-buffer))))
      
      ;; Add hook for test
-     (add-hook 'vterm-update-functions 'ecc-send-accept)
+     (add-hook 'vterm-update-functions 'ecc-term-send-accept)
      
      ;; Mock functions to avoid test dependencies
      (cl-letf (((symbol-function 'vterm-send-string) #'ignore)
                ((symbol-function 'vterm-send-return) #'ignore)
                ((symbol-function 'vterm-copy-mode) #'ignore)
                ((symbol-function 'ecc-update-mode-line-all-buffers) #'ignore)
-               ((symbol-function 'ecc-send-accept) #'ignore)
+               ((symbol-function 'ecc-term-send-accept) #'ignore)
                ((symbol-function '--ecc-state-y/y/n-p) (lambda () t)))
        
        ;; Run the check function - should handle prompt
        (--ecc-auto-check-and-restart)
        
        ;; Verify hook is still active
-       (should (member 'ecc-send-accept vterm-update-functions))))))
+       (should (member 'ecc-term-send-accept vterm-update-functions))))))
 
 (ert-deftest test-ecc-auto-send-notification-functions ()
   "Test that auto-send functions send notifications."
