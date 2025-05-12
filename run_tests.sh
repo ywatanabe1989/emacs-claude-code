@@ -1,6 +1,6 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# Timestamp: "2025-05-13 01:58:17 (ywatanabe)"
+# Timestamp: "2025-05-13 02:52:54 (ywatanabe)"
 # File: ./run_tests.sh
 
 THIS_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
@@ -46,7 +46,7 @@ TEST_SELECTOR="t"  # Default to run all tests
 while [[ $# -gt 0 ]]; do
   case $1 in
     --debug)
-      DEBUG=true
+      DEBUG=false
       shift
       ;;
     --skip-fail-test)
@@ -156,12 +156,6 @@ EOF
     emacs_cmd+=" --eval \"(add-to-list 'load-path \\\"$test_subdir\\\")\" "
   done
 
-  # Debug mode settings
-  if $DEBUG; then
-    emacs_cmd+=" --eval \"(setq debug-on-error t)\" "
-    emacs_cmd+=" --eval \"(require 'help-mode)\" "
-  fi
-
   # Load all test files explicitly
   echo_warning "Loading all test files..."
 
@@ -196,10 +190,6 @@ EOF
   emacs_cmd+=" --eval \"(setq-default ert-selector t)\" "
   emacs_cmd+=" --eval \"(makunbound 'ert-selector)\" "
 
-  # Display all available tests if verbose
-  if $VERBOSE || $DEBUG; then
-    emacs_cmd+=" --eval \"(ecc-list-all-tests)\" "
-  fi
 
   # Skip intentional failures if requested
   if $SKIP_FAIL; then
@@ -208,8 +198,8 @@ EOF
     TEST_SELECTOR="'(not (name . \".*fail.*\"))"
   fi
 
-  # Display what selector we're using
-  echo_warning "Using test selector: $TEST_SELECTOR"
+  # # Display what selector we're using
+  # echo_warning "Using test selector: $TEST_SELECTOR"
 
   # Run ERT with our specified selector
   emacs_cmd+=" --eval \"(message \\\"Running tests with selector: %S\\\" '$TEST_SELECTOR)\" "
@@ -465,14 +455,14 @@ if ! $NO_REPORT; then
   generate_report
 fi
 
-# # Clean up temporary files
-# rm -f "$TEST_INFO_FILE"
-# # Leave other temp files for debugging if verbose or debug mode
-# if ! $VERBOSE && ! $DEBUG; then
-#   rm -f "$THIS_DIR/.test_output_clean.txt" "$THIS_DIR/.passed_tests.txt" "$THIS_DIR/.test_file_mapping.txt" \
-#         "$THIS_DIR/.failed_traces.txt" "$THIS_DIR/.failed_lines.txt" "$THIS_DIR/.failed_tests_files.txt" \
-#         "$THIS_DIR/.failed_tests.txt" "$THIS_DIR/.test_output_temp.log"
-# fi
+# Clean up temporary files
+rm -f "$TEST_INFO_FILE"
+# Leave other temp files for debugging if verbose or debug mode
+if ! $VERBOSE && ! $DEBUG; then
+  rm -f "$THIS_DIR/.test_output_clean.txt" "$THIS_DIR/.passed_tests.txt" "$THIS_DIR/.test_file_mapping.txt" \
+        "$THIS_DIR/.failed_traces.txt" "$THIS_DIR/.failed_lines.txt" "$THIS_DIR/.failed_tests_files.txt" \
+        "$THIS_DIR/.failed_tests.txt" "$THIS_DIR/.test_output_temp.log"
+fi
 
 echo_info "Logged to: $LOG_PATH"
 exit $TEST_EXIT_CODE
