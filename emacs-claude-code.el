@@ -55,9 +55,7 @@
 (require 'ecc-buffer-timestamp)
 (require 'ecc-buffer-variables)
 (require 'ecc-buffer-verification)
-
-;; Large buffer handling
-(require 'ecc-large-buffer)
+(require 'ecc-buffer-large)  ;; Large buffer handling
 
 ;; State management 
 (require 'ecc-state-engine)
