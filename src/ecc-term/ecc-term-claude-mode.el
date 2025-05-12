@@ -43,12 +43,13 @@ Enabling truncation can improve performance for long lines."
   :type 'boolean
   :group 'ecc-term-claude)
 
-;; Define a parent mode to fallback to if vterm isn't available
-(defvar ecc-term-claude-parent-mode
+;; Determine parent mode to fallback to if vterm isn't available
+;; We use a direct symbol here, not a variable
+(defvar ecc-term-claude-parent-mode-symbol
   (if ecc-term-claude--vterm-available
       'vterm-mode
     'special-mode)
-  "Parent mode for ecc-term-claude-mode.")
+  "Symbol of parent mode for ecc-term-claude-mode.")
 
 ;; Mode menu
 (defvar ecc-term-claude-menu
@@ -137,7 +138,10 @@ Enabling truncation can improve performance for long lines."
   :group 'ecc-term-claude)
 
 ;; Mode definition
-(define-derived-mode ecc-term-claude-mode ecc-term-claude-parent-mode "Claude-VTerm"
+(define-derived-mode ecc-term-claude-mode 
+  ;; Use the symbol directly, not the variable
+  (if ecc-term-claude--vterm-available 'vterm-mode 'special-mode)
+  "Claude-VTerm"
   "Major mode for optimized Claude interaction in vterm.
 This mode is optimized for high-performance streaming output.
 
@@ -453,7 +457,7 @@ This function is meant to be called when initializing VTERM mode."
 (defalias 'ecc-claude-vterm-line-numbers 'ecc-term-claude-line-numbers)
 (defalias 'ecc-claude-vterm-scroll-conservatively 'ecc-term-claude-scroll-conservatively)
 (defalias 'ecc-claude-vterm-truncate-lines 'ecc-term-claude-truncate-lines)
-(defalias 'ecc-claude-vterm-parent-mode 'ecc-term-claude-parent-mode)
+(defalias 'ecc-claude-vterm-parent-mode-symbol 'ecc-term-claude-parent-mode-symbol)
 (defalias 'ecc-claude-vterm-menu 'ecc-term-claude-menu)
 (defalias 'ecc-claude-vterm-mode-map 'ecc-term-claude-mode-map)
 (defalias 'ecc-claude-vterm-state-timer 'ecc-term-claude-state-timer)
