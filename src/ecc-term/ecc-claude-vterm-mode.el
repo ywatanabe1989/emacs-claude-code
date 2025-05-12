@@ -7,9 +7,9 @@
 
 ;; Required dependencies
 (require 'ecc-variables)
-(require 'ecc-state/ecc-state)
-(require 'ecc-state/ecc-state-detect)
-(require 'ecc-buffer/ecc-buffer-registry)
+(require 'ecc-state)
+(require 'ecc-state-detect)
+(require 'ecc-buffer-registry)
 
 ;; Attempt to load vterm if available
 (defvar ecc-claude-vterm--vterm-available
@@ -447,7 +447,7 @@ This function is meant to be called when initializing VTERM mode."
     "Stub function for vterm--internal."
     (error "vterm not available")))
 
-(provide 'ecc-term/ecc-claude-vterm-mode)
+(provide 'ecc-claude-vterm-mode)
 
 (when (not load-file-name)
   (message "ecc-claude-vterm-mode.el loaded."

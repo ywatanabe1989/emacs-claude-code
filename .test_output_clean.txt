@@ -1,0 +1,644 @@
+ECC keymap reloaded
+Current ert-selector before reset: t
+Running tests with selector: t
+Running 150 tests (2025-05-13 02:15:20+1000, selector ‘t’)
+Test test---ecc-auto-check-and-restart-adds-hook-when-missing backtrace:
+  (--ecc-auto-check-and-restart)
+  (progn (fset 'add-hook vnew) (fset 'buffer-live-p vnew) (fset 'deriv
+  (unwind-protect (progn (fset 'add-hook vnew) (fset 'buffer-live-p vn
+  (let* ((vnew #'(lambda (&rest _) t)) (vnew #'(lambda (&rest _) t)) (
+  (progn (progn (setq ecc-buffer-current-buffer (current-buffer)) (set
+  (unwind-protect (progn (progn (setq ecc-buffer-current-buffer (curre
+  (let ((orig-vterm-update-functions vterm-update-functions)) (unwind-
+  (let ((orig-active-buffer ecc-buffer-current-buffer)) (defvar vterm-
+  #f(lambda () [t] (let ((orig-active-buffer ecc-buffer-current-buffer
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test---ecc-auto-check-and-restart-add
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test---ecc-auto-check-and-restart-adds-hook-when-missing condition:
+    (void-function --ecc-auto-check-and-restart)
+   FAILED    1/150  test---ecc-auto-check-and-restart-adds-hook-when-missing (0.000162 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:214
+Test test---ecc-auto-check-and-restart-finds-vterm-buffer-when-needed backtrace:
+  (--ecc-auto-check-and-restart)
+  (progn (fset 'ecc-buffer-register-as-active vnew) (fset 'ecc-update-
+  (unwind-protect (progn (fset 'ecc-buffer-register-as-active vnew) (f
+  (let* ((vnew #'(lambda nil (list 'buffer1 'buffer2 mock-buffer))) (v
+  (progn (progn (setq ecc-buffer-current-buffer nil) (setq ecc-active-
+  (unwind-protect (progn (progn (setq ecc-buffer-current-buffer nil) (
+  (let ((orig-active-buffer ecc-buffer-current-buffer) (orig-buffers e
+  #f(lambda () [t] (let ((orig-active-buffer ecc-buffer-current-buffer
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test---ecc-auto-check-and-restart-fin
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test---ecc-auto-check-and-restart-finds-vterm-buffer-when-needed condition:
+    (void-function --ecc-auto-check-and-restart)
+   FAILED    2/150  test---ecc-auto-check-and-restart-finds-vterm-buffer-when-needed (0.000155 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:242
+Test test-ecc-auto-check-and-restart-function backtrace:
+  (--ecc-auto-check-and-restart)
+  (progn (fset '--ecc-state-y/y/n-p vnew) (fset 'ecc-update-mode-line-
+  (unwind-protect (progn (fset '--ecc-state-y/y/n-p vnew) (fset 'ecc-u
+  (let* ((vnew #'(lambda nil t)) (old (symbol-function '--ecc-state-y/
+  (let ((vterm-update-functions 'nil)) (add-hook 'vterm-update-functio
+  (progn (progn (setq test-ecc-original-timer ecc-auto-timer) (setq te
+  (unwind-protect (progn (progn (setq test-ecc-original-timer ecc-auto
+  (let ((test-buffer (generate-new-buffer "*test-claude*"))) (unwind-p
+  #f(lambda () [t] (let ((test-buffer (generate-new-buffer "*test-clau
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-check-and-restart-funct
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-check-and-restart-function condition:
+    (void-function --ecc-auto-check-and-restart)
+   FAILED    3/150  test-ecc-auto-check-and-restart-function (0.000149 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-auto.el:143
+Claude auto-accept disabled
+   passed    4/150  test-ecc-auto-disable-removes-hook-and-cancels-timer (0.000137 sec)
+Test test-ecc-auto-enable-adds-hook-and-starts-timer backtrace:
+  (--ecc-buffer-register-buffer (current-buffer))
+  (cond ((derived-mode-p 'vterm-mode) (--ecc-buffer-register-buffer (c
+  ecc-auto-enable()
+  (progn (fset 'ecc-buffer-registry-cleanup-buffers #'ignore) (fset 'v
+  (unwind-protect (progn (fset 'ecc-buffer-registry-cleanup-buffers #'
+  (let* ((vnew #'(lambda (&rest _) t)) (vnew #'(lambda (hook function)
+  (progn (progn (setq ecc-buffer-current-buffer (current-buffer)) (set
+  (unwind-protect (progn (progn (setq ecc-buffer-current-buffer (curre
+  (let ((orig-active-buffer ecc-buffer-current-buffer) (orig-timer ecc
+  #f(lambda () [t] (let ((orig-active-buffer ecc-buffer-current-buffer
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-enable-adds-hook-and-st
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-enable-adds-hook-and-starts-timer condition:
+    (void-function --ecc-buffer-register-buffer)
+   FAILED    5/150  test-ecc-auto-enable-adds-hook-and-starts-timer (0.000114 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:155
+   passed    6/150  test-ecc-auto-enable-stop-required (0.000075 sec)
+Test test-ecc-auto-enable-uses-current-buffer-when-no-buffer-exists backtrace:
+  (--ecc-buffer-register-buffer (current-buffer))
+  (cond ((derived-mode-p 'vterm-mode) (--ecc-buffer-register-buffer (c
+  ecc-auto-enable()
+  (progn (fset 'ecc-buffer-registry-cleanup-buffers #'ignore) (fset 'b
+  (unwind-protect (progn (fset 'ecc-buffer-registry-cleanup-buffers #'
+  (let* ((vnew #'(lambda (&rest _) t)) (vnew #'(lambda (&rest _) 'mock
+  (progn (progn (setq ecc-buffer-current-buffer nil) (setq ecc-buffers
+  (unwind-protect (progn (progn (setq ecc-buffer-current-buffer nil) (
+  (let ((orig-active-buffer ecc-buffer-current-buffer) (orig-buffers e
+  #f(lambda () [t] (let ((orig-active-buffer ecc-buffer-current-buffer
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-enable-uses-current-buf
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-enable-uses-current-buffer-when-no-buffer-exists condition:
+    (void-function --ecc-buffer-register-buffer)
+   FAILED    7/150  test-ecc-auto-enable-uses-current-buffer-when-no-buffer-exists (0.000136 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:126
+   passed    8/150  test-ecc-auto-interval-sec-defined (0.000075 sec)
+   passed    9/150  test-ecc-auto-loadable (0.000043 sec)
+Current buffer is not in vterm-mode
+Test test-ecc-auto-mode-enables-auto-accept backtrace:
+  (ecc-buffer-registry-cleanup-buffers)
+  ecc-auto-enable()
+  (progn (ecc-auto-enable) (ecc-auto-notification-on) (setq ecc-auto-a
+  (if ecc-auto-mode (progn (ecc-auto-enable) (ecc-auto-notification-on
+  (let ((last-message (current-message))) (setq ecc-auto-mode (cond ((
+  ecc-auto-mode(1)
+  (let ((ecc-auto-mode nil) (ecc-auto-accept nil)) (ecc-auto-mode 1) (
+  (progn (setq test-ecc-auto-notifications 'nil) (fset 'ecc-auto-notif
+  (unwind-protect (progn (setq test-ecc-auto-notifications 'nil) (fset
+  (let ((old-notify-fn (if (fboundp 'ecc-auto-notify-completion) (prog
+  #f(lambda () [t] (let ((old-notify-fn (if ... ...)) (old-notify-on-f
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-mode-enables-auto-accep
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-mode-enables-auto-accept condition:
+    (void-function ecc-buffer-registry-cleanup-buffers)
+   FAILED   10/150  test-ecc-auto-mode-enables-auto-accept (0.000163 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-auto.el:97
+   passed   11/150  test-ecc-auto-mode-module-loadable (0.000079 sec)
+Current buffer is not in vterm-mode
+Test test-ecc-auto-mode-sends-notifications backtrace:
+  (ecc-buffer-registry-cleanup-buffers)
+  ecc-auto-enable()
+  (progn (ecc-auto-enable) (ecc-auto-notification-on) (setq ecc-auto-a
+  (if ecc-auto-mode (progn (ecc-auto-enable) (ecc-auto-notification-on
+  (let ((last-message (current-message))) (setq ecc-auto-mode (cond ((
+  ecc-auto-mode(1)
+  (let ((ecc-auto-mode nil)) (ecc-auto-mode 1) (let* ((fn-668 #'member
+  (progn (setq test-ecc-auto-notifications 'nil) (fset 'ecc-auto-notif
+  (unwind-protect (progn (setq test-ecc-auto-notifications 'nil) (fset
+  (let ((old-notify-fn (if (fboundp 'ecc-auto-notify-completion) (prog
+  #f(lambda () [t] (let ((old-notify-fn (if ... ...)) (old-notify-on-f
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-mode-sends-notification
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-mode-sends-notifications condition:
+    (void-function ecc-buffer-registry-cleanup-buffers)
+   FAILED   12/150  test-ecc-auto-mode-sends-notifications (0.000158 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-auto.el:112
+[ecc-send] Automatic Response: 1
+[ecc-send] Automatic Response: continue
+Test test-ecc-auto-send-notification-functions backtrace:
+  signal(ert-test-failed (((should (assoc 'completion test-ecc-auto-no
+  ert-fail(((should (assoc 'completion test-ecc-auto-notifications)) :
+  (if (unwind-protect (setq value-729 (apply fn-727 args-728)) (setq f
+  (let (form-description-731) (if (unwind-protect (setq value-729 (app
+  (let ((value-729 'ert-form-evaluation-aborted-730)) (let (form-descr
+  (let* ((fn-727 #'assoc) (args-728 (condition-case err (list 'complet
+  (progn (fset 'ecc-state-get vnew) (fset '--ecc-state-initial-waiting
+  (unwind-protect (progn (fset 'ecc-state-get vnew) (fset '--ecc-state
+  (let* ((vnew #'(lambda nil t)) (vnew #'(lambda nil t)) (vnew #'(lamb
+  (progn (setq test-ecc-auto-notifications 'nil) (fset 'ecc-auto-notif
+  (unwind-protect (progn (setq test-ecc-auto-notifications 'nil) (fset
+  (let ((old-notify-fn (if (fboundp 'ecc-auto-notify-completion) (prog
+  (progn (progn (setq test-ecc-original-timer ecc-auto-timer) (setq te
+  (unwind-protect (progn (progn (setq test-ecc-original-timer ecc-auto
+  (let ((test-buffer (generate-new-buffer "*test-claude*"))) (unwind-p
+  #f(lambda () [t] (let ((test-buffer (generate-new-buffer "*test-clau
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test ... :result
+  ert-run-test(#s(ert-test :name test-ecc-auto-send-notification-funct
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-send-notification-functions condition:
+    (ert-test-failed
+     ((should (assoc 'completion test-ecc-auto-notifications)) :form
+      (assoc completion nil) :value nil))
+   FAILED   13/150  test-ecc-auto-send-notification-functions (0.000293 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-auto.el:163
+   passed   14/150  test-ecc-auto-timer-defined (0.000062 sec)
+   passed   15/150  test-ecc-auto-toggle-defined (0.000043 sec)
+Current buffer is not in vterm-mode
+Test test-ecc-auto-toggle-function backtrace:
+  (ecc-buffer-registry-cleanup-buffers)
+  ecc-auto-enable()
+  (progn (ecc-auto-enable) t)
+  (if (and ecc-timer (member 'ecc-send-accept vterm-update-functions))
+  ecc-auto-toggle()
+  apply(ecc-auto-toggle nil)
+  (setq value-680 (apply fn-678 args-679))
+  (unwind-protect (setq value-680 (apply fn-678 args-679)) (setq form-
+  (if (unwind-protect (setq value-680 (apply fn-678 args-679)) (setq f
+  (let (form-description-682) (if (unwind-protect (setq value-680 (app
+  (let ((value-680 'ert-form-evaluation-aborted-681)) (let (form-descr
+  (let* ((fn-678 #'ecc-auto-toggle) (args-679 (condition-case err (lis
+  (let ((vterm-update-functions 'nil)) (let* ((fn-678 #'ecc-auto-toggl
+  (progn (setq test-ecc-auto-notifications 'nil) (fset 'ecc-auto-notif
+  (unwind-protect (progn (setq test-ecc-auto-notifications 'nil) (fset
+  (let ((old-notify-fn (if (fboundp 'ecc-auto-notify-completion) (prog
+  (progn (progn (setq test-ecc-original-timer ecc-auto-timer) (setq te
+  (unwind-protect (progn (progn (setq test-ecc-original-timer ecc-auto
+  (let ((test-buffer (generate-new-buffer "*test-claude*"))) (unwind-p
+  #f(lambda () [t] (let ((test-buffer (generate-new-buffer "*test-clau
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-auto-toggle-function :docume
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-auto-toggle-function condition:
+    (void-function ecc-buffer-registry-cleanup-buffers)
+   FAILED   16/150  test-ecc-auto-toggle-function (0.000180 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-auto.el:127
+   passed   17/150  test-ecc-auto-toggle-starts-when-inactive (0.000101 sec)
+   passed   18/150  test-ecc-auto-toggle-stops-when-active (0.000071 sec)
+   passed   19/150  test-ecc-buffer-auto-switch-loadable (0.000061 sec)
+   passed   20/150  test-ecc-buffer-auto-switch-mode-function-exists (0.000042 sec)
+Claude buffer auto-switching enabled
+Claude buffer auto-switching disabled
+   passed   21/150  test-ecc-buffer-auto-switch-mode-initialization (0.000068 sec)
+   passed   22/150  test-ecc-buffer-auto-switch-mode-variable-exists (0.000042 sec)
+   passed   23/150  test-ecc-buffer-auto-switch-next-buffer (0.000241 sec)
+   passed   24/150  test-ecc-buffer-auto-switch-next-buffer-function-exists (0.000042 sec)
+   passed   25/150  test-ecc-buffer-auto-switch-previous-buffer (0.000216 sec)
+   passed   26/150  test-ecc-buffer-auto-switch-previous-buffer-function-exists (0.000041 sec)
+Claude buffer auto-switching enabled
+Claude buffer auto-switching disabled
+   passed   27/150  test-ecc-buffer-auto-switch-toggle (0.000092 sec)
+   passed   28/150  test-ecc-buffer-auto-switch-toggle-function-exists (0.000040 sec)
+   passed   29/150  test-ecc-buffer-auto-switch-with-non-existent-buffers (0.000104 sec)
+   passed   30/150  test-ecc-buffer-cleanup-buffer-registry (0.000066 sec)
+   passed   31/150  test-ecc-buffer-cleanup-buffer-registry-exists (0.000042 sec)
+   passed   32/150  test-ecc-buffer-current-buffer-exists (0.000041 sec)
+   passed   33/150  test-ecc-buffer-current-buffer-initialization (0.000041 sec)
+   passed   34/150  test-ecc-buffer-current-buffer-state-functions (0.000106 sec)
+   passed   35/150  test-ecc-buffer-current-buffer-variable-exists (0.000040 sec)
+   passed   36/150  test-ecc-buffer-current-loadable (0.000044 sec)
+   passed   37/150  test-ecc-buffer-current-required (0.000043 sec)
+   passed   38/150  test-ecc-buffer-defined (0.000040 sec)
+Test test-ecc-buffer-get-and-set-buffer-state backtrace:
+  signal(error (":active is not a valid Claude buffer state. Valid sta
+  error("%s is not a valid Claude buffer state. Valid states are: %s" 
+  (cond ((not (memq state ecc-state-available-states)) (error "%s is n
+  ecc-buffer-set-buffer-state(nil :active)
+  apply(ecc-buffer-set-buffer-state (nil :active))
+  (setq value-409 (apply fn-407 args-408))
+  (unwind-protect (setq value-409 (apply fn-407 args-408)) (setq form-
+  (not (unwind-protect (setq value-409 (apply fn-407 args-408)) (setq 
+  (if (not (unwind-protect (setq value-409 (apply fn-407 args-408)) (s
+  (let (form-description-411) (if (not (unwind-protect (setq value-409
+  (let ((value-409 'ert-form-evaluation-aborted-410)) (let (form-descr
+  (let* ((fn-407 #'ecc-buffer-set-buffer-state) (args-408 (condition-c
+  (progn (setq ecc-buffer-registered-buffers-alist (list (cons test-bu
+  (unwind-protect (progn (setq ecc-buffer-registered-buffers-alist (li
+  (let ((original-registry ecc-buffer-registered-buffers-alist) (test-
+  #f(lambda () [t] (let ((original-registry ecc-buffer-registered-buff
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-buffer-get-and-set-buffer-st
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-buffer-get-and-set-buffer-state condition:
+    (error
+     ":active is not a valid Claude buffer state. Valid states are: (nil ready waiting y/n y/y/n active)")
+   FAILED   39/150  test-ecc-buffer-get-and-set-buffer-state (0.000137 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/buffer/test-ecc-buffer-stale.el:40
+   passed   40/150  test-ecc-buffer-get-buffer-state-exists (0.000071 sec)
+   passed   41/150  test-ecc-buffer-get-current-buffer-function-exists (0.000046 sec)
+   passed   42/150  test-ecc-buffer-get-current-buffer-state-function-exists (0.000043 sec)
+   passed   43/150  test-ecc-buffer-get-timestamp-function-exists (0.000041 sec)
+   passed   44/150  test-ecc-buffer-list-buffers (0.000071 sec)
+   passed   45/150  test-ecc-buffer-loadable (0.000060 sec)
+   passed   46/150  test-ecc-buffer-name-defined (0.000046 sec)
+   passed   47/150  test-ecc-buffer-navigation-basic (0.000041 sec)
+   passed   48/150  test-ecc-buffer-navigation-handles-stale-buffers (0.020589 sec)
+   passed   49/150  test-ecc-buffer-navigation-loadable (0.000059 sec)
+   passed   50/150  test-ecc-buffer-navigation-required (0.000039 sec)
+Navigation returned nil when current buffer is dead
+   passed   51/150  test-ecc-buffer-navigation-with-dead-buffer-as-current (0.020646 sec)
+   passed   52/150  test-ecc-buffer-next-function-exists (0.000048 sec)
+   passed   53/150  test-ecc-buffer-next-prev-with-empty-buffers (0.000050 sec)
+   passed   54/150  test-ecc-buffer-prev-function-exists (0.000041 sec)
+   passed   55/150  test-ecc-buffer-property-defaults-exists (0.000034 sec)
+   passed   56/150  test-ecc-buffer-property-defaults-structure (0.000061 sec)
+   passed   57/150  test-ecc-buffer-record-timestamp-function-exists (0.000038 sec)
+   passed   58/150  test-ecc-buffer-register-as-active (0.000042 sec)
+   passed   59/150  test-ecc-buffer-registered-buffers-alist-exists (0.000032 sec)
+   passed   60/150  test-ecc-buffer-registered-buffers-alist-initialization (0.000039 sec)
+   passed   61/150  test-ecc-buffer-registry-loadable (0.000052 sec)
+   passed   62/150  test-ecc-buffer-registry-required (0.000032 sec)
+Test test-ecc-buffer-rename-buffer-when-disabled backtrace:
+  (ecc-buffer-rename-buffer nil)
+  (progn (fset 'rename-buffer vnew) (ecc-buffer-rename-buffer nil) (le
+  (unwind-protect (progn (fset 'rename-buffer vnew) (ecc-buffer-rename
+  (let* ((vnew #'(lambda (name &optional unique) (progn (setq rename-c
+  (progn (save-current-buffer (set-buffer mock-buffer) (set (make-loca
+  (unwind-protect (progn (save-current-buffer (set-buffer mock-buffer)
+  (let ((orig-buffer ecc-buffer-current-buffer) (mock-buffer (generate
+  #f(lambda () [t] (let ((orig-buffer ecc-buffer-current-buffer) (mock
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-buffer-rename-buffer-when-di
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-buffer-rename-buffer-when-disabled condition:
+    (void-function ecc-buffer-rename-buffer)
+   FAILED   63/150  test-ecc-buffer-rename-buffer-when-disabled (0.000103 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:95
+Test test-ecc-buffer-rename-buffer-when-enabled backtrace:
+  (ecc-buffer-rename-buffer t)
+  (progn (fset 'rename-buffer vnew) (ecc-buffer-rename-buffer t) (let 
+  (unwind-protect (progn (fset 'rename-buffer vnew) (ecc-buffer-rename
+  (let* ((vnew #'(lambda (name &optional unique) (progn (setq rename-c
+  (progn (save-current-buffer (set-buffer mock-buffer) (set (make-loca
+  (unwind-protect (progn (save-current-buffer (set-buffer mock-buffer)
+  (let ((orig-buffer ecc-buffer-current-buffer) (mock-buffer (generate
+  #f(lambda () [t] (let ((orig-buffer ecc-buffer-current-buffer) (mock
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-buffer-rename-buffer-when-en
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-buffer-rename-buffer-when-enabled condition:
+    (void-function ecc-buffer-rename-buffer)
+   FAILED   64/150  test-ecc-buffer-rename-buffer-when-enabled (0.000129 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-start-stop.el:64
+   passed   65/150  test-ecc-buffer-set-and-get-current-buffer (0.000119 sec)
+   passed   66/150  test-ecc-buffer-set-buffer-state-exists (0.000043 sec)
+   passed   67/150  test-ecc-buffer-set-current-buffer-function-exists (0.000042 sec)
+   passed   68/150  test-ecc-buffer-set-current-buffer-state-function-exists (0.000042 sec)
+   passed   69/150  test-ecc-buffer-stale-loadable (0.000046 sec)
+   passed   70/150  test-ecc-buffer-stale-required (0.000031 sec)
+   passed   71/150  test-ecc-buffer-state-required (0.000045 sec)
+   passed   72/150  test-ecc-buffer-timestamp-for-sorting (0.100588 sec)
+   passed   73/150  test-ecc-buffer-timestamp-required (0.000067 sec)
+   passed   74/150  test-ecc-buffer-timestamp-storage-and-retrieval (0.000061 sec)
+   passed   75/150  test-ecc-buffer-timestamp-vars-exists (0.000047 sec)
+   passed   76/150  test-ecc-buffer-timestamps-defined (0.000036 sec)
+   passed   77/150  test-ecc-buffer-unregister-buffer (0.000063 sec)
+   passed   78/150  test-ecc-buffer-unregister-stale-buffer (0.000097 sec)
+   passed   79/150  test-ecc-buffer-unregister-stale-buffer-exists (0.000042 sec)
+   passed   80/150  test-ecc-buffer-unregister-stale-buffers (0.000091 sec)
+   passed   81/150  test-ecc-buffer-unregister-stale-buffers-exists (0.000041 sec)
+   passed   82/150  test-ecc-buffer-variables-loadable (0.000041 sec)
+   passed   83/150  test-ecc-buffer-variables-required (0.000044 sec)
+   passed   84/150  test-ecc-buffer-verification-loadable (0.000040 sec)
+   passed   85/150  test-ecc-buffer-verification-required (0.000039 sec)
+   passed   86/150  test-ecc-buffer-verify-buffer-exists (0.000033 sec)
+   passed   87/150  test-ecc-buffer-verify-buffer-with-buffer-name (0.000052 sec)
+   passed   88/150  test-ecc-buffer-verify-buffer-with-various-inputs (0.000091 sec)
+   passed   89/150  test-ecc-detect-prompt-defined (0.000039 sec)
+   passed   90/150  test-ecc-detect-prompt-handles-nil-buffer (0.000044 sec)
+   passed   91/150  test-ecc-detect-prompt-initial-waiting-defined (0.000039 sec)
+   passed   92/150  test-ecc-detect-prompt-loadable (0.000042 sec)
+   passed   93/150  test-ecc-detect-prompt-required (0.000037 sec)
+   passed   94/150  test-ecc-detect-prompt-returns-nil-when-not-found (0.000085 sec)
+   passed   95/150  test-ecc-detect-prompt-waiting-defined (0.000040 sec)
+   passed   96/150  test-ecc-detect-prompt-with-mock-buffer (0.000061 sec)
+   passed   97/150  test-ecc-detect-prompt-y/n-defined (0.000041 sec)
+   passed   98/150  test-ecc-detect-prompt-y/y/n-defined (0.000038 sec)
+   passed   99/150  test-ecc-get-file-type-functionality (0.000111 sec)
+Test test-ecc-get-repository-files-with-mock-dir backtrace:
+  signal(ert-test-failed (((should (member elisp-file files)) :form (m
+  ert-fail(((should (member elisp-file files)) :form (member "/tmp/ecc
+  (if (unwind-protect (setq value-824 (apply fn-822 args-823)) (setq f
+  (let (form-description-826) (if (unwind-protect (setq value-824 (app
+  (let ((value-824 'ert-form-evaluation-aborted-825)) (let (form-descr
+  (let* ((fn-822 #'member) (args-823 (condition-case err (list elisp-f
+  (let ((files (ecc-get-repository-files temp-dir))) (let* ((fn-822 #'
+  (progn (make-directory subdir) (let ((temp-file elisp-file) (temp-bu
+  (unwind-protect (progn (make-directory subdir) (let ((temp-file elis
+  (let* ((temp-dir (make-temp-file "ecc-test-dir-" t)) (subdir (file-n
+  #f(lambda () [t] (let* ((temp-dir (make-temp-file "ecc-test-dir-" t)
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-get-repository-files-with-mo
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-get-repository-files-with-mock-dir condition:
+    (ert-test-failed
+     ((should (member elisp-file files)) :form
+      (member "/tmp/ecc-test-dir-ysYHXr/test.el" nil) :value nil))
+   FAILED  100/150  test-ecc-get-repository-files-with-mock-dir (0.003296 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-copy-repository.el:68
+Truncate long lines enabled
+   passed  101/150  test-ecc-history-browser-buffer (0.000262 sec)
+   passed  102/150  test-ecc-history-get-entries (0.000085 sec)
+Test test-ecc-history-loadable backtrace:
+  signal(wrong-type-argument (stringp nil))
+  apply(signal (wrong-type-argument (stringp nil)))
+  (setq value-906 (apply fn-904 args-905))
+  (unwind-protect (setq value-906 (apply fn-904 args-905)) (setq form-
+  (if (unwind-protect (setq value-906 (apply fn-904 args-905)) (setq f
+  (let (form-description-908) (if (unwind-protect (setq value-906 (app
+  (let ((value-906 'ert-form-evaluation-aborted-907)) (let (form-descr
+  (let* ((fn-904 #'file-exists-p) (args-905 (condition-case err (list 
+  #f(lambda () [t] (let* ((fn-904 #'file-exists-p) (args-905 (conditio
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-history-loadable :documentat
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-history-loadable condition:
+    (wrong-type-argument stringp nil)
+   FAILED  103/150  test-ecc-history-loadable (0.000089 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-history.el:12
+   passed  104/150  test-ecc-history-record-entry (0.000117 sec)
+   passed  105/150  test-ecc-history-reuse-prompt (0.000121 sec)
+   passed  106/150  test-ecc-history-variables-defined (0.000050 sec)
+Test test-ecc-large-buffer-chunk-string backtrace:
+  signal(ert-test-failed (((should (<= (length (cadr chunks)) chunk-si
+  ert-fail(((should (<= (length (cadr chunks)) chunk-size)) :form (<= 
+  (if (unwind-protect (setq value-1027 (apply fn-1025 args-1026)) (set
+  (let (form-description-1029) (if (unwind-protect (setq value-1027 (a
+  (let ((value-1027 'ert-form-evaluation-aborted-1028)) (let (form-des
+  (let* ((fn-1025 #'<=) (args-1026 (condition-case err (list (length (
+  (let* ((medium-string "This is a medium test string that should be s
+  #f(lambda () [t] (require 'ecc-large-buffer) (let* ((small-string "T
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-large-buffer-chunk-string :d
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-large-buffer-chunk-string condition:
+    (ert-test-failed
+     ((should (<= (length ...) chunk-size)) :form (<= 36 30) :value nil))
+   FAILED  107/150  test-ecc-large-buffer-chunk-string (0.000100 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-large-buffer.el:31
+   passed  108/150  test-ecc-large-buffer-get-optimal-chunk-size (0.000114 sec)
+Test test-ecc-large-buffer-loadable backtrace:
+  signal(wrong-type-argument (stringp nil))
+  apply(signal (wrong-type-argument (stringp nil)))
+  (setq value-992 (apply fn-990 args-991))
+  (unwind-protect (setq value-992 (apply fn-990 args-991)) (setq form-
+  (if (unwind-protect (setq value-992 (apply fn-990 args-991)) (setq f
+  (let (form-description-994) (if (unwind-protect (setq value-992 (app
+  (let ((value-992 'ert-form-evaluation-aborted-993)) (let (form-descr
+  (let* ((fn-990 #'file-exists-p) (args-991 (condition-case err (list 
+  #f(lambda () [t] (let* ((fn-990 #'file-exists-p) (args-991 (conditio
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-large-buffer-loadable :docum
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-large-buffer-loadable condition:
+    (wrong-type-argument stringp nil)
+   FAILED  109/150  test-ecc-large-buffer-loadable (0.000088 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-large-buffer.el:18
+   passed  110/150  test-ecc-large-buffer-process-file (0.014663 sec)
+   passed  111/150  test-ecc-large-buffer-process-region (0.000121 sec)
+Test test-ecc-large-buffer-send-chunked backtrace:
+  (let* ((vnew #'(lambda (str &rest _) (let* ((v --ecc-send-string-cal
+  #f(lambda () [t] (require 'ecc-large-buffer) (let* ((vnew #'...) (v 
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-large-buffer-send-chunked :d
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-large-buffer-send-chunked condition:
+    (void-variable --ecc-send-string-calls)
+   FAILED  112/150  test-ecc-large-buffer-send-chunked (0.000067 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/notcategorized/test-ecc-large-buffer.el:129
+   passed  113/150  test-ecc-loadable (0.000080 sec)
+   passed  114/150  test-ecc-mode-line-indicator-defined (0.000051 sec)
+   passed  115/150  test-ecc-prompt-patterns-defined (0.000069 sec)
+   passed  116/150  test-ecc-repo-view-path (0.000089 sec)
+   passed  117/150  test-ecc-repo-view-script-exists (0.000067 sec)
+   passed  118/150  test-ecc-repository-blacklisted-p-functionality (0.000132 sec)
+Repository written to /tmp/ecc-test-repo-pFLemv/docs/REPOSITORY_CONCATENATED.md and copied to clipboard: 0 files.
+   passed  119/150  test-ecc-repository-copy-contents-creates-output-file (0.002319 sec)
+   passed  120/150  test-ecc-repository-copy-contents-loadable (0.000060 sec)
+   passed  121/150  test-ecc-repository-copy-contents-required (0.000048 sec)
+   passed  122/150  test-ecc-repository-dir-defined (0.000046 sec)
+   passed  123/150  test-ecc-repository-file-blacklist-defined (0.000050 sec)
+   passed  124/150  test-ecc-repository-get-file-content (0.000896 sec)
+   passed  125/150  test-ecc-repository-max-file-size-defined (0.000054 sec)
+   passed  126/150  test-ecc-repository-output-file-defined (0.000050 sec)
+   passed  127/150  test-ecc-repository-view-loadable (0.000051 sec)
+   passed  128/150  test-ecc-run-required (0.000050 sec)
+   passed  129/150  test-ecc-send-required (0.000044 sec)
+   passed  130/150  test-ecc-state-available-states-exists (0.000046 sec)
+   passed  131/150  test-ecc-state-available-states-values (0.000063 sec)
+   passed  132/150  test-ecc-template-cache-clear (0.000063 sec)
+   passed  133/150  test-ecc-template-cache-file-hash (0.001236 sec)
+   passed  134/150  test-ecc-template-cache-init (0.000061 sec)
+   passed  135/150  test-ecc-template-cache-loadable (0.000091 sec)
+   passed  136/150  test-ecc-template-cache-purge-outdated (0.001678 sec)
+   passed  137/150  test-ecc-template-cache-put-get (0.000579 sec)
+Test test-ecc-template-cache-stats backtrace:
+  (ecc-template-cache-get-stats)
+  (let ((stats (ecc-template-cache-get-stats))) (let* ((fn-1444 #'=) (
+  #f(lambda () [t] (require 'ecc-template-cache) (ecc-template-cache-i
+  #f(compiled-function () #<bytecode 0x1e3df9eb259c59d9>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1e3df9eb259c59d9
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-template-cache-stats :docume
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(t)
+  ert-run-tests-batch-and-exit(t)
+  eval((ert-run-tests-batch-and-exit t) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-template-cache-stats condition:
+    (void-function ecc-template-cache-get-stats)
+   FAILED  138/150  test-ecc-template-cache-stats (0.000083 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/template/test-ecc-template-cache.el:177
+   passed  139/150  test-ecc-update-mode-line-adds-indicator (0.000079 sec)
+   passed  140/150  test-ecc-update-mode-line-adds-overlay (0.000103 sec)
+   passed  141/150  test-ecc-update-mode-line-defined (0.000048 sec)
+   passed  142/150  test-ecc-update-mode-line-force-updates (0.000091 sec)
+   passed  143/150  test-ecc-update-mode-line-loadable (0.000059 sec)
+   passed  144/150  test-ecc-update-mode-line-removes-indicator (0.000047 sec)
+   passed  145/150  test-ecc-update-mode-line-removes-overlay (0.000075 sec)
+   passed  146/150  test-ecc-update-mode-line-required (0.000048 sec)
+   passed  147/150  test-ecc-variables-customization-group (0.000047 sec)
+   passed  148/150  test-ecc-variables-loadable (0.000046 sec)
+   passed  149/150  test-ecc-variables-required (0.000045 sec)
+   passed  150/150  test-ecc-y/n-prompt-detection (0.000118 sec)
+
+Ran 150 tests, 132 results as expected, 18 unexpected (2025-05-13 02:15:22+1000, 1.781907 sec)
+
+18 unexpected results:
+   FAILED  test---ecc-auto-check-and-restart-adds-hook-when-missing
+   FAILED  test---ecc-auto-check-and-restart-finds-vterm-buffer-when-needed
+   FAILED  test-ecc-auto-check-and-restart-function
+   FAILED  test-ecc-auto-enable-adds-hook-and-starts-timer
+   FAILED  test-ecc-auto-enable-uses-current-buffer-when-no-buffer-exists
+   FAILED  test-ecc-auto-mode-enables-auto-accept
+   FAILED  test-ecc-auto-mode-sends-notifications
+   FAILED  test-ecc-auto-send-notification-functions
+   FAILED  test-ecc-auto-toggle-function
+   FAILED  test-ecc-buffer-get-and-set-buffer-state
+   FAILED  test-ecc-buffer-rename-buffer-when-disabled
+   FAILED  test-ecc-buffer-rename-buffer-when-enabled
+   FAILED  test-ecc-get-repository-files-with-mock-dir
+   FAILED  test-ecc-history-loadable
+   FAILED  test-ecc-large-buffer-chunk-string
+   FAILED  test-ecc-large-buffer-loadable
+   FAILED  test-ecc-large-buffer-send-chunked
+   FAILED  test-ecc-template-cache-stats
+

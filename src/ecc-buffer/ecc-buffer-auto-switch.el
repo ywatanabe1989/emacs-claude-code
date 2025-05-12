@@ -157,8 +157,6 @@ Handles killed buffers gracefully by skipping them."
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-auto-switch)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-auto-switch)
 
 
 ;;; ecc-buffer-auto-switch.el ends here

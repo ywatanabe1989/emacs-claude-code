@@ -111,8 +111,6 @@ Returns the buffer it switched to, or nil if no buffer is available."
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-navigation)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-navigation)
 
 
 (when (not load-file-name)

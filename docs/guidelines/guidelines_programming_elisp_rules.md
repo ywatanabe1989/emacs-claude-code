@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-05-11 14:51:30
+!-- Timestamp: 2025-05-12 22:27:55
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.claude/guidelines/guidelines_programming_elisp_rules.md
 !-- --- -->
@@ -78,6 +78,85 @@ Example:
         (elmo-load-markdown-file md-path))))
   ```
 
+
+## Elisp Header Rule
+
+- DO INCLUDE headers like:
+``` elisp
+;;; -*- coding: utf-8; lexical-binding: t -*-
+;;; Author: ywatanabe
+;;; Timestamp: <2025-05-12 21:39:05>
+;;; File: /home/ywatanabe/.emacs.d/lisp/sample-package/hw-utils/hw-utils.el
+
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+```
+
+- DO NOT INCLUDE headers like:
+``` elisp
+;;; hw-utils.el --- Utility functions for emacs-hello-world  -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; This file provides utility functions for the emacs-hello-world package.
+
+;;; Code:
+```
+
+## Modular Structure
+1. Place entry point: `./<package-name>.el`
+   This allows to `(require 'package-name)` outside of the pacakge as long as path is added.
+2. Adopt umbrella design as follows:
+
+```plaintext
+./package-name/
+├── package-name.el                 # Entry point, allows (require 'package-name)
+│   # Contents:
+│   # Add loadpath to umbrella entry points
+│   # (require 'umbrella-xxx)
+│   # (require 'umbrella-yyy)
+│   # (provide 'package-name)
+├── src
+|   ├── umbrella-xxx/                   # First functional grouping
+|   │   ├── umbrella-xxx.el             # Submodule integrator 
+|   │   │   # Contents:
+|   │   │   # (require 'umbrella-xxx-aaa)
+|   │   │   # (require 'umbrella-xxx-bbb) 
+|   │   │   # (provide 'umbrella-xxx)
+|   │   ├── umbrella-xxx-aaa.el         # Component A functionality
+|   │   └── umbrella-xxx-bbb.el         # Component B functionality
+|   └── umbrella-yyy/                   # Second functional grouping
+|       ├── umbrella-yyy.el             # Submodule integrator
+|       │   # Contents:
+|       │   # (require 'umbrella-yyy-ccc)
+|       │   # (require 'umbrella-yyy-ddd)
+|       │   # (provide 'umbrella-yyy)
+|       ├── umbrella-yyy-ccc.el         # Component C functionality
+|       └── umbrella-yyy-ddd.el         # Component D functionality
+└── tests/                          # Test suite directory
+    ├── test-package-name.el        # Tests for main package
+    │   # Contents:
+    │   # Loadability check
+    ├── test-umbrella-xxx/          # Tests for xxx component
+    │   ├── test-umbrella-xxx.el    # Tests for xxx integration
+    │   │   # Loadability check
+    │   ├── test-umbrella-xxx-aaa.el # Tests for aaa functionality
+    │   │   # Contents:
+    │   │   # (ert-deftest test-umbrella-xxx-aaa-descriptive-test-name-1 ...)
+    │   │   # (ert-deftest test-umbrella-xxx-aaa-descriptive-test-name-2 ...)
+    │   └── test-umbrella-xxx-bbb.el # Tests for bbb functionality
+    │       # Contents:
+    │       # (ert-deftest test-umbrella-xxx-bbb-descriptive-test-name-1 ...)
+    │       # (ert-deftest test-umbrella-xxx-bbb-descriptive-test-name-2 ...)
+    └── test-umbrella-yyy/          # Tests for yyy component
+        ├── test-umbrella-yyy.el    # Tests for yyy integration
+        │   # Contents:
+        │   # Loadability check
+        ├── test-umbrella-yyy-ccc.el # Tests for ccc functionality
+        │   # (ert-deftest test-umbrella-yyy-ccc-descriptive-test-name-1 ...)
+        │   # (ert-deftest test-umbrella-yyy-ccc-descriptive-test-name-2 ...)
+        └──test-umbrella-yyy-ddd.el # Tests for ddd functionality
+            # (ert-deftest test-umbrella-yyy-ddd-descriptive-test-name-1 ...)
+            # (ert-deftest test-umbrella-yyy-ddd-descriptive-test-name-2 ...)
+```
 
 ## Elisp Hierarchy, Sorting Rules
 - Functions must be sorted considering their hierarchy.

@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-08 00:13:41>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/ecc-buffer/ecc-buffer-stale.el
+;;; Timestamp: <2025-05-12 15:41:26>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer/ecc-buffer-stale.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
@@ -76,8 +76,6 @@ This is a compatibility function that calls ecc-buffer-unregister-stale-buffers.
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-stale)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-stale)
 
 
 (when

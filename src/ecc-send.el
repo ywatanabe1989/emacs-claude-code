@@ -5,9 +5,9 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 (require 'ecc-variables)
-(require 'ecc-buffer/ecc-buffer)
-(require 'ecc-state/ecc-state-detect)
-(require 'ecc-state/ecc-state)
+(require 'ecc-buffer)
+(require 'ecc-state-detect)
+(require 'ecc-state)
 
 ;; External function declarations
 (declare-function vterm-clear "ext:vterm")

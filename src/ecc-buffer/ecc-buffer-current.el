@@ -242,19 +242,10 @@ Return t if state was set successfully, nil otherwise."
 ;; ;; Initialize the hooks
 ;; (ecc-buffer-setup-cleanup-hooks)
 
-;; (provide 'ecc-buffer-registry)
-;; (when
-;;     (not load-file-name)
-;;   (message "ecc-buffer-registry.el loaded."
-;;            (file-name-nondirectory
-;;             (or load-file-name buffer-file-name))))
 
 
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-current)
-
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-current)
 
 
 (when

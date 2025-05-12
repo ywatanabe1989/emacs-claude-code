@@ -14,7 +14,7 @@
   :type 'directory
   :group 'emacs-claude)
 
-(require 'ecc-template/ecc-template-cache)
+(require 'ecc-template-cache)
 
 (defun ecc-template-cache-purge ()
   "Purge outdated templates from the cache."
@@ -242,7 +242,7 @@ If TEMPLATE-NAME is provided, use that template directly."
 ;; Set up a timer to periodically purge the outdated cache entries
 (run-with-idle-timer 300 t #'ecc-template-cache-purge-outdated)
 
-(provide 'ecc-template/ecc-template)
+(provide 'ecc-template)
 
 (when
     (not load-file-name)

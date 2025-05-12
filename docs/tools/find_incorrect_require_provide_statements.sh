@@ -86,9 +86,9 @@ check_require_statements() {
 main() {
     local elisp_files
 
-    # Find all Emacs Lisp files in the repository, excluding examples and dot files
+    # Find all Emacs Lisp files in the repository
     # elisp_files=$(find "$REPOSITORY_HOME" -name "*.el" -type f -not -path "*/\.*")
-    elisp_files=$(find $REPOSITORY_HOME -name "*.el" -type f | grep -v ".old" | grep -v "/examples/")
+    elisp_files=$(find $REPOSITORY_HOME -name "*.el" -type f | grep -v ".old")
 
     log_message "INFO" "Checking $(echo "$elisp_files" | wc -l) Emacs Lisp files"
 

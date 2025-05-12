@@ -37,8 +37,6 @@ active  - Buffer is active (for backward compatibility)")
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-variables)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-variables)
 
 (when
     (not load-file-name)

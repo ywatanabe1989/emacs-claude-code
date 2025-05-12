@@ -82,8 +82,6 @@ Return t if buffer was removed, nil otherwise."
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-registry)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-registry)
 
 
 (when

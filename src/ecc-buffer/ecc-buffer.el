@@ -19,10 +19,6 @@
 ;; Register this feature
 (provide 'ecc-buffer)
 
-;; Also provide the feature with the prefix to match test expectations
-;; Note: Using slashes in feature names is not a best practice in Elisp,
-;; but we're adding this alias to make the tests pass
-(provide 'ecc-buffer/ecc-buffer)
 
 (when
     (not load-file-name)
