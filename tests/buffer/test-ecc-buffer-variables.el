@@ -45,7 +45,14 @@
 
 (ert-deftest test-ecc-buffer-current-buffer-initialization ()
   "Test that ecc-buffer-current-buffer is initialized to nil."
-  (should (eq nil ecc-buffer-current-buffer)))
+  (let ((orig-buffer ecc-buffer-current-buffer))
+    (unwind-protect
+        (progn
+          ;; Explicitly reset the variable for this test
+          (setq ecc-buffer-current-buffer nil)
+          (should (eq nil ecc-buffer-current-buffer)))
+      ;; Restore the original value after the test
+      (setq ecc-buffer-current-buffer orig-buffer))))
 
 (ert-deftest test-ecc-buffer-property-defaults-structure ()
   "Test that ecc-buffer-property-defaults has the expected structure."
