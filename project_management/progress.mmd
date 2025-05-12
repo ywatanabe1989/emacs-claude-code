@@ -33,6 +33,8 @@ graph TD
         Goal7[Goal 7: Repository Integration]:::todo
         Goal8[Goal 8: Performance Optimization]:::todo
         Goal9[Goal 9: User Experience]:::inProgress
+        Goal10[Goal 10: Simple Apptainer Integration]:::done
+        Goal11[Goal 11: Remove Apptainer Integration]:::done
     end
     
     %% Goal 1 Details
@@ -137,6 +139,50 @@ graph TD
         end
     end
     
+    %% Goal 10 Details (Simple Apptainer Integration)
+    subgraph Goal10Details[Simple Apptainer Integration]
+        M10_1[Simplified Container Definition]:::done
+        M10_2[Streamlined Launcher]:::done
+        M10_3[Documentation]:::done
+        
+        subgraph M10_1Tasks[Container Tasks]
+            T10_1_1[Lightweight Apptainer Definition]:::done
+            T10_1_2[Optimize Container Dependencies]:::done
+        end
+        
+        subgraph M10_2Tasks[Launcher Tasks]
+            T10_2_1[Create Simplified Launch Script]:::done
+            T10_2_2[Add Environment Detection]:::done
+        end
+        
+        subgraph M10_3Tasks[Documentation Tasks]
+            T10_3_1[User-friendly Quick Start Guide]:::done
+            T10_3_2[Troubleshooting Section]:::done
+        end
+    end
+    
+    %% Goal 11 Details (Remove Apptainer Integration)
+    subgraph Goal11Details[Remove Apptainer Integration]
+        M11_1[Remove Apptainer Files]:::done
+        M11_2[Update Documentation]:::done
+        M11_3[Verify Functionality]:::done
+        
+        subgraph M11_1Tasks[Removal Tasks]
+            T11_1_1[Remove Apptainer Documentation]:::done
+            T11_1_2[Remove Apptainer Plan Files]:::done
+        end
+        
+        subgraph M11_2Tasks[Documentation Tasks]
+            T11_2_1[Update README.md]:::done
+            T11_2_2[Update Project Plans]:::done
+        end
+        
+        subgraph M11_3Tasks[Verification Tasks]
+            T11_3_1[Run Tests]:::done
+            T11_3_2[Manual Testing]:::done
+        end
+    end
+    
     %% Connections
     title --> ProjectStructure
     title --> Goals
@@ -146,6 +192,8 @@ graph TD
     Goals --> Goal3Details
     Goals --> Goal6Details
     Goals --> Goal9Details
+    Goals --> Goal10Details
+    Goals --> Goal11Details
     Goals --> FutureGoals
     
     Goal1 --> M1_1
@@ -175,6 +223,20 @@ graph TD
     M9_2 --> M9_2Tasks
     M9_3 --> M9_3Tasks
     
+    Goal10 --> M10_1
+    Goal10 --> M10_2
+    Goal10 --> M10_3
+    M10_1 --> M10_1Tasks
+    M10_2 --> M10_2Tasks
+    M10_3 --> M10_3Tasks
+    
+    Goal11 --> M11_1
+    Goal11 --> M11_2
+    Goal11 --> M11_3
+    M11_1 --> M11_1Tasks
+    M11_2 --> M11_2Tasks
+    M11_3 --> M11_3Tasks
+    
     Root --> Core
     Root --> BufferDir
     Root --> StateDir
@@ -196,3 +258,5 @@ graph TD
     class T6_1_1,T6_1_2,T6_2_1,T6_2_2,T6_3_1,T6_3_2 done;
     class T9_2_1,T9_3_1,T9_3_2 done;
     class T9_2_2 todo;
+    class T10_1_1,T10_1_2,T10_2_1,T10_2_2,T10_3_1,T10_3_2 done;
+    class T11_1_1,T11_1_2,T11_2_1,T11_2_2,T11_3_1,T11_3_2 done;
