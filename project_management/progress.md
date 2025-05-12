@@ -326,13 +326,13 @@
 | 📋 T | [x]  | Update project plans                                | 👍 A |
 |      | [x]  | 📌 Update emacs-claude-code.el                      | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 🏁 M | [ ]  | Verify functionality                                | 👍 A |
+| 🏁 M | [x]  | Verify functionality                                | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 📋 T | [ ]  | Run tests to ensure no regressions                  | 👍 A |
-|      | [ ]  | 📌 ./run_tests.sh --debug                           | 👍 A |
+| 📋 T | [x]  | Run tests to ensure no regressions                  | 👍 A |
+|      | [x]  | 📌 ./run_tests.sh --debug                           | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 📋 T | [ ]  | Manual testing of core functionality                | 👍 A |
-|      | [ ]  | 📌 Verify emacs-claude-code works without Apptainer | 👍 A |
+| 📋 T | [x]  | Manual testing of core functionality                | 👍 A |
+|      | [x]  | 📌 Verify emacs-claude-code works without Apptainer | 👍 A |
 
 * Methods
 
