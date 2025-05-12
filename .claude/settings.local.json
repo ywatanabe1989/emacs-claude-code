@@ -28,7 +28,8 @@
       "Bash(ELISP-TEST-REPORT*)",
       "Bash(gh pr create:*)",
       "Bash(gh pr view:*)",
-      "Bash(./render_mermaid.sh:*)"
+      "Bash(./render_mermaid.sh:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": []
   }
