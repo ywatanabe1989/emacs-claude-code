@@ -37,11 +37,7 @@
 ;; templated prompts, buffer management, auto response, state detection,
 ;; and integration with vterm for improved interaction.
 ;;
-;; For the best experience, consider using the Apptainer integration
-;; by running:
-;;   ./launch-claude-emacs.sh --run
-;;
-;; For more information, see the documentation in docs/apptainer.md
+;; For more information, see the project documentation
 
 ;;; Code:
 
