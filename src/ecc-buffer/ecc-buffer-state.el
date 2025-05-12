@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-08 00:13:42>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/ecc-buffer/ecc-buffer-state.el
+;;; Timestamp: <2025-05-12 13:14:46>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer/ecc-buffer-state.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
@@ -70,7 +70,8 @@ Optional argument BUFFER defaults to the current buffer."
 
 (defun --ecc-state-is-y/y/n-p (&optional buffer)
   "Detect y/y/n prompt in Claude buffer."
-  (--ecc-state-detect-prompt ecc-prompt-pattern-y/y/n buffer))
+  (when ecc-prompt-pattern-y/y/n
+    (--ecc-state-detect-prompt ecc-prompt-pattern-y/y/n buffer)))
 
 (defun --ecc-state-is-running-p (&optional buffer)
   "Detect if Claude is in running state."
@@ -132,11 +133,11 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, :running, or nil."
 
 
 ;; Register this feature with standard naming
-(provide 'ecc-buffer-state)
 
 ;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-state)
 
+
+(provide 'ecc-buffer-state)
 
 (when
     (not load-file-name)
