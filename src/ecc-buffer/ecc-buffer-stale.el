@@ -14,13 +14,22 @@
 
 (defun ecc-buffer-set-buffer-state (buf state)
   "Set the state of BUF to STATE in the registered buffers alist.
-STATE must be one of the values in `ecc-state-available-states'."
+STATE must be one of the values in `ecc-state-available-states'.
+Keywords symbols like :active will be converted to symbols like 'active."
   (cond
+   ;; Handle keyword symbols by converting them to regular symbols
+   ((and (keywordp state)
+         (memq (intern (substring (symbol-name state) 1))
+               ecc-state-available-states))
+    (ecc-buffer-set-buffer-state buf 
+                               (intern (substring (symbol-name state) 1))))
+   ;; Check if state is valid
    ((not (memq state ecc-state-available-states))
     (error
      "%s is not a valid Claude buffer state. Valid states are: %s"
      state ecc-state-available-states)
     nil)
+   ;; Set state if buffer exists
    (buf
     (let* ((buffer (if (bufferp buf) buf (get-buffer buf)))
            (entry (assoc buffer ecc-buffer-registered-buffers-alist)))
