@@ -250,7 +250,12 @@ Return t if state was set successfully, nil otherwise."
 ;;             (or load-file-name buffer-file-name))))
 
 
+;; Register this feature with standard naming
+(provide 'ecc-buffer-current)
+
+;; Also provide with prefix to match test expectations
 (provide 'ecc-buffer/ecc-buffer-current)
+
 
 (when
     (not load-file-name)

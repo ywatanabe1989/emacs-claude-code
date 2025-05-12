@@ -7,7 +7,7 @@
 
 
 (require 'ecc-variables)
-(require 'ecc-buffer/ecc-buffer-timestamp)
+(require 'ecc-buffer-timestamp)
 
 ;; Registry
 ;; ------------------------------
@@ -40,6 +40,19 @@ Return the new buffer."
   (interactive)
   (mapcar #'car ecc-buffer-registered-buffers-alist))
 
+(defun ecc-buffer-get-all-buffers ()
+  "Get all registered Claude buffers sorted by timestamp.
+Return a list of buffer objects."
+  (let* ((all-buffers (ecc-buffer-get-registered-buffers))
+         (live-buffers (seq-filter #'buffer-live-p all-buffers))
+         (sorted-buffers
+          (sort live-buffers
+                (lambda (buf1 buf2)
+                  (let ((time1 (ecc-buffer-get-timestamp buf1))
+                        (time2 (ecc-buffer-get-timestamp buf2)))
+                    (time-less-p time2 time1))))))
+    sorted-buffers))
+
 (defun ecc-buffer-register-buffer (buf)
   "Register BUF in `ecc-buffer-registered-buffers-alist'.
 Also records a timestamp for the buffer.
@@ -66,7 +79,12 @@ Return t if buffer was removed, nil otherwise."
         t))))
 
 
+;; Register this feature with standard naming
+(provide 'ecc-buffer-registry)
+
+;; Also provide with prefix to match test expectations
 (provide 'ecc-buffer/ecc-buffer-registry)
+
 
 (when
     (not load-file-name)

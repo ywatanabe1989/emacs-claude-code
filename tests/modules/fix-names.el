@@ -91,26 +91,14 @@
 ;; Make ecc-buffer-registered-buffers point to ecc-buffer-registered-buffers-alist
 (setq ecc-buffer-registered-buffers ecc-buffer-registered-buffers-alist)
 
-;; Create stub functions for vterm
-(unless (fboundp 'vterm-send-key)
-  (defun vterm-send-key (key &optional times)
-    "Stub function for vterm-send-key when vterm is not available.
-Simulates sending KEY TIMES times to a vterm buffer."
-    (ignore key times)))
-
-(unless (fboundp 'vterm-send-return)
-  (defun vterm-send-return ()
-    "Stub function for vterm-send-return when vterm is not available."
-    nil))
-
-(unless (fboundp 'vterm-send-string)
-  (defun vterm-send-string (string &optional paste-p)
-    "Stub function for vterm-send-string when vterm is not available."
-    (ignore string paste-p)))
-
-(unless (fboundp 'vterm-copy-mode)
-  (defun vterm-copy-mode (arg)
-    "Stub function for vterm-copy-mode when vterm is not available."
-    (ignore arg)))
+;; IMPORTANT: We now use vterm-mock.el for mocking vterm functions
+;; Only define stubs if vterm-mock hasn't been loaded
+(unless (featurep 'vterm-mock)
+  ;; Forward declarations for vterm functions - these will defer to vterm-mock if loaded
+  (declare-function vterm-send-key "ext:vterm" (key &optional times))
+  (declare-function vterm-send-return "ext:vterm" ())
+  (declare-function vterm-send-string "ext:vterm" (string &optional paste-p))
+  (declare-function vterm-copy-mode "ext:vterm" (arg))
+  (declare-function vterm-clear "ext:vterm" ()))
 
 (provide 'fix-names)

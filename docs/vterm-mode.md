@@ -14,6 +14,8 @@ Claude Code VTERM Mode provides an optimized terminal interface for interacting 
 - Emacs 27.1 or later
 - `vterm` package (optional, falls back to `special-mode` if not available)
 - Claude Code package
+- Claude CLI tool (optional, for real API access)
+
 
 ## Basic Usage
 

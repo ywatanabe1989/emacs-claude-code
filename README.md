@@ -19,6 +19,7 @@ Emacs Claude Code (ECC) enhances your workflow by seamlessly integrating Claude'
 - Optimized VTERM mode for high-performance Claude interaction
 - Automatic response handling with state detection
 - Template system for common queries
+- Web browsing integration for research and information gathering
 - Region/buffer processing
 - Repository analysis capabilities
 - Robust test framework
@@ -34,6 +35,8 @@ Emacs Claude Code (ECC) enhances your workflow by seamlessly integrating Claude'
 
 ### Setup
 
+#### Method 1: Direct Installation
+
 1. Clone this repository:
    ```
    git clone https://github.com/ywatanabe/emacs-claude-code.git ~/.emacs.d/lisp/emacs-claude-code
@@ -45,15 +48,35 @@ Emacs Claude Code (ECC) enhances your workflow by seamlessly integrating Claude'
    (require 'emacs-claude-code)
    ```
 
+#### Method 2: Using the Standalone Script
+
+For a quick setup without modifying your Emacs configuration:
+
+```bash
+cd ~/.emacs.d/lisp/emacs-claude-code
+./launch-claude-standalone.sh
+```
+
+This script launches Emacs with a temporary configuration that loads the Claude VTerm environment.
+
+
 ## Usage
 All commands are available under the `C-c c` prefix:
 
 ### Buffer Management
 - `C-c c c` - Create new Claude session
 - `C-c c v` - Create new Claude VTERM session
+- `C-c c V h` - Display help for Claude VTERM mode
 - `C-c c n` - Navigate to next Claude buffer
 - `C-c c p` - Navigate to previous Claude buffer
 - `C-c c l` - List all Claude buffers
+
+### Web Browsing Integration
+- `C-c C-w` - Open EWW web browser
+- `C-c C-s` - Search the web using EWW
+- `C-c C-b` - Browse a URL and send content to Claude
+
+For more details on web integration, see the Web Integration Documentation.
 
 ### Interaction
 - `C-c c a` - Toggle auto-accept mode
@@ -85,7 +108,7 @@ ECC provides an optimized VTERM mode for high-performance Claude interaction, wi
 
 ### How to Use
 
-1. **Start VTERM Mode**: Use `C-c c v` or `M-x ecc-claude-vterm` to start a new VTERM session
+1. **Start VTERM Mode**: Use `C-c c v` or `M-x ecc-run-vterm-claude` to start a new VTERM session
 
 2. **Key Bindings**:
    - `C-c C-y` - Send 'yes' response
@@ -98,7 +121,12 @@ ECC provides an optimized VTERM mode for high-performance Claude interaction, wi
    - `C-c C-f` - Next buffer
    - `C-c C-t` - New buffer
 
-3. **Mode Line Indicators**:
+3. **Web Integration Key Bindings**:
+   - `C-c C-w` - Open EWW web browser
+   - `C-c C-s` - Search the web using EWW
+   - `C-c C-b` - Browse a URL and send content to Claude
+
+4. **Mode Line Indicators**:
    - `[Waiting]` - Claude is waiting for continuation
    - `[Y/N]` - Claude is waiting for yes/no
    - `[Y/Y/N]` - Claude is waiting for complex choice
@@ -193,6 +221,7 @@ Emacs Claude Code uses a modern, well-structured architecture with proper separa
 - **Integration Layer**: Backward compatibility with legacy systems
 
 For more details, see the [Architecture Documentation](docs/architecture.md).
+
 
 ## Contact
 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)

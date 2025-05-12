@@ -73,7 +73,12 @@ This is a compatibility function that calls ecc-buffer-unregister-stale-buffers.
   (ecc-buffer-unregister-stale-buffers))
 
 
+;; Register this feature with standard naming
+(provide 'ecc-buffer-stale)
+
+;; Also provide with prefix to match test expectations
 (provide 'ecc-buffer/ecc-buffer-stale)
+
 
 (when
     (not load-file-name)
