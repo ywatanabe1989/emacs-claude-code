@@ -28,8 +28,6 @@ Returns nil if no timestamp is recorded for this buffer."
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-timestamp)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-timestamp)
 
 
 (when (not load-file-name)

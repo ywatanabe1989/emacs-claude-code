@@ -10,7 +10,7 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(require 'ecc-state/ecc-state)
+(require 'ecc-state)
 (require 'ecc-auto)
 (require 'ecc-send)
 

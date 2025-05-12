@@ -26,8 +26,8 @@
 
 ;; Legacy module requirements for integration
 ;; Use safe require to handle potential missing modules
-(require 'ecc-buffer/ecc-buffer-variables nil t)
-(require 'ecc-buffer/ecc-buffer-state nil t)
+(require 'ecc-buffer-variables nil t)
+(require 'ecc-buffer-state nil t)
 
 ;; Create stubs for missing modules if needed
 (unless (boundp 'ecc-buffer-registry)

@@ -28,8 +28,6 @@ Return t if buffer is valid, in vterm-mode, and registered, nil otherwise."
 ;; Register this feature with standard naming
 (provide 'ecc-buffer-verification)
 
-;; Also provide with prefix to match test expectations
-(provide 'ecc-buffer/ecc-buffer-verification)
 
 (when
     (not load-file-name)

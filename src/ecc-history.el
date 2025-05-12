@@ -6,7 +6,7 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 (require 'ecc-variables)
-(require 'ecc-buffer/ecc-buffer-registry)
+(require 'ecc-buffer-registry)
 (require 'ecc-send)
 
 ;; History Data Structure

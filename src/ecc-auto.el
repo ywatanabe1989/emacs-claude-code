@@ -8,9 +8,9 @@
 (require 'ecc-variables)
 (require 'ecc-send)
 (require 'ecc-update-mode-line)
-(require 'ecc-buffer/ecc-buffer-registry)
-(require 'ecc-state/ecc-state)
-(require 'ecc-state/ecc-state-detect)
+(require 'ecc-buffer-registry)
+(require 'ecc-state)
+(require 'ecc-state-detect)
 
 ;; External function declarations
 (declare-function vterm-send-key "ext:vterm")

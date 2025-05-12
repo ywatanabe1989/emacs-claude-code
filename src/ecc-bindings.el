@@ -6,12 +6,12 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(require 'ecc-buffer/ecc-buffer-navigation)
+(require 'ecc-buffer-navigation)
 (require 'ecc-auto)
 (require 'ecc-run)
 (require 'ecc-send)
 (require 'ecc-repository)
-(require 'ecc-template/ecc-template)
+(require 'ecc-template)
 
 ;; 1. Configuration and customization
 ;; ----------------------------------------

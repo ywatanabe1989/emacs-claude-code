@@ -5,7 +5,7 @@
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
-(require 'ecc-template/ecc-template)
+(require 'ecc-template)
 
 ;; Define markdown-mode fallback for testing
 (unless (require 'markdown-mode nil t)
@@ -69,7 +69,7 @@ Provides syntax highlighting and special commands for managing Claude templates.
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("/templates/genai/.*\\.md\\'" . ecc-template-mode))
 
-(provide 'ecc-template/ecc-template-mode)
+(provide 'ecc-template-mode)
 
 (when
     (not load-file-name)
