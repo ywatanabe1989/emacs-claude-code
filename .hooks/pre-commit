@@ -1,0 +1,49 @@
+#!/bin/bash
+# Pre-commit hook to run tests before allowing commit
+
+echo "Running tests before commit..."
+./run_tests.sh > .test_output.log 2>&1
+
+# Get the exit status
+EXIT_STATUS=$?
+
+# Set threshold for acceptable test success rate (95%)
+SUCCESS_THRESHOLD=95
+
+# Extract test statistics from output
+if grep -q "[0-9]* tests, [0-9]* results as expected, [0-9]* unexpected" .test_output.log; then
+    # Extract numbers using grep and awk
+    TOTAL_TESTS=$(grep -o "[0-9]* tests" .test_output.log | awk '{print $1}')
+    EXPECTED_RESULTS=$(grep -o "[0-9]* results as expected" .test_output.log | awk '{print $1}')
+    
+    # Calculate success rate
+    if [ "$TOTAL_TESTS" -gt 0 ]; then
+        SUCCESS_RATE=$((EXPECTED_RESULTS * 100 / TOTAL_TESTS))
+        
+        echo "Test success rate: $SUCCESS_RATE% ($EXPECTED_RESULTS/$TOTAL_TESTS passed)"
+        
+        # Check if success rate exceeds threshold
+        if [ "$SUCCESS_RATE" -ge "$SUCCESS_THRESHOLD" ]; then
+            echo "Success rate exceeds threshold of $SUCCESS_THRESHOLD%. Proceeding with commit."
+            rm -f .test_output.log
+            exit 0
+        else
+            echo "Success rate below threshold of $SUCCESS_THRESHOLD%. Commit aborted."
+            echo "Run ./run_tests.sh manually to see detailed test output."
+            echo "If you want to bypass this check, use 'git commit --no-verify'"
+            rm -f .test_output.log
+            exit 1
+        fi
+    fi
+elif [ $EXIT_STATUS -eq 0 ]; then
+    # If we can't parse test statistics but exit code is 0, consider it a pass
+    echo "Tests passed. Proceeding with commit."
+    rm -f .test_output.log
+    exit 0
+else
+    echo "Tests failed with exit code $EXIT_STATUS. Commit aborted."
+    echo "Run ./run_tests.sh manually to see detailed test output."
+    echo "If you want to bypass this check, use 'git commit --no-verify'"
+    rm -f .test_output.log
+    exit 1
+fi
