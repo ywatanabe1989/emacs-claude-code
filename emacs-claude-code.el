@@ -88,8 +88,6 @@
 ;; History and session management
 (require 'ecc-history)
 
-;; Elisp test integration
-(require 'ecc-elisp-test)
 
 ;; ---- Initialization ----
 
