@@ -167,5 +167,26 @@ Returns a string with a human-readable summary."
             item-count memory-usage 
             --ecc-template-cache-hits --ecc-template-cache-misses)))
 
+(defun ecc-template-cache-get-stats ()
+  "Get statistics about the template cache.
+Returns a plist with cache metrics."
+  (unless --ecc-template-cache
+    (ecc-template-cache-init))
+  
+  (let* ((count (hash-table-count --ecc-template-cache))
+         ;; Estimate memory usage: count chars in all cached content
+         (memory 
+          (let ((total 0))
+            (maphash (lambda (_key item)
+                       (when-let ((content (plist-get item :content)))
+                         (cl-incf total (length content))))
+                     --ecc-template-cache)
+            total)))
+    
+    (list :count count
+          :memory memory
+          :hits --ecc-template-cache-hits
+          :misses --ecc-template-cache-misses)))
+
 (provide 'ecc-template-cache)
 ;;; ecc-template-cache.el ends here

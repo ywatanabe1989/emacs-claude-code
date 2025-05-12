@@ -1,28 +1,53 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-12 15:45:25>
+;;; Timestamp: <2025-05-13 04:21:25>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/emacs-claude-code.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
+;; Add all feature directories to the load path
+(defun --ecc-add-all-to-loadpath ()
+  "Add all necessary directories to `load-path`."
+  (let* ((base-dir (file-name-directory
+                    (or load-file-name buffer-file-name)))
+         (src-dir (expand-file-name "src" base-dir)))
+    
+    ;; Add src directory
+    (add-to-list 'load-path src-dir)
+    
+    ;; Add all immediate subdirectories of src to load-path
+    (dolist (dir (directory-files src-dir t "\\`[^.]"))
+      (when (and (file-directory-p dir)
+                 (not (string-match-p "/\\.\\|/\\.\\." dir))
+                 (not (string-match-p "contrib\\|.old" dir)))
+        (add-to-list 'load-path dir)))))
 
-(add-to-list 'load-path "~/.emacs.d/lisp/emacs-claude-code/src/")
-(add-to-list 'load-path
-             "~/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer")
-(add-to-list 'load-path
-             "~/.emacs.d/lisp/emacs-claude-code/src/ecc-state")
-(add-to-list 'load-path
-             "~/.emacs.d/lisp/emacs-claude-code/src/ecc-template")
-(add-to-list 'load-path
-             "~/.emacs.d/lisp/emacs-claude-code/src/ecc-term")
+;; Initialize load path
+(--ecc-add-all-to-loadpath)
 
-(require 'ecc-auto)
+;; ---- Core Modules ----
+
+;; Configuration and variables
+(require 'ecc-variables)
+(require 'ecc-compat)
+
+;; User Interface
+(require 'ecc-update-mode-line)
 (require 'ecc-bindings)
-(require 'ecc-buffer)
+(require 'ecc-mode)
+
+;; Auto-response functionality
+(require 'ecc-auto)
+
+;; Command execution
+(require 'ecc-run)
+(require 'ecc-send)
+
+;; Buffer management
 (require 'ecc-buffer-manager)
+(require 'ecc-buffer)
 (require 'ecc-buffer-auto-switch)
 (require 'ecc-buffer-current)
-(require 'ecc-buffer)
 (require 'ecc-buffer-navigation)
 (require 'ecc-buffer-registry)
 (require 'ecc-buffer-stale)
@@ -31,38 +56,46 @@
 (require 'ecc-buffer-variables)
 (require 'ecc-buffer-verification)
 
+;; Large buffer handling
 (require 'ecc-large-buffer)
-(require 'ecc-command)
-(require 'ecc-compat)
-(require 'ecc-dired)
-(require 'ecc-elisp-test)
-(require 'ecc-history)
-(require 'ecc-integration)
 
-(require 'ecc-mode)
+;; State management 
+(require 'ecc-state-engine)
+(require 'ecc-state)
+(require 'ecc-state-detect)
+
+;; Template system
+(require 'ecc-template)
+(require 'ecc-template-cache)
+(require 'ecc-template-mode)
+
+;; Repository integration
 (require 'ecc-repository)
 (require 'ecc-repository-view)
-(require 'ecc-run)
-(require 'ecc-run-vterm)
-(require 'ecc-send)
-(require 'ecc-state)
-(require 'ecc-state-engine)
-(require 'ecc-claude-vterm-mode)
-(require 'ecc-update-mode-line)
-(require 'ecc-variables)
-(require 'ecc-vterm)
-(require 'ecc-update-mode-line)
-(require 'ecc-bindings)
-(require 'ecc-mode)
+(require 'ecc-dired)
 
-(require 'ecc-template-cache)
-(require 'ecc-template)
-(require 'ecc-template-mode)
-(require 'ecc-claude-vterm-mode)
-(require 'ecc-run-vterm)
-(require 'ecc-state-detect)
-(require 'ecc-state)
+;; Integration with other tools
+(require 'ecc-integration)
+(require 'ecc-command)
 
+;; Terminal integration (optional)
+(condition-case nil
+    (progn
+      (require 'ecc-claude-vterm-mode)
+      (require 'ecc-run-vterm))
+  (error (message "Claude vterm mode could not be loaded (vterm may not be installed)")))
+
+;; History and session management
+(require 'ecc-history)
+
+;; Elisp test integration
+(require 'ecc-elisp-test)
+
+;; ---- Initialization ----
+
+;; Enable modes if auto-enable is set
+(when (and (boundp 'ecc-auto-enable) ecc-auto-enable)
+  (ecc-mode 1))
 
 (provide 'emacs-claude-code)
 

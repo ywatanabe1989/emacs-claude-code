@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-11 17:31:00>
+;;; Timestamp: <2025-05-13 02:58:16>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/examples/basic-usage.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -32,11 +32,22 @@
 
 ;; BUG: example-claude-vterm: Symbol’s function definition is void: ecc-vterm-create
 
-(defun example-claude-vterm ()
-  "Create a new Claude vterm buffer for interaction."
-  (interactive)
-  ;; Use the built-in vterm creation function
-  (ecc-vterm-create))
+;; (defun example-claude-vterm ()
+;;   "Create a new Claude vterm buffer for interaction."
+;;   (interactive)
+;;   ;; Use the built-in vterm creation function
+;;   (ecc-vterm-create))
+;; Error reading undo-tree history from "/home/ywatanabe/.emacs.d/undo-tree-history/.!home!ywatanabe!.emacs.d!lisp!emacs-claude-code!examples!basic-usage.el.~undo-tree~"
+;; emacs-claude-code
+;; vterm
+;; ecc-vterm
+;; consp: Wrong type argument: listp, t
+;; Error in buffer hook: (wrong-type-argument number-or-marker-p #s(ecc-state yes-yes-no "Yes/Yes/No" "\\(?:❯ 1\\. Yes.*\\)\\(?:❯ 2\\. Yes, but.*\\)\\(?:❯ 3\\. No.*\\)" "Claude is asking a yes/yes/no question" (running idle) ecc-state-engine--handle-yes-yes-no))
+;; #<buffer *Claude vterm 1*>
+;; Error running timer ‘ecc-vterm--detect-state’: (wrong-type-argument number-or-marker-p #s(ecc-state yes-yes-no "Yes/Yes/No" "\\(?:❯ 1\\. Yes.*\\)\\(?:❯ 2\\. Yes, but.*\\)\\(?:❯ 3\\. No.*\\)" "Claude is asking a yes/yes/no question" (running idle) ecc-state-engine--handle-yes-yes-no)) [2 times]
+;; Error running timer: (wrong-type-argument number-or-marker-p #s(ecc-state yes-yes-no "Yes/Yes/No" "\\(?:❯ 1\\. Yes.*\\)\\(?:❯ 2\\. Yes, but.*\\)\\(?:❯ 3\\. No.*\\)" "Claude is asking a yes/yes/no question" (running idle) ecc-state-engine--handle-yes-yes-no))
+;; Error running timer ‘ecc-vterm--detect-state’: (wrong-type-argument number-or-marker-p #s(ecc-state yes-yes-no "Yes/Yes/No" "\\(?:❯ 1\\. Yes.*\\)\\(?:❯ 2\\. Yes, but.*\\)\\(?:❯ 3\\. No.*\\)" "Claude is asking a yes/yes/no question" (running idle) ecc-state-engine--handle-yes-yes-no)) [17 times]
+;; Error running timer: (wrong-type-argument number-or-marker-p #s(ecc-state yes-yes-no "Yes/Yes/No" "\\(?:❯ 1\\. Yes.*\\)\\(?:❯ 2\\. Yes, but.*\\)\\(?:❯ 3\\. No.*\\)" "Claude is asking a yes/yes/no question" (running idle) ecc-state-engine--handle-yes-yes-no))
 
 ;; Define a simple f222unction to send a prompt to Claude
 
