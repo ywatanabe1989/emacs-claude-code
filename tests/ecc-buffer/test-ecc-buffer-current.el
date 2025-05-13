@@ -9,7 +9,8 @@
 (require 'ert)
 (require 'ecc-buffer-variables)
 (require 'ecc-buffer-registry)
-(require 'ecc-buffer-state)
+;; ecc-buffer-state was removed during reorganization
+;; (require 'ecc-buffer-state)
 (require 'ecc-buffer-current)
 
 (ert-deftest test-ecc-buffer-current-loadable ()

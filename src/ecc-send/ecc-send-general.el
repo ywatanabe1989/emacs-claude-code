@@ -1,7 +1,7 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
 ;;; Timestamp: <2025-05-10 03:19:20>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-send.el
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-send/ecc-send-general.el
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 (require 'ecc-variables)
@@ -117,9 +117,9 @@ Returns the response string if sent, nil otherwise."
         response))))
 
 
-(provide 'ecc-send)
+(provide 'ecc-send-general)
 (when
     (not load-file-name)
-  (message "ecc-send.el loaded."
+  (message "ecc-send-general.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

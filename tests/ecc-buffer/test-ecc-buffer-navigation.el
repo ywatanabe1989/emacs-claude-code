@@ -9,7 +9,7 @@
 (require 'ecc-buffer-registry)
 (require 'ecc-buffer-stale)
 (require 'ecc-buffer-timestamp)
-(require 'ecc-update-mode-line)
+(require 'ecc-ui-mode-line)
 
 (ert-deftest test-ecc-buffer-navigation-loadable ()
   "Test that ecc-buffer-navigation loads properly."
@@ -134,7 +134,7 @@ When the current buffer is killed, the next navigation should select a valid buf
           (let ((orig-display-buffer (symbol-function 'display-buffer))
                 (next nil))
             (cl-letf (((symbol-function 'display-buffer) #'ignore)
-                      ((symbol-function 'ecc-update-mode-line-all-buffers) #'ignore))
+                      ((symbol-function 'ecc-ui-update-mode-line-all-buffers) #'ignore))
               
               ;; Call navigation with dead current buffer
               (setq next (ecc-buffer-next))

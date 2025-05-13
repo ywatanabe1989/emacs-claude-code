@@ -447,9 +447,9 @@ This function is meant to be called when initializing VTERM mode."
     "Stub function for vterm--internal."
     (error "vterm not available")))
 
-(provide 'ecc-claude-vterm-mode)
+(provide 'ecc-term-vterm-mode-legacy)
 
 (when (not load-file-name)
-  (message "ecc-claude-vterm-mode.el loaded."
+  (message "ecc-term-vterm-mode-legacy.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

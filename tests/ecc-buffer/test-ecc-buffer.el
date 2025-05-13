@@ -12,7 +12,8 @@
 (require 'ecc-buffer-verification)
 (require 'ecc-buffer-registry)
 (require 'ecc-buffer-current)
-(require 'ecc-buffer-state)
+;; ecc-buffer-state was removed during reorganization
+;; (require 'ecc-buffer-state)
 (require 'ecc-buffer-stale)
 (require 'ecc-buffer-navigation)
 (require 'ecc-buffer-timestamp)
@@ -37,9 +38,10 @@
   "Test that ecc-buffer-current is required."
   (should (featurep 'ecc-buffer-current)))
 
-(ert-deftest test-ecc-buffer-state-required ()
-  "Test that ecc-buffer-state is required."
-  (should (featurep 'ecc-buffer-state)))
+;; Test removed as ecc-buffer-state module no longer exists
+;; (ert-deftest test-ecc-buffer-state-required ()
+;;   "Test that ecc-buffer-state is required."
+;;   (should (featurep 'ecc-buffer-state)))
 
 (ert-deftest test-ecc-buffer-stale-required ()
   "Test that ecc-buffer-stale is required."

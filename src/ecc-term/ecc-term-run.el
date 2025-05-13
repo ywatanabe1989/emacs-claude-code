@@ -10,12 +10,15 @@
 (require 'ecc-variables)
 (require 'ecc-term-variables)
 
+;; We'll use a forward declaration approach
+(declare-function ecc-term-vterm "ecc-term-vterm-mode")
+
 ;; Check if vterm mode is available
 (defvar ecc-term-run--vterm-available
   (condition-case nil 
-      (progn (require 'ecc-term-vterm-mode) t)
+      (progn (require 'vterm) t)
     (error nil))
-  "Whether the Claude vterm mode is available.")
+  "Whether the vterm package is available.")
 
 ;;;###autoload
 (defun ecc-term-run-claude ()
@@ -28,17 +31,28 @@ Falls back to a simpler mode if VTerm is not available."
   (interactive)
   (if (not ecc-term-run--vterm-available)
       (ecc-term-run-fallback)
-    (let ((buffer (ecc-term-vterm)))
-      (with-current-buffer buffer
-        ;; Display welcome message in the buffer
-        (when (fboundp 'vterm-send-string)
-          (vterm-send-string "echo \"Welcome to Claude via VTerm Mode!\"\n")
-          (vterm-send-string "echo \"Use C-c C-a to toggle auto-response mode\"\n")
-          (vterm-send-string "echo \"Use C-c C-y for Yes, C-c C-n for No\"\n")
-          (vterm-send-string "echo \"Use C-c C-c to interrupt Claude\"\n")
-          (vterm-send-string "claude\n")))
-      ;; Return the buffer
-      buffer)))
+    ;; Load ecc-term-vterm-mode only when needed
+    (condition-case nil
+        (require 'ecc-term-vterm-mode)
+      (error (message "Failed to load ecc-term-vterm-mode")))
+    
+    ;; Check if ecc-term-vterm function is available
+    (if (not (fboundp 'ecc-term-vterm))
+        (progn
+          (message "ecc-term-vterm function not available")
+          (ecc-term-run-fallback))
+      ;; Create and configure the vterm buffer
+      (let ((buffer (ecc-term-vterm)))
+        (with-current-buffer buffer
+          ;; Display welcome message in the buffer
+          (when (fboundp 'vterm-send-string)
+            (vterm-send-string "echo \"Welcome to Claude via VTerm Mode!\"\n")
+            (vterm-send-string "echo \"Use C-c C-a to toggle auto-response mode\"\n")
+            (vterm-send-string "echo \"Use C-c C-y for Yes, C-c C-n for No\"\n")
+            (vterm-send-string "echo \"Use C-c C-c to interrupt Claude\"\n")
+            (vterm-send-string "claude\n")))
+        ;; Return the buffer
+        buffer))))
 
 (defun ecc-term-run-fallback ()
   "Fallback function when VTerm is not available.

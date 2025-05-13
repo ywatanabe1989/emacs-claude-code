@@ -11,7 +11,7 @@
 (require 'ecc-buffer-variables)
 (require 'ecc-buffer-timestamp)
 (require 'ecc-buffer-stale)
-(require 'ecc-update-mode-line)
+(require 'ecc-ui-mode-line)
 
 (ert-deftest test-ecc-buffer-registry-loadable ()
   "Test that ecc-buffer-registry loads properly."
@@ -61,7 +61,7 @@
           ;; Mock kill-buffer-hook to prevent recursion
           (cl-letf (((symbol-function 'ecc-buffer-cleanup-hook) 
                    (lambda () nil))
-                  ((symbol-function 'ecc-update-mode-line-all-buffers) 
+                  ((symbol-function 'ecc-ui-update-mode-line-all-buffers) 
                    #'ignore))
             
             ;; Setup test environment (direct assignment to avoid hooks)
@@ -89,7 +89,7 @@
           (setq ecc-buffer-current-buffer nil)
           
           ;; Mock update function to prevent UI updates
-          (cl-letf (((symbol-function 'ecc-update-mode-line-all-buffers) 
+          (cl-letf (((symbol-function 'ecc-ui-update-mode-line-all-buffers) 
                    #'ignore))
             
             ;; Register the test buffer

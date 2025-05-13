@@ -16,7 +16,7 @@
     (or directory default-directory)))
 
 (require 'ecc-repository)
-(require 'ecc-dired)
+(require 'ecc-ui-dired)
 
 (ert-deftest test-ecc-repository-copy-contents-loadable ()
   (should (featurep 'ecc-repository)))
