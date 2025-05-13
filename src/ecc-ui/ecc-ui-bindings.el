@@ -20,10 +20,8 @@
   "Key bindings for emacs-claude-code."
   :group 'emacs-claude)
 
-(defcustom ecc-keymap-prefix "C-c c"
-  "Prefix for ecc-mode key bindings."
-  :type 'string
-  :group 'ecc-keymaps)
+;; Use the keymap prefix from ecc-variables.el
+(defvaralias 'ecc-keymap-prefix 'ecc-keymap-prefix)
 
 ;; 2. Core keymap definition
 ;; ----------------------------------------

@@ -9,8 +9,7 @@
 (require 'ecc-buffer-current)
 (require 'ecc-state)
 
-(defvar ecc-buffer-switch-mode nil
-  "When non-nil, enable automatic switching between Claude buffers.")
+;; Using the variable defined in ecc-buffer-variables.el
 
 ;;;###autoload
 (define-minor-mode ecc-buffer-switch-mode

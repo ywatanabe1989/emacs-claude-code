@@ -13,10 +13,7 @@
 
 ;; Buffer Variables
 
-(defcustom ecc-buffer-name "*CLAUDE-CODE*"
-  "Name for the Claude interaction buffer."
-  :type 'string
-  :group 'emacs-claude)
+;; ecc-buffer-name is defined in ecc-buffer-variables.el
 
 (defvar ecc-buffer nil
   "Buffer for Claude interaction.")
@@ -40,10 +37,7 @@
 (defvar ecc-auto-timer nil
   "Timer for auto-handling of Claude prompts.")
 
-(defcustom ecc-auto-interval-sec 1.5
-  "Time interval in seconds for auto-handling Claude prompts."
-  :type 'number
-  :group 'emacs-claude)
+;; ecc-auto-interval-sec is defined in ecc-auto-variables.el
 
 ;; Prompt Detection Patterns
 
