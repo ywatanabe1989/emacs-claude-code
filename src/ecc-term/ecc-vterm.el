@@ -28,6 +28,7 @@
 
 (require 'cl-lib)
 (require 'vterm nil t)
+(require 'ecc-state)
 (require 'ecc-state-engine)
 (require 'ecc-buffer-manager)
 (require 'ecc-command)
@@ -121,11 +122,7 @@
       ;; Ensure this buffer is current in buffer manager
       (let ((claude-buffer (ecc-buffer-manager-get-by-buffer buffer)))
         (when claude-buffer
-          (ecc-buffer-manager-set-current claude-buffer)))
-
-      ;; Force state detection
-      (when ecc-vterm-auto-detect-state
-        (ecc-vterm--detect-state buffer)))))
+          (ecc-buffer-manager-set-current claude-buffer))))))
 
 (defun ecc-vterm-send-input (buffer input &optional no-return)
   "Send INPUT to the Claude vterm in BUFFER.
@@ -173,7 +170,7 @@ If NO-RETURN is non-nil, don't send return after the input."
   (with-current-buffer buffer
     (vterm-send-C-c)))
 
-;; ---- State Detection ----
+;; ---- State Detection using ecc-state-engine ----
 
 (defun ecc-vterm--setup-state-detection (buffer)
   "Set up state detection for vterm BUFFER."
@@ -182,12 +179,18 @@ If NO-RETURN is non-nil, don't send return after the input."
     (when-let ((timer (gethash buffer ecc-vterm--timers)))
       (cancel-timer timer))
 
-    ;; Create a new timer
+    ;; Create a new timer that uses the ecc-state-engine
     (puthash buffer
              (run-with-timer ecc-vterm-poll-interval
-                             ecc-vterm-poll-interval
-                             #'ecc-vterm--detect-state
-                             buffer)
+                            ecc-vterm-poll-interval
+                            (lambda (buf)
+                              (when (buffer-live-p buf)
+                                (with-current-buffer buf
+                                  (condition-case err
+                                      (ecc-state-engine-detect-state buf)
+                                    (error
+                                     (message "Error in vterm state detection: %S" err))))))
+                            buffer)
              ecc-vterm--timers)))
 
 (defun ecc-vterm--cleanup-state-detection (buffer)
@@ -195,30 +198,6 @@ If NO-RETURN is non-nil, don't send return after the input."
   (when-let ((timer (gethash buffer ecc-vterm--timers)))
     (cancel-timer timer)
     (remhash buffer ecc-vterm--timers)))
-
-(defun ecc-vterm--detect-state (buffer)
-  "Detect Claude state in vterm BUFFER."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      ;; Get vterm content
-      (let ((content (if (fboundp 'vterm-get-buffer-string)
-                         (vterm-get-buffer-string)
-                       (buffer-string))))
-        ;; Store in output ring
-        (ring-insert ecc-vterm--output-ring content)
-
-        ;; Create a temporary buffer with the content for state detection
-        (with-temp-buffer
-          (insert content)
-          (let
-              ((state (ecc-state-engine-detect-state (current-buffer))))
-            (when state
-              ;; Update state in buffer manager
-              (let
-                  ((claude-buffer
-                    (ecc-buffer-manager-get-by-buffer buffer)))
-                (when claude-buffer
-                  (ecc-buffer-manager-set-state claude-buffer state))))))))))
 
 ;; ---- Mode Definition ----
 
