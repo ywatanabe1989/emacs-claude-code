@@ -11,7 +11,7 @@
 (require 'ecc-buffer-current)
 (require 'ecc-buffer-stale)
 (require 'ecc-buffer-timestamp)
-(require 'ecc-update-mode-line)
+(require 'ecc-ui-mode-line)
 
 ;; Buffer switching functions
 ;; ----------------------------------------
@@ -56,7 +56,7 @@ Returns the buffer it switched to, or nil if no buffer is available."
         ;; Update current buffer and display it if found
         (when next-buffer
           (ecc-buffer-set-current-buffer next-buffer)
-          (ecc-update-mode-line-all-buffers)
+          (ecc-ui-highlight-all-buffers)
           (display-buffer next-buffer))
         
         ;; Return the buffer we switched to
@@ -102,7 +102,7 @@ Returns the buffer it switched to, or nil if no buffer is available."
         ;; Update current buffer and display it if found
         (when prev-buffer
           (ecc-buffer-set-current-buffer prev-buffer)
-          (ecc-update-mode-line-all-buffers)
+          (ecc-ui-highlight-all-buffers)
           (display-buffer prev-buffer))
         
         ;; Return the buffer we switched to
