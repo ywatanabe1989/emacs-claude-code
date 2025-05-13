@@ -1,42 +1,80 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-10 03:25:30>
+;;; Timestamp: <2025-05-13 18:50:30>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer/ecc-buffer-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(require 'ecc-variables)
+(defgroup emacs-claude-buffer nil
+  "Customization group for Claude buffer management."
+  :group 'emacs-claude
+  :prefix "ecc-buffer-")
 
-;; Definitions
+;; Buffer Name and Creation
 ;; ------------------------------
 
-(defvar ecc-buffer-registered-buffers-alist
-  nil
-  "Alist of (buffer . state) for registered Claude buffers.")
+(defcustom ecc-buffer-name "*CLAUDE-CODE*"
+  "Name for the Claude interaction buffer."
+  :type 'string
+  :group 'emacs-claude-buffer)
 
-(defvar ecc-state-available-states
-  '(nil ready waiting y/n y/y/n active)
-  "List of available buffer states for Claude buffers.
-nil     - No specific state
-ready   - Ready for input
-waiting - Waiting for user to continue
-y/n     - Yes/no prompt
-y/y/n   - Yes/yes/no prompt
-active  - Buffer is active (for backward compatibility)")
+;; Buffer Tracking
+;; ------------------------------
 
 (defvar ecc-buffer-current-buffer nil
   "The current Claude buffer being used.")
+
+(defvar ecc-buffer--active-buffer nil
+  "Buffer currently being displayed and interacted with.")
+
+(defvar ecc-buffer--registered-buffers nil
+  "List of all registered Claude buffers.")
+
+(defvar ecc-buffer-registered-buffers-alist nil
+  "Alist of (buffer . state) for registered Claude buffers.")
+
+;; Buffer Properties
+;; ------------------------------
 
 (defvar ecc-buffer-property-defaults
   '((role . "assistant")
     (project . nil))
   "Default properties for Claude buffers.")
 
+;; Buffer Management
+;; ------------------------------
 
-;; Register this feature with standard naming
+(defvar ecc-buffer-switch-mode nil
+  "Enable automatic switching between Claude buffers.")
+
+(defcustom ecc-buffer-switch-interval 2
+  "Time interval in seconds for checking buffer switching conditions."
+  :type 'number
+  :group 'emacs-claude-buffer)
+
+;; Buffer Stale Detection
+;; ------------------------------
+
+(defcustom ecc-buffer-stale-timeout 300
+  "Timeout in seconds after which a buffer is considered stale."
+  :type 'number
+  :group 'emacs-claude-buffer)
+
+(defvar ecc-buffer--stale-buffers nil
+  "List of buffers that are considered stale.")
+
+;; Buffer Timestamp Tracking
+;; ------------------------------
+
+(defvar ecc-buffer--timestamps (make-hash-table :test 'equal)
+  "Hash table mapping buffer names to last access timestamps.")
+
+(defvar ecc-buffer--update-history (make-hash-table :test 'equal)
+  "Hash table tracking buffer update history for analytics.")
+
+
 (provide 'ecc-buffer-variables)
-
 
 (when
     (not load-file-name)
