@@ -1,19 +1,16 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-13 17:59:29>
+;;; Timestamp: <2025-05-13 11:16:20>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state/ecc-state.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(let
-    ((this-dir
-      (file-name-directory (or load-file-name buffer-file-name))))
-  (add-to-list 'load-path this-dir))
+(require 'ecc-state-current-buffer)
+(require 'pulse)
 
-(require 'ecc-state-variables)
-(require 'ecc-state-detect-prompt)
-(require 'ecc-state-send)
+;; Sub-functions
+;; ------------------------------
 
 
 (provide 'ecc-state)
