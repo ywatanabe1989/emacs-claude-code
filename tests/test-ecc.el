@@ -22,7 +22,7 @@
   (should (featurep 'ecc-send)))
 
 (ert-deftest test-ecc-update-mode-line-required ()
-  (should (featurep 'ecc-update-mode-line)))
+  (should (featurep 'ecc-ui-mode-line)))
 
 (ert-deftest test-ecc-auto-enable-stop-required ()
   (should (featurep 'ecc-auto)))

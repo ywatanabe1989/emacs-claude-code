@@ -9,6 +9,13 @@
 (require 'ecc-buffer-variables)
 (require 'ecc-state-variables)
 
+;; Define the function used in the vterm hook
+;;;###autoload
+(defun ecc-auto-accept-send ()
+  "Automatically check and respond to Claude prompts in the current buffer."
+  (interactive)
+  (ecc-auto-response-send (current-buffer)))
+
 ;;;###autoload
 (defun ecc-auto-response-send (buffer &optional state)
   "Automatically respond to Claude prompts in BUFFER.
