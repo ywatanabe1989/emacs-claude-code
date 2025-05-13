@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-08 02:40:33>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/ecc-variables.el
+;;; Timestamp: <2025-05-13 18:10:15>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-ui/ecc-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 (defgroup emacs-claude nil
   "Customization group for Emacs Claude Code."
@@ -11,7 +12,8 @@
   :prefix "ecc-")
 
 ;; Buffer Variables
-(defcustom ecc-buffer-name "*Claude*"
+
+(defcustom ecc-buffer-name "*CLAUDE-CODE*"
   "Name for the Claude interaction buffer."
   :type 'string
   :group 'emacs-claude)
@@ -26,6 +28,7 @@
   "List of registered Claude buffers.")
 
 ;; Timer Variables
+
 (defvar ecc-timer nil
   "Timer for auto-detection of Claude state.")
 
@@ -43,13 +46,9 @@
   :group 'emacs-claude)
 
 ;; Prompt Detection Patterns
-(defcustom ecc-prompt-waiting "Continue generati"
-  "Text pattern for detecting waiting prompt."
-  :type 'string
-  :group 'emacs-claude)
 
-(defcustom ecc-prompt-initial-waiting "Would you like Claude to continue?"
-  "Text pattern for detecting initial waiting prompt."
+(defcustom ecc-prompt-waiting "/tests"
+  "Text pattern for detecting waiting prompt."
   :type 'string
   :group 'emacs-claude)
 
@@ -63,22 +62,19 @@
   :type 'string
   :group 'emacs-claude)
 
-(defcustom ecc-prompt-thinking "Thinking…"
-  "Text pattern for detecting thinking state."
+(defcustom ecc-prompt-initial-waiting
+  "/auto"
+  "Text pattern for detecting initial waiting prompt."
   :type 'string
   :group 'emacs-claude)
 
-(defcustom ecc-prompt-loading "Loading…"
-  "Text pattern for detecting loading state."
-  :type 'string
-  :group 'emacs-claude)
-
-(defcustom ecc-prompt-to-send-on-waiting "continue"
+(defcustom ecc-prompt-to-send-on-waiting "/auto"
   "Text to send when Claude is in waiting state."
   :type 'string
   :group 'emacs-claude)
 
 ;; Regex patterns for prompt detection
+
 (defcustom ecc-prompt-pattern-y/n "(y/n)"
   "Regex pattern for detecting yes/no prompt."
   :type 'string
@@ -94,14 +90,17 @@
   :type 'string
   :group 'emacs-claude)
 
-(defcustom ecc-prompt-pattern-initial-waiting "Would you like Claude to continue?"
+(defcustom ecc-prompt-pattern-initial-waiting
+  "Would you like Claude to continue?"
   "Regex pattern for detecting initial waiting prompt."
   :type 'string
   :group 'emacs-claude)
 
+
 (provide 'ecc-variables)
 
-(when (not load-file-name)
+(when
+    (not load-file-name)
   (message "ecc-variables.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))
