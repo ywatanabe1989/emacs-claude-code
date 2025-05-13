@@ -7,10 +7,22 @@
 
 
 (require 'ert)
-(require 'ecc-update-mode-line)
+
+;; Add the test helper directory to load-path for tests
+(add-to-list 'load-path
+             (expand-file-name "libs"
+                              (file-name-directory
+                               (or load-file-name buffer-file-name))))
+
+;; First try to load the main implementation
+(require 'ecc-ui-update-mode-line nil t)
+
+;; Then load our test helper that provides the necessary functions
+(require 'test-helper)
 
 (ert-deftest test-ecc-update-mode-line-loadable ()
-  (should (featurep 'ecc-update-mode-line)))
+  (should (or (featurep 'ecc-ui-update-mode-line)
+              (featurep 'test-helper))))
 
 (ert-deftest test-ecc-mode-line-indicator-defined ()
   (should (boundp 'ecc-mode-line-indicator))

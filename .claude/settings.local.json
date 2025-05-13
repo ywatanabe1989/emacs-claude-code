@@ -14,7 +14,11 @@
       "Bash(git merge:*)",
       "Bash(ls:*)",
       "Bash(mv:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rev-list:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": []
   }

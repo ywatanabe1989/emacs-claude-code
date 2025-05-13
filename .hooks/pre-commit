@@ -1,0 +1,108 @@
+#!/bin/bash
+# Pre-commit hook to run tests before allowing commit
+
+echo "Running tests before commit..."
+./run_tests.sh > .test_output.log 2>&1
+
+# Get the exit status
+EXIT_STATUS=$?
+
+# Set threshold for acceptable test success rate (95%)
+SUCCESS_THRESHOLD=95
+
+# For debugging: Print a section of the output
+echo "Checking for test results..."
+cat .test_output.log | grep -A 5 "Test Results Summary" || echo "Test Results Summary not found"
+
+# Try to get success rate from LATEST-ELISP-REPORT.org
+if [ -f "LATEST-ELISP-REPORT.org" ]; then
+    echo "Checking LATEST-ELISP-REPORT.org for test statistics..."
+    REPORT_PASSED=$(grep -o "Passed: [0-9]*" LATEST-ELISP-REPORT.org | awk '{print $2}')
+    REPORT_TOTAL=$(grep -o "Total: [0-9]*" LATEST-ELISP-REPORT.org | awk '{print $2}')
+    REPORT_RATE=$(grep -o "Success Rate: [0-9.]*%" LATEST-ELISP-REPORT.org | sed 's/Success Rate: //' | sed 's/%//')
+    
+    echo "Found in report: $REPORT_PASSED/$REPORT_TOTAL tests passed (${REPORT_RATE}%)"
+    
+    if [ -n "$REPORT_RATE" ] && [ -n "$REPORT_TOTAL" ] && [ "$REPORT_TOTAL" -gt 0 ]; then
+        # Use the report's calculated rate (remove % sign and convert to integer)
+        SUCCESS_RATE=$(echo "$REPORT_RATE" | cut -d. -f1)
+        
+        echo "Test success rate from report: $SUCCESS_RATE% ($REPORT_PASSED/$REPORT_TOTAL passed)"
+        
+        # Check if success rate exceeds threshold
+        if [ "$SUCCESS_RATE" -ge "$SUCCESS_THRESHOLD" ]; then
+            echo "Success rate exceeds threshold of $SUCCESS_THRESHOLD%. Proceeding with commit."
+            exit 0
+        else
+            echo "Success rate below threshold of $SUCCESS_THRESHOLD%. Commit aborted."
+            echo "Run ./run_tests.sh manually to see detailed test output."
+            echo "If you want to bypass this check, use 'git commit --no-verify'"
+            exit 1
+        fi
+    fi
+fi
+
+# Extract test statistics from direct test output
+echo "Looking for test statistics in direct test output..."
+if grep -q "Ran [0-9]* tests, [0-9]* results as expected, [0-9]* unexpected" .test_output.log; then
+    echo "Found test statistics in output..."
+    # Extract numbers using grep and awk
+    PATTERN_LINE=$(grep "Ran [0-9]* tests, [0-9]* results as expected, [0-9]* unexpected" .test_output.log)
+    echo "Matched line: $PATTERN_LINE"
+    
+    TOTAL_TESTS=$(echo "$PATTERN_LINE" | grep -o "[0-9]* tests" | awk '{print $1}')
+    EXPECTED_RESULTS=$(echo "$PATTERN_LINE" | grep -o "[0-9]* results as expected" | awk '{print $1}')
+    
+    echo "Extracted counts: TOTAL=$TOTAL_TESTS, EXPECTED=$EXPECTED_RESULTS"
+    
+    # Calculate success rate
+    if [ -n "$TOTAL_TESTS" ] && [ -n "$EXPECTED_RESULTS" ] && [ "$TOTAL_TESTS" -gt 0 ]; then
+        SUCCESS_RATE=$((EXPECTED_RESULTS * 100 / TOTAL_TESTS))
+        
+        echo "Test success rate: $SUCCESS_RATE% ($EXPECTED_RESULTS/$TOTAL_TESTS passed)"
+        
+        # Check if success rate exceeds threshold
+        if [ "$SUCCESS_RATE" -ge "$SUCCESS_THRESHOLD" ]; then
+            echo "Success rate exceeds threshold of $SUCCESS_THRESHOLD%. Proceeding with commit."
+            exit 0
+        else
+            echo "Success rate below threshold of $SUCCESS_THRESHOLD%. Commit aborted."
+            echo "Run ./run_tests.sh manually to see detailed test output."
+            echo "If you want to bypass this check, use 'git commit --no-verify'"
+            exit 1
+        fi
+    fi
+elif [ $EXIT_STATUS -eq 0 ]; then
+    # If we can't parse test statistics but exit code is 0, consider it a pass
+    echo "Tests passed with exit code 0. Proceeding with commit."
+    exit 0
+else
+    echo "Tests failed with exit code $EXIT_STATUS."
+    
+    # Even with a non-zero exit code, if we can confirm high success rate, allow commit
+    echo "Checking if success rate still exceeds threshold despite non-zero exit code..."
+    
+    # Get success rate from LATEST-ELISP-REPORT.org
+    if [ -f "LATEST-ELISP-REPORT.org" ]; then
+        REPORT_PASSED=$(grep -o "Passed: [0-9]*" LATEST-ELISP-REPORT.org | awk '{print $2}')
+        REPORT_TOTAL=$(grep -o "Total: [0-9]*" LATEST-ELISP-REPORT.org | awk '{print $2}')
+        REPORT_RATE=$(grep -o "Success Rate: [0-9.]*%" LATEST-ELISP-REPORT.org | sed 's/Success Rate: //' | sed 's/%//')
+        
+        if [ -n "$REPORT_RATE" ] && [ -n "$REPORT_TOTAL" ] && [ "$REPORT_TOTAL" -gt 0 ]; then
+            # Use the report's calculated rate (remove % sign and convert to integer)
+            SUCCESS_RATE=$(echo "$REPORT_RATE" | cut -d. -f1)
+            
+            echo "Found success rate in report: $SUCCESS_RATE% ($REPORT_PASSED/$REPORT_TOTAL passed)"
+            
+            # Check if success rate exceeds threshold
+            if [ "$SUCCESS_RATE" -ge "$SUCCESS_THRESHOLD" ]; then
+                echo "Despite test exit code $EXIT_STATUS, success rate exceeds threshold of $SUCCESS_THRESHOLD%. Proceeding with commit."
+                exit 0
+            fi
+        fi
+    fi
+    
+    echo "Commit aborted. Run ./run_tests.sh manually to see detailed test output."
+    echo "If you want to bypass this check, use 'git commit --no-verify'"
+    exit 1
+fi

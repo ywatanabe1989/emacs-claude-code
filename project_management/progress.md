@@ -334,6 +334,20 @@
 | 📋 T | [x]  | Manual testing of core functionality                | 👍 A |
 |      | [x]  | 📌 Verify emacs-claude-code works without Apptainer | 👍 A |
 
+** 🎯 Goal 12: Bug fixes and enhancements
+
+| Type | Stat | Description                                         | User |
+|------|------|-----------------------------------------------------|------|
+| 🎯 G | [ ]  | Bug fixes and enhancements                          | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 🏁 M | [ ]  | Fix term-claude-mode bugs                           | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Fix ecc-term-claude-parent-mode undefined error     | 👍 A |
+|      | [x]  | 📌 `src/ecc-term/ecc-term-claude-mode.el`           | 👍 A |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [x]  | Add example-start-claude-term-session function      | 👍 A |
+|      | [x]  | 📌 `examples/term/term-claude-automation.el`        | 👍 A |
+
 * Methods
 
 ** Tools
