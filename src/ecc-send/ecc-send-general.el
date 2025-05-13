@@ -6,8 +6,8 @@
 
 (require 'ecc-variables)
 (require 'ecc-buffer)
-(require 'ecc-state-detect)
 (require 'ecc-state)
+(require 'ecc-ui-mode-line)
 
 ;; External function declarations
 (declare-function vterm-clear "ext:vterm")
@@ -31,7 +31,7 @@ This sends Ctrl-C to the terminal to stop any ongoing operation."
       (vterm-send-key "\C-c")
       (sit-for 0.3)
       (setq ecc-state-running-p nil)
-      (ecc-update-mode-line-all-buffers)
+      (ecc-ui-highlight-all-buffers)
       (message "Claude process interrupted.")))
 
 ;;;###autoload
