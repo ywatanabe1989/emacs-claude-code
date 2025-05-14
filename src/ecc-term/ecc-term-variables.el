@@ -5,7 +5,6 @@
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
-
 (defgroup emacs-claude-term nil
   "Terminal and vterm integration for Claude."
   :group 'emacs-claude
@@ -74,6 +73,18 @@ Enabling truncation can improve performance for long lines."
   :type 'boolean
   :group 'emacs-claude-term)
 
+(defcustom ecc-term-vterm-always-follow-bottom t
+  "Whether to always follow the bottom of the buffer.
+When non-nil, the view will automatically scroll to show new output."
+  :type 'boolean
+  :group 'emacs-claude-term)
+
+(defcustom ecc-term-vterm-follow-bottom-margin 2
+  "Number of lines to keep visible below the point when following bottom.
+Higher values give more context when scrolling."
+  :type 'integer
+  :group 'emacs-claude-term)
+
 ;; Auto Mode Configuration
 ;; ------------------------------
 
@@ -103,11 +114,11 @@ Enabling truncation can improve performance for long lines."
   :type 'string
   :group 'emacs-claude-term)
 
-(defcustom ecc-term-vterm-prompt-initial-waiting "Would you like Claude to continue?"
+(defcustom ecc-term-vterm-prompt-initial-waiting
+  "Would you like Claude to continue?"
   "Text pattern for detecting initial waiting prompt in vterm mode."
   :type 'string
   :group 'emacs-claude-term)
-
 
 (provide 'ecc-term-variables)
 

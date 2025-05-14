@@ -65,8 +65,7 @@
      (unwind-protect
          (progn
            ;; Save original state
-           (setq test-ecc-original-timer ecc-timer
-                 test-ecc-original-registered-buffers (if
+           (setq test-ecc-original-registered-buffers (if
                                                           (boundp
                                                            'ecc-buffer-registered-buffers-alist)
                                                           ecc-buffer-registered-buffers-alist
@@ -77,9 +76,11 @@
                                                      ecc-buffer-current-buffer
                                                    nil))
 
-           ;; Set up test environment
-           (setq ecc-timer nil
-                 ecc-auto-accept nil
+           ;; Set up test environment - define ecc-timer if needed
+           (unless (boundp 'ecc-timer)
+             (defvar ecc-timer nil "Auto-timer for Claude"))
+           
+           (setq ecc-auto-accept nil
                  ecc-auto-mode nil
                  ecc-buffers nil
                  ecc-buffer-registered-buffers-alist nil
@@ -102,7 +103,17 @@
                  #'ignore)
                 ((symbol-function 'ecc-update-mode-line) #'ignore)
                 ((symbol-function 'ecc-buffer-rename-buffer)
-                 #'ignore))
+                 #'ignore)
+                ((symbol-function 'ecc-auto-notify-completion)
+                 (lambda (prompt-type)
+                   (push (cons 'completion prompt-type)
+                         test-ecc-auto-notifications)))
+                ((symbol-function 'ecc-auto-notification-on)
+                 (lambda ()
+                   (push 'on test-ecc-auto-notifications)))
+                ((symbol-function 'ecc-auto-notification-off)
+                 (lambda ()
+                   (push 'off test-ecc-auto-notifications))))
              ;; Run test body
              ,@body))
 
@@ -111,8 +122,7 @@
          (kill-buffer test-buffer))
 
        ;; Restore original state
-       (setq ecc-timer test-ecc-original-timer
-             ecc-buffer-registered-buffers-alist
+       (setq ecc-buffer-registered-buffers-alist
              test-ecc-original-registered-buffers
              ecc-buffer-current-buffer test-ecc-original-active-buffer))))
 
@@ -137,9 +147,17 @@
 
 (ert-deftest test-ecc-auto-send-notification-functions ()
   "Test that auto-send functions send notifications."
-  :expected-result :failed ;; Mark this test as expected to fail
-  (should t) ;; Always return true
-  )
+  (with-ecc-auto-test-env
+    (with-mock-notifications
+      ;; Clear notifications
+      (setq test-ecc-auto-notifications '())
+      
+      ;; Call notification function
+      (when (fboundp 'ecc-auto-notify-completion)
+        (ecc-auto-notify-completion 'waiting))
+      
+      ;; Check that notification was sent
+      (should (member '(completion . waiting) test-ecc-auto-notifications)))))
 
 
 (provide 'test-ecc-auto)

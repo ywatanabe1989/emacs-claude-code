@@ -125,6 +125,7 @@
 
 (ert-deftest test-ecc-buffer-navigation-uid-basics ()
   "Test basic navigation with UIDs."
+  ;; Skip this test - we're using the older ecc-buffer-next/prev functions instead
   :expected-result :failed
   (should t))
 

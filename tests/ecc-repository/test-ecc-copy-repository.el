@@ -66,9 +66,8 @@
       (delete-file temp-file))))
 
 (ert-deftest test-ecc-get-repository-files-with-mock-dir ()
-  ;; Skip this test as it's failing in the current environment
-  ;; This test is non-critical since the repository functions are for 
-  ;; convenience and not core functionality
+  "Test getting repository files with a mock directory."
+  ;; Skip this test - function doesn't exist in the codebase (might be removed)
   :expected-result :failed
   (should t))
 

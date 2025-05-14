@@ -20,8 +20,20 @@
 ;; since ecc-buffer-name should never be nil
 (ert-deftest test-ecc-detect-prompt-handles-nil-buffer ()
   "Test that --ecc-state-detect-prompt handles nil buffer."
-  :expected-result :failed
-  (should t))
+  ;; Save original buffer name
+  (let ((orig-buffer-name ecc-buffer-name))
+    (unwind-protect
+        (progn
+          ;; Set to a non-existent buffer name
+          (setq ecc-buffer-name "non-existent-buffer-name")
+          ;; Call the function - should return nil without errors
+          (should-not (--ecc-state-detect-prompt "any text"))
+          
+          ;; Also test with invalid prompt
+          (should-not (--ecc-state-detect-prompt nil)))
+      
+      ;; Restore original buffer name
+      (setq ecc-buffer-name orig-buffer-name))))
 
 (ert-deftest test-ecc-detect-prompt-returns-nil-when-not-found ()
   "Test that --ecc-state-detect-prompt returns nil when text is not found."
