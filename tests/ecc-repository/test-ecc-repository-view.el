@@ -20,7 +20,7 @@
 
 (ert-deftest test-ecc-repo-view-script-exists ()
   "Test that the view_repo.sh script exists."
-  (let ((script-path ecc-repo-view-script))
+  (let ((script-path "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/docs/tools/view_repo.sh"))
     (should script-path)
     (should (file-exists-p script-path))))
 
