@@ -1,21 +1,37 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-13 08:58:31>
+;;; Timestamp: <2025-05-13 20:35:55>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-term/ecc-term-vterm.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(require 'ecc-term-claude-mode)
-(require 'ecc-term-send-general)
-(require 'ecc-term-send-accept)
-(require 'ecc-term-run)
+;;; ecc-vterm.el --- vterm integration for Claude AI -*- lexical-binding: t -*-
+
+;; Author: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
+;; Maintainer: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "26.1") (vterm "0.0.1"))
+;; Keywords: ai, convenience, tools, terminals
+;; URL: https://github.com/ywatanabe1989/emacs-claude-code
+
+;;; Commentary:
+;;
+;; This module provides integration between vterm and the new Claude AI
+;; architecture. It allows for running Claude AI in a terminal buffer
+;; with enhanced interaction capabilities provided by vterm.
+;;
+;; The vterm integration enhances Claude AI by providing a more
+;; terminal-like experience, better handling of control characters,
+;; and improved performance for large outputs.
+
+;;; Code:
 
 (require 'cl-lib)
 (require 'vterm nil t)
-;; (require 'ecc-state-engine)
+(require 'ecc-state-engine)
 (require 'ecc-buffer-manager)
-(require 'ecc-ui-cmd)
+(require 'ecc-command)
 (require 'ecc-integration)
 
 ;; ---- Variables and Customization ----
@@ -181,31 +197,29 @@ If NO-RETURN is non-nil, don't send return after the input."
     (cancel-timer timer)
     (remhash buffer ecc-vterm--timers)))
 
-;; (defun ecc-vterm--detect-state (buffer)
-;;   "Detect Claude state in vterm BUFFER."
-;;   (when (buffer-live-p buffer)
-;;     (with-current-buffer buffer
-;;       ;; Get vterm content
-;;       (let ((content (if (fboundp 'vterm-get-buffer-string)
-;;                          (vterm-get-buffer-string)
-;;                        (buffer-string))))
-;;         ;; Store in output ring
-;;         (ring-insert ecc-vterm--output-ring content)
+(defun ecc-vterm--detect-state (buffer)
+  "Detect Claude state in vterm BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      ;; Get vterm content
+      (let ((content (if (fboundp 'vterm-get-buffer-string)
+                         (vterm-get-buffer-string)
+                       (buffer-string))))
+        ;; Store in output ring
+        (ring-insert ecc-vterm--output-ring content)
 
-;;         ;; Create a temporary buffer with the content for state detection
-;;         (with-temp-buffer
-;;           (insert content)
-;;           (let
-;;               ((state-id
-;;                 (ecc-state-engine-detect-state (current-buffer))))
-;;             ;; Only proceed if we got a proper state ID (should be a symbol)
-;;             (when (and state-id (symbolp state-id))
-;;               ;; Update state in buffer manager
-;;               (let
-;;                   ((claude-buffer
-;;                     (ecc-buffer-manager-get-by-buffer buffer)))
-;;                 (when claude-buffer
-;;                   (ecc-buffer-manager-set-state claude-buffer state-id))))))))))
+        ;; Create a temporary buffer with the content for state detection
+        (with-temp-buffer
+          (insert content)
+          (let
+              ((state (ecc-state-engine-detect-state (current-buffer))))
+            (when state
+              ;; Update state in buffer manager
+              (let
+                  ((claude-buffer
+                    (ecc-buffer-manager-get-by-buffer buffer)))
+                (when claude-buffer
+                  (ecc-buffer-manager-set-state claude-buffer state))))))))))
 
 ;; ---- Mode Definition ----
 

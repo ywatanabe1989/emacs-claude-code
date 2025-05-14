@@ -1,0 +1,1 @@
+;; This file is deprecated, please use test-ecc-ui-update-mode-line.el instead

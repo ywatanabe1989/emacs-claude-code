@@ -177,7 +177,7 @@
 | 🏁 M | [x]  | Performance optimizations              | 👍 A |
 |------|------|----------------------------------------|------|
 | 📋 T | [x]  | Optimize buffer handling for large files | 👍 A |
-|      | [x]  | 📌 `/ecc-large-buffer.el`              | 👍 A |
+|      | [x]  | 📌 `/ecc-buffer-optim.el`              | 👍 A |
 |------|------|----------------------------------------|------|
 | 📋 T | [x]  | Improve template caching               | 👍 A |
 |      | [x]  | 📌 `/ecc-template/ecc-template-cache.el` | 👍 A |
@@ -261,8 +261,8 @@
 | 📋 T | [x]  | Implement history browser                    | 👍 A |
 |      | [x]  | 📌 `/ecc-history.el`                         | 👍 A |
 |------|------|----------------------------------------------|------|
-| 📋 T | [ ]  | Create dashboard for interaction statistics  | 👀 T |
-|      | [ ]  | 📌 Planned for implementation                | 👀 T |
+| 📋 T | [x]  | Create dashboard for interaction statistics  | 👍 A |
+|      | [x]  | 📌 `/src/ecc-dashboard/`                    | 👍 A |
 |------|------|----------------------------------------------|------|
 | 🏁 M | [x]  | Mode management                              | 👍 A |
 |------|------|----------------------------------------------|------|
@@ -334,19 +334,27 @@
 | 📋 T | [x]  | Manual testing of core functionality                | 👍 A |
 |      | [x]  | 📌 Verify emacs-claude-code works without Apptainer | 👍 A |
 
-** 🎯 Goal 12: Bug fixes and enhancements
+** 🎯 Goal 12: Dashboard Improvements
 
 | Type | Stat | Description                                         | User |
 |------|------|-----------------------------------------------------|------|
-| 🎯 G | [ ]  | Bug fixes and enhancements                          | 👍 A |
+| 🎯 G | [ ]  | Dashboard improvements and bug fixes                | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 🏁 M | [ ]  | Fix term-claude-mode bugs                           | 👍 A |
+| 🏁 M | [ ]  | Dashboard reliability improvements                  | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 📋 T | [x]  | Fix ecc-term-claude-parent-mode undefined error     | 👍 A |
-|      | [x]  | 📌 `src/ecc-term/ecc-term-claude-mode.el`           | 👍 A |
+| 📋 T | [x]  | Fix dashboard buffer visibility bug                 | 👍 A |
+|      | [x]  | 📌 `/src/ecc-dashboard/ecc-dashboard-ui.el`         | 👍 A |
 |------|------|-----------------------------------------------------|------|
-| 📋 T | [x]  | Add example-start-claude-term-session function      | 👍 A |
-|      | [x]  | 📌 `examples/term/term-claude-automation.el`        | 👍 A |
+| 📋 T | [ ]  | Improve dashboard refresh mechanism                 | 👀 T |
+|      | [ ]  | 📌 Planned for implementation                       | 👀 T |
+|------|------|-----------------------------------------------------|------|
+| 🏁 M | [ ]  | Dashboard usability enhancements                    | 👀 T |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [ ]  | Add customizable dashboard columns                  | 👀 T |
+|      | [ ]  | 📌 Planned for implementation                       | 👀 T |
+|------|------|-----------------------------------------------------|------|
+| 📋 T | [ ]  | Implement dashboard sorting options                 | 👀 T |
+|      | [ ]  | 📌 Planned for implementation                       | 👀 T |
 
 * Methods
 

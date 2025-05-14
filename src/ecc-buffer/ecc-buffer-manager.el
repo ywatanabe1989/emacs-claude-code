@@ -1,27 +1,15 @@
-;;; ecc-buffer-manager.el --- Buffer management for Claude AI -*- lexical-binding: t -*-
+;;; -*- coding: utf-8; lexical-binding: t -*-
+;;; Author: ywatanabe
+;;; Timestamp: <2025-05-13 11:21:12>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer/ecc-buffer-manager.el
 
-;; Author: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
-;; Maintainer: ywatanabe <ywatanabe@alumni.u-tokyo.ac.jp>
-;; Version: 1.0.0
-;; Package-Requires: ((emacs "26.1"))
-;; Keywords: ai, convenience, tools
-;; URL: https://github.com/ywatanabe1989/emacs-claude-code
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
-;;; Commentary:
-;; 
-;; This module provides a modern, robust buffer management system for
-;; Claude AI interactions.  It supports multiple concurrent Claude sessions,
-;; buffer lifecycle management, and persistent buffer metadata.
-;;
-;; The buffer manager keeps track of Claude buffers using a registry with
-;; strong and weak references, ensuring that buffer operations are safe
-;; even when buffers are killed.
-
-;;; Code:
 
 (require 'cl-lib)
 (require 'seq)
 (require 'ecc-compat)
+(require 'ecc-buffer-variables)
 
 ;; Buffer structures and registry
 ;; ------------------------------
@@ -29,13 +17,18 @@
 (cl-defstruct (ecc-buffer (:constructor ecc-buffer--create)
                           (:copier nil))
   "Structure representing a Claude buffer."
-  (id nil :read-only t :documentation "Unique identifier for this buffer")
+  (id nil :read-only t :documentation
+      "Unique identifier for this buffer")
   (name "" :read-only nil :documentation "Buffer name")
   (buffer nil :read-only nil :documentation "Actual buffer object")
-  (state nil :read-only nil :documentation "Current state of the buffer")
-  (metadata (make-hash-table :test 'equal) :read-only nil :documentation "Buffer metadata")
-  (created-time (current-time) :read-only t :documentation "When this buffer was created")
-  (last-used-time (current-time) :read-only nil :documentation "When this buffer was last used"))
+  (state nil :read-only nil :documentation
+         "Current state of the buffer")
+  (metadata (make-hash-table :test 'equal) :read-only nil
+            :documentation "Buffer metadata")
+  (created-time (current-time) :read-only t :documentation
+                "When this buffer was created")
+  (last-used-time (current-time) :read-only nil :documentation
+                  "When this buffer was last used"))
 
 (defvar ecc-buffer-manager--registry (make-hash-table :test 'equal)
   "Registry of all Claude buffers, keyed by buffer ID.")
@@ -67,23 +60,25 @@ If BUFFER is provided, use that as the actual buffer.
 Otherwise, create a new buffer with NAME.
 Returns the created ecc-buffer structure."
   ;; Generate a unique ID
-  (let* ((id (format "claude-%d" (cl-incf ecc-buffer-manager--buffer-count)))
-         (buf (or buffer (generate-new-buffer name)))
-         (claude-buffer (ecc-buffer--create :id id
-                                           :name name
-                                           :buffer buf
-                                           :state 'idle)))
-    
+  (let*
+      ((id
+        (format "claude-%d" (cl-incf ecc-buffer-manager--buffer-count)))
+       (buf (or buffer (generate-new-buffer name)))
+       (claude-buffer (ecc-buffer--create :id id
+                                          :name name
+                                          :buffer buf
+                                          :state 'idle)))
+
     ;; Store in registry
     (puthash id claude-buffer ecc-buffer-manager--registry)
-    
+
     ;; Run hooks
     (ecc-buffer-manager--run-hooks 'create claude-buffer)
-    
+
     ;; Make current if no current buffer
     (unless ecc-buffer-manager--current-buffer
       (ecc-buffer-manager-set-current claude-buffer))
-    
+
     claude-buffer))
 
 (defun ecc-buffer-manager-get-by-id (id)
@@ -115,18 +110,18 @@ CLAUDE-BUFFER can be a buffer object, buffer name, or Claude buffer structure."
     (when cb
       ;; Update last used time
       (setf (ecc-buffer-last-used-time cb) (current-time))
-      
+
       ;; Set as current
       (setq ecc-buffer-manager--current-buffer cb)
-      
+
       ;; Run hooks
       (ecc-buffer-manager--run-hooks 'select cb)
-      
+
       ;; Display the buffer
       (let ((buf (ecc-buffer-buffer cb)))
         (when (buffer-live-p buf)
           (switch-to-buffer buf)))
-      
+
       cb)))
 
 (defun ecc-buffer-manager-set-state (claude-buffer state)
@@ -195,22 +190,22 @@ Removes from registry and kills the actual buffer."
     (when cb
       ;; Run hooks before removing
       (ecc-buffer-manager--run-hooks 'kill cb)
-      
+
       ;; Remove from registry
       (remhash (ecc-buffer-id cb) ecc-buffer-manager--registry)
-      
+
       ;; Update current buffer if needed
       (when (eq ecc-buffer-manager--current-buffer cb)
         (setq ecc-buffer-manager--current-buffer nil)
         (let ((next-buffer (car (ecc-buffer-manager-get-all))))
           (when next-buffer
             (ecc-buffer-manager-set-current next-buffer))))
-      
+
       ;; Kill the actual buffer
       (let ((buf (ecc-buffer-buffer cb)))
         (when (buffer-live-p buf)
           (kill-buffer buf)))
-      
+
       t)))
 
 (defun ecc-buffer-manager-cleanup ()
@@ -222,87 +217,97 @@ Removes from registry and kills the actual buffer."
                  (unless (buffer-live-p buf)
                    (push id to-remove))))
              ecc-buffer-manager--registry)
-    
+
     ;; Remove from registry
     (dolist (id to-remove)
       (let ((cb (ecc-buffer-manager-get-by-id id)))
         (ecc-buffer-manager--run-hooks 'kill cb)
         (remhash id ecc-buffer-manager--registry)))
-    
+
     ;; Update current buffer if needed
     (when (and ecc-buffer-manager--current-buffer
-               (not (buffer-live-p (ecc-buffer-buffer ecc-buffer-manager--current-buffer))))
+               (not
+                (buffer-live-p
+                 (ecc-buffer-buffer ecc-buffer-manager--current-buffer))))
       (setq ecc-buffer-manager--current-buffer nil)
       (let ((next-buffer (car (ecc-buffer-manager-get-all))))
         (when next-buffer
           (ecc-buffer-manager-set-current next-buffer))))
-    
+
     (length to-remove)))
 
-;; Navigation functions
-;; ------------------------------
+;; ;; Navigation functions
+;; ;; ------------------------------
 
-(defun ecc-buffer-manager-next ()
-  "Switch to the next Claude buffer in the list.
-Buffers are sorted by last used time, most recently used first."
-  (interactive)
-  (let* ((all-buffers (ecc-buffer-manager-get-all))
-         (live-buffers (seq-filter (lambda (cb)
-                                     (buffer-live-p (ecc-buffer-buffer cb)))
-                                   all-buffers))
-         (sorted-buffers (seq-sort-by (lambda (cb)
-                                        (float-time (ecc-buffer-last-used-time cb)))
-                                      #'>
-                                      live-buffers))
-         (current (ecc-buffer-manager-get-current))
-         next-buffer)
-    
-    (if (null sorted-buffers)
-        (message "No Claude buffers available")
-      
-      (if (null current)
-          ;; If no current buffer, use the first one
-          (setq next-buffer (car sorted-buffers))
-        
-        ;; Find the current buffer's position
-        (let* ((pos (seq-position sorted-buffers current))
-               (next-pos (if (or (null pos) (= pos (1- (length sorted-buffers))))
-                             0  ; wrap around
-                           (1+ pos))))
-          (setq next-buffer (nth next-pos sorted-buffers))))
-      
-      (ecc-buffer-manager-set-current next-buffer))))
+;; (defun ecc-buffer-manager-next ()
+;;   "Switch to the next Claude buffer in the list.
+;; Buffers are sorted by last used time, most recently used first."
+;;   (interactive)
+;;   (let* ((all-buffers (ecc-buffer-manager-get-all))
+;;          (live-buffers (seq-filter (lambda (cb)
+;;                                      (buffer-live-p
+;;                                       (ecc-buffer-buffer cb)))
+;;                                    all-buffers))
+;;          (sorted-buffers (seq-sort-by (lambda (cb)
+;;                                         (float-time
+;;                                          (ecc-buffer-last-used-time cb)))
+;;                                       #'>
+;;                                       live-buffers))
+;;          (current (ecc-buffer-manager-get-current))
+;;          next-buffer)
 
-(defun ecc-buffer-manager-previous ()
-  "Switch to the previous Claude buffer in the list.
-Buffers are sorted by last used time, most recently used first."
-  (interactive)
-  (let* ((all-buffers (ecc-buffer-manager-get-all))
-         (live-buffers (seq-filter (lambda (cb)
-                                     (buffer-live-p (ecc-buffer-buffer cb)))
-                                   all-buffers))
-         (sorted-buffers (seq-sort-by (lambda (cb)
-                                        (float-time (ecc-buffer-last-used-time cb)))
-                                      #'>
-                                      live-buffers))
-         (current (ecc-buffer-manager-get-current))
-         prev-buffer)
-    
-    (if (null sorted-buffers)
-        (message "No Claude buffers available")
-      
-      (if (null current)
-          ;; If no current buffer, use the last one
-          (setq prev-buffer (car (last sorted-buffers)))
-        
-        ;; Find the current buffer's position
-        (let* ((pos (seq-position sorted-buffers current))
-               (prev-pos (if (or (null pos) (= pos 0))
-                             (1- (length sorted-buffers))  ; wrap around
-                           (1- pos))))
-          (setq prev-buffer (nth prev-pos sorted-buffers))))
-      
-      (ecc-buffer-manager-set-current prev-buffer))))
+;;     (if (null sorted-buffers)
+;;         (message "No Claude buffers available")
+
+;;       (if (null current)
+;;           ;; If no current buffer, use the first one
+;;           (setq next-buffer (car sorted-buffers))
+
+;;         ;; Find the current buffer's position
+;;         (let* ((pos (seq-position sorted-buffers current))
+;;                (next-pos (if
+;;                              (or (null pos)
+;;                                  (= pos (1- (length sorted-buffers))))
+;;                              0
+;;                                         ; wrap around
+;;                            (1+ pos))))
+;;           (setq next-buffer (nth next-pos sorted-buffers))))
+
+;;       (ecc-buffer-manager-set-current next-buffer))))
+
+;; (defun ecc-buffer-manager-previous ()
+;;   "Switch to the previous Claude buffer in the list.
+;; Buffers are sorted by last used time, most recently used first."
+;;   (interactive)
+;;   (let* ((all-buffers (ecc-buffer-manager-get-all))
+;;          (live-buffers (seq-filter (lambda (cb)
+;;                                      (buffer-live-p
+;;                                       (ecc-buffer-buffer cb)))
+;;                                    all-buffers))
+;;          (sorted-buffers (seq-sort-by (lambda (cb)
+;;                                         (float-time
+;;                                          (ecc-buffer-last-used-time cb)))
+;;                                       #'>
+;;                                       live-buffers))
+;;          (current (ecc-buffer-manager-get-current))
+;;          prev-buffer)
+
+;;     (if (null sorted-buffers)
+;;         (message "No Claude buffers available")
+
+;;       (if (null current)
+;;           ;; If no current buffer, use the last one
+;;           (setq prev-buffer (car (last sorted-buffers)))
+
+;;         ;; Find the current buffer's position
+;;         (let* ((pos (seq-position sorted-buffers current))
+;;                (prev-pos (if (or (null pos) (= pos 0))
+;;                              (1- (length sorted-buffers))
+;;                                         ; wrap around
+;;                            (1- pos))))
+;;           (setq prev-buffer (nth prev-pos sorted-buffers))))
+
+;;       (ecc-buffer-manager-set-current prev-buffer))))
 
 ;; Hook management
 ;; ------------------------------
@@ -333,5 +338,13 @@ EVENT-TYPE should be one of: create, select, rename, update, kill."
 ;; Initialize the buffer manager
 (ecc-buffer-manager-init)
 
-(provide 'ecc-buffer-manager)
 ;;; ecc-buffer-manager.el ends here
+
+
+(provide 'ecc-buffer-manager)
+
+(when
+    (not load-file-name)
+  (message "ecc-buffer-manager.el loaded."
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))

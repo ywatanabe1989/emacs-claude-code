@@ -20,9 +20,9 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'ecc-state-engine)
-(require 'ecc-buffer-manager)
-(require 'ecc-command)
+(require 'ecc-state)
+(require 'ecc-buffer-registry-unified)
+;; ecc-command was moved to other modules
 
 ;; Legacy module requirements for integration
 ;; Use safe require to handle potential missing modules
@@ -52,16 +52,12 @@ This converts any existing buffers from the old system to the new one."
                        ;; Import this buffer
                        (let* ((state (if (local-variable-p 'ecc-buffer-state)
                                         (buffer-local-value 'ecc-buffer-state buf)
-                                      'idle))
-                              (claude-buffer (ecc-buffer-manager-create buffer-name buf)))
-                         ;; Set state
-                         (ecc-buffer-manager-set-state claude-buffer state)
-                         ;; Import metadata if available
-                         (when (local-variable-p 'ecc-buffer-timestamp)
-                           (ecc-buffer-manager-set-metadata
-                            claude-buffer
-                            'timestamp
-                            (buffer-local-value 'ecc-buffer-timestamp buf)))
+                                      'idle)))
+                         ;; Register the buffer
+                         (ecc-buffer-register buf)
+                         ;; Set state if we have a registry function
+                         (when (fboundp 'ecc-buffer-set-state)
+                           (ecc-buffer-set-state buf state))
                          ;; Update legacy buffer
                          (with-current-buffer buf
                            (setq-local ecc-buffer-imported-to-new t))))))))
@@ -71,19 +67,19 @@ This converts any existing buffers from the old system to the new one."
   "Export buffers from the new system to the legacy system.
 This makes new buffers compatible with old code that expects the old structure."
   (interactive)
-  (dolist (claude-buffer (ecc-buffer-manager-get-all))
-    (let* ((buf (ecc-buffer-buffer claude-buffer))
-           (state (ecc-buffer-state claude-buffer)))
+  (when (fboundp 'ecc-buffer-get-registered-buffers)
+    (dolist (buf (ecc-buffer-get-registered-buffers))
       (when (buffer-live-p buf)
-        (with-current-buffer buf
-          ;; Set legacy variables
-          (setq-local ecc-buffer-state state)
-          (setq-local ecc-buffer-timestamp 
-                      (or (ecc-buffer-manager-get-metadata claude-buffer 'timestamp)
-                          (current-time)))
-          ;; Add to legacy registry
-          (when (boundp 'ecc-buffer-registry)
-            (puthash (buffer-name buf) t ecc-buffer-registry)))))))
+        (let ((state (and (fboundp 'ecc-buffer-get-state)
+                          (ecc-buffer-get-state buf))))
+          (with-current-buffer buf
+            ;; Set legacy variables
+            (setq-local ecc-buffer-state state)
+            (setq-local ecc-buffer-timestamp (or (ecc-buffer-get-timestamp buf)
+                                                (current-time)))
+            ;; Add to legacy registry
+            (when (boundp 'ecc-buffer-registry)
+              (puthash (buffer-name buf) t ecc-buffer-registry))))))))
 
 (defun ecc-integration-sync-buffer-states ()
   "Synchronize buffer states between the old and new systems.
@@ -126,45 +122,54 @@ Returns a state ID symbol compatible with the new state engine."
   "Detect Claude state in BUFFER and update both new and legacy systems."
   (interactive (list (current-buffer)))
   (when (buffer-live-p buffer)
-    ;; Try detecting with the new engine first
-    (let ((new-state (ecc-state-engine-detect-state buffer)))
+    ;; Try detecting with the new system first
+    (let ((new-state (and (fboundp 'ecc-state-detect-prompt)
+                         (with-current-buffer buffer
+                           (ecc-state-detect-prompt)))))
       (unless new-state
         ;; Fall back to legacy detection
         (setq new-state (ecc-integration-detect-state-legacy buffer)))
       
       (when new-state
-        ;; Update new state engine
-        (ecc-state-engine-set-state new-state)
+        ;; Update state system
+        (when (fboundp 'ecc-state-set)
+          (ecc-state-set new-state))
         
         ;; Update legacy state
         (with-current-buffer buffer
           (when (boundp 'ecc-buffer-state)
             (setq-local ecc-buffer-state new-state)))
         
-        ;; Update buffer manager state for this buffer
-        (let ((claude-buffer (ecc-buffer-manager-get-by-buffer buffer)))
-          (when claude-buffer
-            (ecc-buffer-manager-set-state claude-buffer new-state)))))))
+        ;; Update buffer registry state for this buffer
+        (when (fboundp 'ecc-buffer-set-state)
+          (ecc-buffer-set-state buffer new-state))))))))
 
 ;; ---- Command Integration ----
 
 (defun ecc-integration-handle-input (input &optional buffer)
-  "Handle INPUT in BUFFER using the new command system.
+  "Handle INPUT in BUFFER using the buffer system.
 If BUFFER is nil, uses the current buffer."
   (interactive "sInput: ")
   (let ((buf (or buffer (current-buffer))))
     (when (buffer-live-p buf)
-      ;; Make sure the buffer is in the new system
-      (let ((claude-buffer (ecc-buffer-manager-get-by-buffer buf)))
-        (unless claude-buffer
-          ;; Import this buffer if it's not yet in the new system
-          (setq claude-buffer (ecc-buffer-manager-create (buffer-name buf) buf)))
-        
-        ;; Set as current in the buffer manager
-        (ecc-buffer-manager-set-current claude-buffer)
-        
-        ;; Process the input through the command system
-        (ecc-command-execute input)))))
+      ;; Make sure the buffer is in the system
+      (unless (ecc-buffer-register buf)
+        ;; Buffer was not registered yet
+        (message "Registering buffer %s" (buffer-name buf)))
+      
+      ;; Set as current buffer
+      (when (fboundp 'ecc-buffer-set-current-buffer)
+        (ecc-buffer-set-current-buffer buf))
+      
+      ;; Process the input if we have a function for it
+      (cond
+       ((fboundp 'ecc-send-input)
+        (ecc-send-input input buf))
+       (t
+        ;; Insert directly if no command handler
+        (with-current-buffer buf
+          (goto-char (point-max))
+          (insert input)))))))
 
 ;; ---- Initialization ----
 
@@ -174,27 +179,25 @@ This sets up the new components and imports existing buffers."
   (interactive)
   
   ;; Initialize the new components
-  (ecc-state-engine-init)
-  (ecc-buffer-manager-init)
-  (ecc-command-init)
+  (when (fboundp 'ecc-state-init)
+    (ecc-state-init))
+  (when (fboundp 'ecc-buffer-registry-init)
+    (ecc-buffer-registry-init))
   
   ;; Import existing buffers
   (ecc-integration-import-legacy-buffers)
   
-  ;; Set up state detection hook
+  ;; Set up state detection hook for all buffers
   (let ((state-detector
-         (lambda (claude-buffer)
-           (let ((buf (ecc-buffer-buffer claude-buffer)))
-             (when (buffer-live-p buf)
-               (ecc-integration-detect-and-update-state buf))))))
-    
-    ;; Run state detection when a buffer is selected
-    (ecc-buffer-manager-add-hook 'select state-detector)
+         (lambda (buf)
+           (when (buffer-live-p buf)
+             (ecc-integration-detect-and-update-state buf)))))
     
     ;; Run state detection periodically
     (run-with-idle-timer 1 t (lambda ()
-                               (when-let ((current (ecc-buffer-manager-get-current)))
-                                 (funcall state-detector current))))))
+                              (when (fboundp 'ecc-buffer-get-current-buffer)
+                                (when-let ((current (ecc-buffer-get-current-buffer)))
+                                  (funcall state-detector current)))))))
 
 ;; Initialize when the package is loaded
 (ecc-integration-init)

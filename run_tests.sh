@@ -304,7 +304,7 @@ process_test_results() {
   # Process passed tests
   echo
   echo "* Passed Tests ($PASSED_TESTS)"
-  if [ "$PASSED_TESTS" -gt 0 ]; then
+  if [ -n "$PASSED_TESTS" ] && [ "$PASSED_TESTS" -gt 0 ]; then
     # Create a list of passed tests
     grep -E "^[ ]+passed" "$THIS_DIR/.test_output_clean.txt" | awk '{print $3}' > "$THIS_DIR/.passed_tests.txt"
 
@@ -358,7 +358,7 @@ process_test_results() {
   # Process failed tests
   echo
   echo "* Failed Tests ($FAILED_TESTS)"
-  if [ "$FAILED_TESTS" -gt 0 ]; then
+  if [ -n "$FAILED_TESTS" ] && [ "$FAILED_TESTS" -gt 0 ]; then
     # Extract all relevant sections for failed tests
     sed -n '/Test.*backtrace:/,/Test.*condition:/p' "$THIS_DIR/.test_output_clean.txt" > "$THIS_DIR/.failed_traces.txt"
 
