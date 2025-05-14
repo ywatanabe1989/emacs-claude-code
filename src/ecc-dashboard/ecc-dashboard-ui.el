@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-14 11:55:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-dashboard/ecc-dashboard-ui.el
+;;; Timestamp: <2025-05-14 15:10:08>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-dashboard/ecc-dashboard-ui.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 ;;; Commentary:
 ;;
@@ -37,6 +38,8 @@
     (define-key map (kbd "P") 'ecc-dashboard-set-project-interactive)
     (define-key map (kbd "f") 'ecc-dashboard-filter-interactive)
     (define-key map (kbd "g") 'ecc-dashboard-refresh)
+    (define-key map (kbd "C") 'ecc-dashboard-cancel-timer)
+    (define-key map (kbd "S") 'ecc-dashboard-start-timer)
     (define-key map (kbd "q") 'ecc-dashboard-quit)
     map)
   "Keymap for Claude agent dashboard mode.")
@@ -63,6 +66,38 @@
         (ecc-dashboard-mode)))
     buffer))
 
+;; Global handler for buffer killing to remove from dashboard
+
+(defun ecc-dashboard-handle-killed-buffer ()
+  "Handler for kill-buffer-hook to remove killed buffers from dashboard.
+This function is added to the global kill-buffer-hook and will
+automatically remove any Claude agent buffer from the dashboard
+registry when it is killed."
+  (let ((curr-buffer (current-buffer)))
+    (when (and (derived-mode-p 'vterm-mode)
+               (boundp 'ecc-buffer--buffer-to-uid))
+      (let ((uid (and (hash-table-p ecc-buffer--buffer-to-uid)
+                      (gethash curr-buffer ecc-buffer--buffer-to-uid))))
+        (when uid
+          ;; Clean up the UID registry
+          (when
+              (fboundp 'ecc-buffer-registry-unregister-buffer-with-uid)
+            (ecc-buffer-registry-unregister-buffer-with-uid uid))
+
+          ;; Also directly remove from hashtable for good measure
+          (when (and (boundp 'ecc-buffer-registry-by-uid)
+                     (hash-table-p ecc-buffer-registry-by-uid))
+            (remhash uid ecc-buffer-registry-by-uid))
+
+          ;; Update dashboard if visible
+          (when (and (get-buffer ecc-dashboard-buffer-name)
+                     (get-buffer-window ecc-dashboard-buffer-name
+                                        'visible))
+            (ecc-dashboard-refresh)))))))
+
+;; Add the global hook during package initialization
+(add-hook 'kill-buffer-hook #'ecc-dashboard-handle-killed-buffer)
+
 (defun ecc-dashboard-show ()
   "Display the Claude agent dashboard."
   (interactive)
@@ -70,43 +105,90 @@
     ;; Ensure registry has latest buffer information before refreshing
     (when (fboundp 'ecc-dashboard-ensure-registry-updated)
       (ecc-dashboard-ensure-registry-updated))
-    
+
     (ecc-dashboard-refresh)
-    
+
     ;; Use display-buffer with specific display action to ensure persistence
-    (let ((window (display-buffer buffer '(display-buffer-use-some-window))))
+    (let
+        ((window
+          (display-buffer buffer '(display-buffer-use-some-window))))
       (when window
         (select-window window)
-        
+
         ;; Ensure this window isn't easily replaced by other buffers
         (set-window-dedicated-p window t)))
-    
-    ;; Start auto-update timer if enabled
+
+    ;; Start auto-update timer if enabled and no errors were reported
     (when (and ecc-dashboard-auto-update
                (null ecc-dashboard--update-timer))
-      (setq ecc-dashboard--update-timer
-            (run-with-timer ecc-dashboard-update-interval
-                            ecc-dashboard-update-interval
-                            #'ecc-dashboard-refresh-if-visible)))
+      (condition-case err
+          (progn
+            (setq ecc-dashboard--update-timer
+                  (run-with-timer ecc-dashboard-update-interval
+                                  ecc-dashboard-update-interval
+                                  #'ecc-dashboard-refresh-if-visible))
+            (message "Dashboard auto-update timer started"))
+        (error
+         (message "Failed to start dashboard timer: %s"
+                  (error-message-string err)))))
 
     ;; Mark as initialized
-    (setq ecc-dashboard--initialized t)))
+    (setq ecc-dashboard--initialized t)
+
+    ;; Add dashboard buffer-kill hook to ensure proper cleanup of timer
+    (with-current-buffer buffer
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (when ecc-dashboard--update-timer
+                    (cancel-timer ecc-dashboard--update-timer)
+                    (setq ecc-dashboard--update-timer nil)))
+                nil t))))
 
 (defun ecc-dashboard-refresh-if-visible (&optional _arg)
   "Refresh the dashboard if it's visible.
 Optional ARG is ignored, allowing this to be used as a timer function."
-  (let ((dashboard-buffer (get-buffer ecc-dashboard-buffer-name)))
-    (when (and dashboard-buffer
-               (get-buffer-window dashboard-buffer 'visible))
-      (ecc-dashboard-refresh))))
+  (condition-case err
+      (let ((dashboard-buffer (get-buffer ecc-dashboard-buffer-name)))
+        (when (and dashboard-buffer
+                   (get-buffer-window dashboard-buffer 'visible))
+          (ecc-dashboard-refresh)))
+    (error
+     (message "Error in dashboard refresh timer: %s"
+              (error-message-string err))
+     (when ecc-dashboard--update-timer
+       (cancel-timer ecc-dashboard--update-timer)
+       (setq ecc-dashboard--update-timer nil)))))
 
 (defun ecc-dashboard-refresh ()
-  "Refresh the dashboard display."
+  "Refresh the dashboard display.
+Automatically cleans up stale buffer entries before refreshing."
   (interactive)
-  ;; Ensure registry has latest buffer information before refreshing
+  ;; FIRST: Clean up stale buffers automatically and forcefully
+  (when (fboundp 'ecc-dashboard-cleanup-stale-buffers)
+    (message "Running stale buffer cleanup...")
+    (let ((cleaned (ecc-dashboard-cleanup-stale-buffers)))
+      (when (> cleaned 0)
+        (message "Cleaned up %d stale entries" cleaned))))
+
+  ;; THEN: Ensure registry has latest buffer information before refreshing
   (when (fboundp 'ecc-dashboard-ensure-registry-updated)
     (ecc-dashboard-ensure-registry-updated))
-    
+
+  ;; VERIFY: Double-check that we're not showing stale buffers
+  (let ((verify-count 0))
+    (maphash (lambda (uid metadata)
+               (when metadata
+                 (let ((buf (and metadata (gethash 'buffer metadata))))
+                   (when (or (null buf)
+                             (not (and (bufferp buf) (buffer-live-p buf))))
+                     (remhash uid ecc-buffer-registry-by-uid)
+                     (setq verify-count (1+ verify-count))))))
+             ecc-buffer-registry-by-uid)
+    (when (> verify-count 0)
+      (message "Verification cleanup: removed additional %d entries"
+               verify-count)))
+
+  ;; FINALLY: Display the dashboard with clean data
   (let ((buffer (ecc-dashboard-get-buffer)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t)
@@ -145,6 +227,27 @@ Applies current filter if any, otherwise gets all agents."
              (maphash (lambda (uid _metadata) (push uid all-uids))
                       ecc-buffer-registry-by-uid)
              all-uids))))
+
+    ;; Double check to include only UIDs with live buffers
+    (setq uids (seq-filter
+                (lambda (uid)
+                  (let*
+                      ((metadata
+                        (ecc-buffer-registry-get-metadata uid))
+                       (buffer
+                        (and metadata (gethash 'buffer metadata))))
+                    (if (and buffer (buffer-live-p buffer))
+                        t
+                      ;; If buffer is not live, remove it from registry immediately
+                      (when
+                          (and uid
+                               (boundp 'ecc-buffer-registry-by-uid))
+                        (remhash uid ecc-buffer-registry-by-uid)
+                        (message
+                         "Removed stale buffer from registry during filtering: %s"
+                         uid))
+                      nil)))
+                uids))
 
     ;; Sort the UIDs
     (ecc-dashboard--sort-agents uids)))
@@ -194,13 +297,31 @@ Applies current filter if any, otherwise gets all agents."
                     (time2 (gethash 'last-access metadata2)))
                 (and time1 time2 (time-less-p time2 time1)))))))))
 
+(defun ecc-dashboard--count-live-agents ()
+  "Count the number of agents with live buffers."
+  (let ((live-count 0))
+    (maphash (lambda (_uid metadata)
+               (let ((buffer (gethash 'buffer metadata)))
+                 (when (and buffer (buffer-live-p buffer))
+                   (setq live-count (1+ live-count)))))
+             ecc-buffer-registry-by-uid)
+    live-count))
+
 (defun ecc-dashboard--insert-header ()
   "Insert dashboard header."
   (insert
    (propertize "Claude Agents Dashboard\n" 'face
                'ecc-dashboard-header-face))
-  (insert (format "Total agents: %d\n\n"
-                  (hash-table-count ecc-buffer-registry-by-uid)))
+
+  ;; Count only live agents
+  (let ((live-count (ecc-dashboard--count-live-agents))
+        (total-count (hash-table-count ecc-buffer-registry-by-uid)))
+    (insert (format "Live agents: %d" live-count))
+    (when (< live-count total-count)
+      (insert
+       (format " (cleaning up %d stale entries)"
+               (- total-count live-count))))
+    (insert "\n\n"))
 
   ;; Insert filter info if active
   (when ecc-dashboard--filter
@@ -279,7 +400,8 @@ Applies current filter if any, otherwise gets all agents."
                               'ecc-dashboard-line-type 'agent))
 
           (insert (propertize (format "%-20s "
-                                      (truncate-string-to-width name 20
+                                      (truncate-string-to-width name
+                                                                20
                                                                 0 nil
                                                                 "..."))
                               'ecc-dashboard-uid agent-uid))
@@ -314,38 +436,63 @@ Applies current filter if any, otherwise gets all agents."
 
     ;; Reverse the list to match display order
     (setq ecc-dashboard--current-agents
-          (nreverse ecc-dashboard--current-agents)))
+          (nreverse ecc-dashboard--current-agents))))
 
 (defun ecc-dashboard--insert-footer ()
-  "Insert dashboard footer."
+  "Insert dashboard footer with command legends."
   (insert (make-string (window-width) ?-) "\n")
-  (insert (propertize "Commands: " 'face 'font-lock-comment-face))
+
+  ;; Combined commands and descriptions in a more compact format
+  (insert
+   (propertize "Commands: " 'face '(:foreground "cyan" :weight bold)))
+
+  ;; First row of commands with descriptions
   (insert "[")
   (insert-text-button "n/p" 'follow-link t 'help-echo
                       "Next/Previous line")
-  (insert "] [")
+  (insert " Navigate] [")
   (insert-text-button "RET" 'follow-link t 'help-echo
                       "Visit selected agent")
-  (insert "] [")
+  (insert " Visit agent] [")
   (insert-text-button "c" 'follow-link t 'help-echo "Create new agent")
-  (insert "] [")
+  (insert " Create agent] [")
   (insert-text-button "d" 'follow-link t 'help-echo "Delete agent")
-  (insert "] [")
+  (insert " Delete agent]\n")
+
+  ;; Second row of commands
+  (insert (make-string (1+ (length "Commands: ")) ? ))
+  (insert "[")
   (insert-text-button "r" 'follow-link t 'help-echo "Rename agent")
-  (insert "] [")
+  (insert " Rename agent] [")
   (insert-text-button "s" 'follow-link t 'help-echo "Set status")
-  (insert "] [")
+  (insert " Set status] [")
   (insert-text-button "t/T" 'follow-link t 'help-echo "Add/Remove tag")
-  (insert "] [")
+  (insert " Add/Remove tag] [")
   (insert-text-button "P" 'follow-link t 'help-echo "Set project")
-  (insert "] [")
+  (insert " Set project]\n")
+
+  ;; Third row of commands
+  (insert (make-string (1+ (length "Commands: ")) ? ))
+  (insert "[")
   (insert-text-button "f" 'follow-link t 'help-echo "Filter agents")
-  (insert "] [")
+  (insert " Filter agents] [")
   (insert-text-button "g" 'follow-link t 'help-echo
                       "Refresh dashboard")
-  (insert "] [")
+  (insert " Refresh] [")
+  (insert-text-button "C/S" 'follow-link t 'help-echo
+                      "Cancel/Start timer")
+  (insert " Timer controls] [")
   (insert-text-button "q" 'follow-link t 'help-echo "Quit dashboard")
-  (insert "]\n"))
+  (insert " Quit]\n")
+
+  ;; Add timer status
+  (insert (make-string (window-width) ?-) "\n")
+  (insert (format "Timer status: %s"
+                  (if ecc-dashboard--update-timer
+                      (propertize "ACTIVE" 'face
+                                  '(:foreground "green" :weight bold))
+                    (propertize "INACTIVE" 'face '(:foreground "red")))))
+  (insert "\n"))
 
 ;; Dashboard Navigation
 ;; ------------------------------
@@ -389,23 +536,41 @@ Applies current filter if any, otherwise gets all agents."
   (let ((uid (ecc-dashboard-get-current-uid)))
     (when uid
       (let ((buffer (ecc-buffer-get-buffer-by-uid uid)))
-        (when (buffer-live-p buffer)
-          (ecc-buffer-set-current-buffer-by-uid uid)
-          (pop-to-buffer buffer)
-          (ecc-buffer-registry-update-timestamp uid))))))
+        (if (and buffer (buffer-live-p buffer))
+            (progn
+              (ecc-buffer-set-current-buffer-by-uid uid)
+              (pop-to-buffer buffer)
+              (ecc-buffer-registry-update-timestamp uid))
+          ;; If buffer is not live, clean up and refresh dashboard
+          (when
+              (fboundp 'ecc-buffer-registry-unregister-buffer-with-uid)
+            (ecc-buffer-registry-unregister-buffer-with-uid uid)
+            (ecc-dashboard-refresh)
+            (message "Buffer for agent not available. Entry removed.")))))))
 
 (defun ecc-dashboard-delete-agent-interactive ()
   "Interactively delete the selected agent."
   (interactive)
   (let ((uid (ecc-dashboard-get-current-uid)))
     (when uid
-      (let* ((metadata (ecc-buffer-registry-get-metadata uid))
-             (name (gethash 'name metadata))
-             (prompt (format "Really delete agent '%s'? " name)))
+      (let* ((metadata (and (fboundp 'ecc-buffer-registry-get-metadata)
+                            (ecc-buffer-registry-get-metadata uid)))
+             (name (and metadata (gethash 'name metadata)))
+             (prompt (format "Really delete agent '%s'? " 
+                             (or name "unknown"))))
         (when (yes-or-no-p prompt)
-          (ecc-dashboard-delete-agent uid)
-          (ecc-dashboard-refresh)
-          (message "Deleted agent '%s'" name))))))
+          (condition-case err
+              (progn
+                (ecc-dashboard-delete-agent uid)
+                (ecc-dashboard-refresh)
+                (message "Deleted agent '%s'" (or name "unknown")))
+            (error 
+             (message "Error deleting agent: %s" (error-message-string err))
+             ;; Try direct registry removal as a last resort
+             (when (boundp 'ecc-buffer-registry-by-uid)
+               (remhash uid ecc-buffer-registry-by-uid)
+               (ecc-dashboard-refresh)
+               (message "Forcibly removed agent from registry")))))))))
 
 (defun ecc-dashboard-rename-agent-interactive ()
   "Interactively rename the selected agent."
@@ -547,12 +712,35 @@ Applies current filter if any, otherwise gets all agents."
 
           (ecc-dashboard-refresh)
           (message "Filter applied: %s"
-                   (plist-get ecc-dashboard--filter :description))))))))
+                   (plist-get ecc-dashboard--filter :description)))))))
+
+(defun ecc-dashboard-cancel-timer ()
+  "Cancel the dashboard update timer."
+  (interactive)
+  (when ecc-dashboard--update-timer
+    (cancel-timer ecc-dashboard--update-timer)
+    (setq ecc-dashboard--update-timer nil)
+    (message "Dashboard auto-update timer canceled")))
+
+(defun ecc-dashboard-start-timer ()
+  "Start the dashboard update timer."
+  (interactive)
+  (when (and (not ecc-dashboard--update-timer)
+             (get-buffer ecc-dashboard-buffer-name))
+    (setq ecc-dashboard--update-timer
+          (run-with-timer ecc-dashboard-update-interval
+                          ecc-dashboard-update-interval
+                          #'ecc-dashboard-refresh-if-visible))
+    (message "Dashboard auto-update timer started")))
 
 (defun ecc-dashboard-quit ()
-  "Quit the dashboard."
+  "Quit the dashboard and properly clean up the buffer."
   (interactive)
-  (quit-window))
+  (ecc-dashboard-cancel-timer)
+  (let ((buffer (get-buffer ecc-dashboard-buffer-name)))
+    (when buffer
+      (quit-window)
+      (kill-buffer buffer))))
 
 (defun ecc-dashboard-sort-toggle ()
   "Toggle dashboard sort order."
@@ -565,5 +753,10 @@ Applies current filter if any, otherwise gets all agents."
     (message "Sort order: %s" ecc-dashboard-sort-order)))
 
 (provide 'ecc-dashboard-ui)
+
+(when (not load-file-name)
+  (message "ecc-dashboard-ui.el loaded: %s"
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))
 
 ;;; ecc-dashboard-ui.el ends here
