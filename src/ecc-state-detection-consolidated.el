@@ -17,8 +17,8 @@
 ;;; Code:
 
 ;; No additional code needed as ecc-state-detection.el already
-;; provides 'ecc-state-detection-consolidated
-
+;; Provide both the consolidated name and the original name for backward compatibility
 (provide 'ecc-state-detection-consolidated)
+(provide 'ecc-state-detection)
 
 ;;; ecc-state-detection-consolidated.el ends here

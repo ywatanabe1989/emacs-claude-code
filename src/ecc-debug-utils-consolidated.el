@@ -361,6 +361,8 @@ FORMAT-STRING and ARGS are passed to `format'."
   "Compatibility function for older code.")
 
 ;; Provide both the consolidated name (for new code) and the original name (for backward compatibility)
+;; Provide both the consolidated name and the original name for backward compatibility
 (provide 'ecc-debug-utils-consolidated)
+(provide 'ecc-debug-utils)
 
 ;;; ecc-debug-utils-consolidated.el ends here

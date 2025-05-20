@@ -45,11 +45,23 @@
 (--ecc-add-all-to-loadpath)
 
 ;; Core functionality
-(require 'ecc-variables)
+;; Prefer consolidated modules when available
+(if (locate-library "ecc-variables-consolidated")
+    (require 'ecc-variables-consolidated)
+  (require 'ecc-variables))
+
+;; Debug utilities
+(if (locate-library "ecc-debug-utils-consolidated")
+    (require 'ecc-debug-utils-consolidated)
+  (condition-case nil
+      (require 'ecc-debug-utils)
+    (error nil)))
 
 ;; State detection
 (condition-case nil
-    (require 'ecc-state-detection)
+    (if (locate-library "ecc-state-detection-consolidated")
+        (require 'ecc-state-detection-consolidated)
+      (require 'ecc-state-detection))
   (error nil))
 
 ;; VTerm integration
@@ -70,8 +82,12 @@
 
 ;; Auto-response functionality
 (require 'ecc-auto-response)
-(require 'ecc-auto-notify)
-(require 'ecc-auto-response-fix)
+(if (locate-library "ecc-auto-notify-consolidated")
+    (require 'ecc-auto-notify-consolidated)
+  (require 'ecc-auto-notify))
+(condition-case nil
+    (require 'ecc-auto-response-fix)
+  (error nil))
 (require 'ecc-interaction-tracker)
 (require 'ecc-interaction-limiter)
 (require 'ecc-color-themes)

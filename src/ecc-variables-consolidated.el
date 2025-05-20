@@ -250,6 +250,8 @@ These are used as fallbacks if the primary pattern doesn't match."
 
 ;; The ecc-debug variables are now handled by ecc-debug-utils-consolidated.el
 
+;; Provide both the consolidated name and the original name for backward compatibility
 (provide 'ecc-variables-consolidated)
+(provide 'ecc-variables)
 
 ;;; ecc-variables-consolidated.el ends here
