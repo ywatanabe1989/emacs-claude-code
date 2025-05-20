@@ -26,12 +26,17 @@ mmd2images() {
     local path_png="${base_name}.png"
     local path_gif="${base_name}.gif"
 
-    # Step 1: Ensure mermaid file is in TD (top-down) format
-    echo "Checking if Mermaid file is in TD format..."
-    if ! grep -q "^graph TD" "$path_mmd"; then
-        echo "Warning: Mermaid file is not using TD (top-down) format."
-        echo "Converting to TD format..."
-        sed -i 's/^graph \(LR\|RL\|BT\)/graph TD/' "$path_mmd"
+    # Step 1: Check if it's a graph type diagram (skip for other types like gantt)
+    if grep -q "^graph" "$path_mmd"; then
+        echo "Detected graph diagram, checking format..."
+        # Ensure graph is in TD (top-down) format
+        if ! grep -q "^graph TD" "$path_mmd"; then
+            echo "Warning: Graph diagram is not using TD (top-down) format."
+            echo "Converting to TD format..."
+            sed -i 's/^graph \(LR\|RL\|BT\)/graph TD/' "$path_mmd"
+        fi
+    else
+        echo "Non-graph diagram detected (gantt, pie, sequence, etc.), preserving format..."
     fi
 
     # Step 2: Convert MMD to SVG (high resolution)
@@ -56,33 +61,51 @@ mmd2images() {
 }
 
 usage() {
-    echo "Usage: $0 [-h|--help]"
+    echo "Usage: $0 [mermaid_file] [-h|--help]"
     echo
     echo "Options:"
-    echo " -h, --help   Display this help message"
+    echo " -h, --help       Display this help message"
+    echo " mermaid_file     Path to the Mermaid file to render (optional)"
     echo
-    echo "Example:"
-    echo " $0"
+    echo "Examples:"
+    echo " $0                               # Renders default progress.mmd file"
+    echo " $0 path/to/diagram.mmd           # Renders specified Mermaid file"
     echo
     echo "Purpose:"
-    echo " Converts progress.mmd file to SVG, PNG and GIF formats"
+    echo " Converts Mermaid files to SVG, PNG and GIF formats"
     echo " and ensures all diagrams are in TD (top-down) format"
     exit 1
 }
 
 main() {
+    local mermaid_file=""
+    
+    # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-        -h|--help) usage ;;
-          -) echo "Unknown option: $1"; usage ;;
+        -h|--help) 
+            usage 
+            ;;
+        *)
+            # If not a recognized option, treat as input file
+            if [[ -f "$1" ]]; then
+                mermaid_file="$1"
+            else
+                echo "Unknown option or file not found: $1"
+                usage
+            fi
+            ;;
         esac
+        shift
     done
 
     # Get the directory where this script is located
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    # Set the path to the Mermaid file
-    local mermaid_file="${script_dir}/progress.mmd"
+    
+    # If no file was specified, use the default
+    if [[ -z "$mermaid_file" ]]; then
+        mermaid_file="${script_dir}/progress.mmd"
+    fi
 
     # Check if the Mermaid file exists
     if [[ ! -f "$mermaid_file" ]]; then
