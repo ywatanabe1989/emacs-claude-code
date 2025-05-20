@@ -59,7 +59,8 @@
       (require 'ecc-vterm-mode)
       (require 'ecc-vterm-yank-as-file)
       (require 'ecc-term-claude-mode)
-      (require 'ecc-term-visual-aid))
+      (require 'ecc-term-visual-aid)
+      (require 'ecc-vterm-grayscale))
   (error
    (message
     "Claude vterm mode could not be loaded (vterm may not be installed)")))
@@ -174,6 +175,13 @@ default settings but using '/auto' for the continue prompt."
       (ecc-colors-toggle-theme)
     (message "Color theme functionality not available")))
 
+(defun ecc-toggle-grayscale ()
+  "Toggle grayscale mode for Claude vterm buffers."
+  (interactive)
+  (if (fboundp 'ecc-vterm-grayscale-toggle)
+      (ecc-vterm-grayscale-toggle)
+    (message "Grayscale mode functionality not available")))
+
 (defun ecc-toggle-eye-friendly ()
   "Toggle eye-friendly mode for buffer updates and scrolling."
   (interactive)
@@ -224,6 +232,7 @@ default settings but using '/auto' for the continue prompt."
     ;; Visual aids
     (princ "C-c c t      ecc-visual-aid-toggle   Toggle visual aids\n")
     (princ "C-c c m      ecc-toggle-colors       Toggle between color themes\n")
+    (princ "C-c c g      ecc-toggle-grayscale    Toggle grayscale mode (disable colors)\n")
     (princ "C-c c e      ecc-toggle-eye-friendly Toggle eye-friendly scrolling mode\n")
     (princ "C-c c r      ecc-adjust-scroll-speed Set maximum scroll speed\n")
     
@@ -262,6 +271,7 @@ default settings but using '/auto' for the continue prompt."
     (princ "- Toggle line numbers with C-c C-l in any vterm buffer\n")
     (princ "- Line numbers can be hidden by default with ecc-vterm-hide-line-numbers\n")
     (princ "- Cycle between dark, light, and gray themes with C-c c m\n")
+    (princ "- Toggle grayscale mode (disable colors) with C-c c g\n")
     (princ "- Customize colors through ecc-colors-* variables\n")
     (princ "- Adjust font size with C-c C-+ and C-c C-- (also Ctrl+mouse wheel)\n")
     (princ "- Reset font size with C-c C-0\n")
@@ -328,6 +338,7 @@ When enabled, provides keybindings for Claude interaction commands."
             ;; Visual aids
             (define-key map (kbd "C-c c t") 'ecc-claude-visual-aid-toggle)
             (define-key map (kbd "C-c c m") 'ecc-toggle-colors)
+            (define-key map (kbd "C-c c g") 'ecc-toggle-grayscale)
             (define-key map (kbd "C-c c e") 'ecc-toggle-eye-friendly)
             (define-key map (kbd "C-c c r") 'ecc-adjust-scroll-speed)
             
