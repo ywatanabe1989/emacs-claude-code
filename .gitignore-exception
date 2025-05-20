@@ -1,0 +1,2 @@
+# Exception to gitignore
+!tests/**/*.el
