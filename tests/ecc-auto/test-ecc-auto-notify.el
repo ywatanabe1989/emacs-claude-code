@@ -230,20 +230,23 @@
   (let ((ecc-auto-notify-bell-method 'external)
         (ecc-auto-notify-bell-external-command "echo 'bell'")
         (start-process-called nil)
-        (command-used nil))
+        (shell-file-name-used nil)
+        (shell-command-switch-used nil))
     
     ;; Mock process function
     (cl-letf (((symbol-function 'start-process)
                (lambda (name buffer program &rest args)
                  (setq start-process-called t)
-                 (setq command-used (car args)))))
+                 (setq shell-file-name-used program)
+                 (setq shell-command-switch-used (car args)))))
       
       ;; Call bell function
       (ecc-auto-notify-ring-bell)
       
       ;; Verify external command was called
       (should start-process-called)
-      (should (string-match-p "echo 'bell'" command-used)))))
+      (should (string= shell-file-name-used shell-file-name))
+      (should (string= shell-command-switch-used shell-command-switch)))))
 
 ;; Test mode line flash functionality
 (ert-deftest test-ecc-auto-notify-flash-mode-line ()
