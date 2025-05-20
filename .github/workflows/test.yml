@@ -1,0 +1,37 @@
+# Timestamp: "2025-02-25 02:12:14 (ywatanabe)"
+# File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-test/.github/workflows/test.yml
+
+name: tests
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+    strategy:
+      matrix:
+        emacs_version:
+          - 27.1
+          - 27.2
+          - 28.1
+          - 28.2
+          - 29.1
+          - 29.2
+          - 29.3
+          - 29.4
+          - snapshot
+    steps:
+      - uses: actions/checkout@v3
+      - uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs_version }}
+      - name: run-tests
+        run: |
+          ./run-tests.sh
+
+# EOF
