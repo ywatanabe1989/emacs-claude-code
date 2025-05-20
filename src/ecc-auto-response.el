@@ -60,24 +60,37 @@ TYPE is used for notification messages."
     (ecc-auto--notify type response)))
 
 (defun ecc-auto--send-vterm-response (response)
-  "Send RESPONSE to Claude in a vterm buffer."
+  "Send RESPONSE to Claude in a vterm buffer.
+Special handling is applied for the first interaction to ensure reliability."
   (when (fboundp 'vterm-send-string)
     ;; Save current point position
-    (let ((old-point (point)))
+    (let ((old-point (point))
+          (is-first-interaction (= ecc-interaction-counter 0))
+          (delay-base (if (= ecc-interaction-counter 0) 1.5 1.0)))
+      
       ;; Check if point is near the end (user not reading earlier content)
       (if (> (point-max) (+ (point) 40))
           ;; User might be reading earlier content, so don't move point
           (save-excursion
             (goto-char (point-max))
-            (sit-for 0.3)
+            (sit-for delay-base)
             (vterm-send-string response)
+            (sit-for delay-base)            
             (vterm-send-return)
-            (sit-for 0.3))
+            (sit-for delay-base))
         ;; User is at end of buffer, proceed normally
-        (sit-for 0.3)
+        (sit-for delay-base)
         (vterm-send-string response)
+        (sit-for delay-base)                    
         (vterm-send-return)
-        (sit-for 0.3)))))
+        (sit-for delay-base))
+      
+      ;; Increment interaction counter after the first successful response
+      (when is-first-interaction
+        (setq ecc-interaction-counter (1+ ecc-interaction-counter))
+        ;; Add timestamp for this interaction
+        (when (boundp 'ecc-interaction-timestamps)
+          (push (current-time) ecc-interaction-timestamps))))))
 
 (defun ecc-auto--notify (type response)
   "Display notification about auto-response of TYPE with actual RESPONSE string.
