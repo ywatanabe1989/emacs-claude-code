@@ -28,6 +28,13 @@
 | Yank as File | Yank as file feature implementation | [progress-yank-as-file-20250520.md](./progress-yank-as-file-20250520.md) |
 | Debug Message Fix | Debug message system improvements | [progress-debug-message-fix-20250520.md](./progress-debug-message-fix-20250520.md) |
 
+### Refactoring Progress
+
+| Component | Description | Link |
+|-----------|-------------|------|
+| State Detection | Refactored state detection module | [MERGE_REPORT_STATE_DETECTION.md](./MERGE_REPORT_STATE_DETECTION.md) |
+| Refactoring Plan | Overall refactoring strategy | [refactoring/REFACTORING_PLAN.md](./refactoring/REFACTORING_PLAN.md) |
+
 ### Bug Fixes
 
 | Bug | Description | Link |
