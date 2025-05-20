@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph BeforeRefactoring["Before Refactoring"]
+        B1[ecc-auto-response.el] -- "ecc-detect-simple-state()" --> B2[Simple Pattern Matching]
+        B3[ecc-auto-response-fix.el] -- "ecc-auto-response-initial-check()" --> B4[Alternative Patterns Check]
+        B2 --> B5{State Found?}
+        B4 --> B5
+        B5 -- Yes --> B6[Send Response]
+        B5 -- No --> B7[Do Nothing]
+    end
+
+    subgraph AfterRefactoring["After Refactoring"]
+        A1[ecc-auto-response.el] -- "Uses" --> A2[ecc-state-detection.el]
+        A3[ecc-auto-response-fix.el] -- "Uses" --> A2
+        A2 -- "ecc-detect-state()" --> A4[Unified Detection Strategy]
+        A4 -- "Primary Search" --> A5[Check Last Lines]
+        A4 -- "Fallback" --> A6[Check Buffer Context]
+        A4 -- "Fallback" --> A7[Check Alternative Patterns]
+        A5 --> A8{State Found?}
+        A6 --> A8
+        A7 --> A8
+        A8 -- Yes --> A9[Send Response with Throttling]
+        A8 -- No --> A10[Do Nothing]
+    end
+
+    BeforeRefactoring -.-> AfterRefactoring
+
+    classDef before fill:#f9d5e5,stroke:#333,stroke-width:1px
+    classDef after fill:#d3f8e2,stroke:#333,stroke-width:1px
+    class B1,B2,B3,B4,B5,B6,B7 before
+    class A1,A2,A3,A4,A5,A6,A7,A8,A9,A10 after
