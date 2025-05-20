@@ -49,7 +49,7 @@
 
 ;; State detection
 (condition-case nil
-    (require 'ecc-state-detection)
+    (require 'ecc-auto-detect)
   (error nil))
 
 ;; VTerm integration
@@ -65,9 +65,13 @@
     "Claude vterm mode could not be loaded (vterm may not be installed)")))
 
 ;; Auto-response functionality
+(require 'ecc-auto-core)
+(require 'ecc-auto-detect)
 (require 'ecc-auto-response)
 (require 'ecc-auto-notify)
-(require 'ecc-auto-response-fix)
+(condition-case nil
+    (require 'ecc-auto-buffer)
+  (error nil))
 (require 'ecc-interaction-tracker)
 (require 'ecc-interaction-limiter)
 (require 'ecc-color-themes)
