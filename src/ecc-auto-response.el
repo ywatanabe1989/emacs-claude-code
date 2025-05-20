@@ -57,7 +57,7 @@ TYPE is used for notification messages."
   
   ;; Notify user about the response
   (when (and (boundp 'ecc-auto-notify-completions) ecc-auto-notify-completions)
-    (ecc-auto--notify type)))
+    (ecc-auto--notify type response)))
 
 (defun ecc-auto--send-vterm-response (response)
   "Send RESPONSE to Claude in a vterm buffer."
@@ -79,9 +79,11 @@ TYPE is used for notification messages."
         (vterm-send-return)
         (sit-for 0.3)))))
 
-(defun ecc-auto--notify (type)
-  "Display notification about auto-response of TYPE."
-  (let ((msg (format "Auto-responded: %s" type)))
+(defun ecc-auto--notify (type response)
+  "Display notification about auto-response of TYPE with actual RESPONSE string.
+TYPE is a description of the response context (e.g., \"Y/N\").
+RESPONSE is the actual string sent to Claude."
+  (let ((msg (format "Auto-responded: %s (\"%s\")" type response)))
     (message msg)))
 
 ;; Specific response functions with defaults (useful for interactive use)
