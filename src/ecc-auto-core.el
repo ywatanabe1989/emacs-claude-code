@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-21 14:45:00>
+;;; Timestamp: <2025-05-21 16:30:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-core.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -40,8 +40,11 @@
 ;;; ```
 
 (require 'cl-lib)
+(require 'cl-lib)
 (require 'ecc-variables)
 (require 'ecc-state-detection)
+(when (locate-library "ecc-debug-utils")
+  (require 'ecc-debug-utils))
 
 ;;; Code:
 
@@ -279,25 +282,35 @@ Arguments:
   BUFFER: The buffer where the state was detected.
   STATE: The detected Claude prompt state."
   (when ecc-auto-core-debug
-    (message "[Auto Core] Detected state %s in %s"
-             (ecc-state-get-name state)
-             (buffer-name buffer))))
+    (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
+        (ecc-debug-message "Detected state %s in %s"
+                         (ecc-state-get-name state)
+                         (buffer-name buffer))
+      (message "[Auto Core] Detected state %s in %s"
+               (ecc-state-get-name state)
+               (buffer-name buffer)))))
 
 (defun ecc-auto-core--log-buffer-registration (buffer)
   "Log registration of BUFFER if debug is enabled.
 Arguments:
   BUFFER: The buffer being registered."
   (when (and ecc-auto-core-debug (buffer-live-p buffer))
-    (message "[Auto Core] Registered buffer %s for auto-response"
-             (buffer-name buffer))))
+    (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
+        (ecc-debug-message "Registered buffer %s for auto-response"
+                         (buffer-name buffer))
+      (message "[Auto Core] Registered buffer %s for auto-response"
+               (buffer-name buffer)))))
 
 (defun ecc-auto-core--log-buffer-unregistration (buffer)
   "Log unregistration of BUFFER if debug is enabled.
 Arguments:
   BUFFER: The buffer being unregistered."
   (when (and ecc-auto-core-debug (buffer-live-p buffer))
-    (message "[Auto Core] Unregistered buffer %s from auto-response"
-             (buffer-name buffer))))
+    (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
+        (ecc-debug-message "Unregistered buffer %s from auto-response"
+                         (buffer-name buffer))
+      (message "[Auto Core] Unregistered buffer %s from auto-response"
+               (buffer-name buffer)))))
 
 ;;;###autoload
 (defun ecc-auto-core-initial-check (buffer callback)
@@ -333,8 +346,11 @@ Arguments:
 Arguments:
   BUFFER: The buffer where the initial state was detected."
   (when ecc-auto-core-debug
-    (message "[Auto Core] Detected initial state in %s"
-             (buffer-name buffer))))
+    (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
+        (ecc-debug-message "Detected initial state in %s"
+                         (buffer-name buffer))
+      (message "[Auto Core] Detected initial state in %s"
+               (buffer-name buffer)))))
 
 (defun ecc-auto-core--schedule-next-initial-check (buffer callback)
   "Schedule next initial check for BUFFER with CALLBACK if needed.
@@ -423,6 +439,23 @@ Displays current timer state, last detected prompt, and buffer information."
   (interactive)
   (message "%s" (ecc-auto-core-debug-status)))
 
+;;;; Integration with other modules
+
+;;;###autoload
+(defun ecc-auto-core-get-registered-buffers ()
+  "Return list of currently registered live buffers.
+This is an alias for `ecc-auto-core-registered-buffers` for better naming consistency.
+Returns:
+  List of live buffers registered for auto-response."
+  (ecc-auto-core-registered-buffers))
+
+;;;###autoload
+(defun ecc-auto-core-debug-toggle ()
+  "Toggle debug output for auto-core.
+This is an alias for `ecc-auto-core-toggle-debug` for better naming consistency."
+  (interactive)
+  (ecc-auto-core-toggle-debug))
+
 ;;;; Backward compatibility
 
 ;; Compatibility functions for existing code
@@ -434,6 +467,15 @@ Displays current timer state, last detected prompt, and buffer information."
 
 (defalias 'ecc-auto--stop-timer 'ecc-auto-core-timer-stop
   "Backward compatibility alias for `ecc-auto-core-timer-stop'.")
+
+(defalias 'ecc-auto-core-get-timer 'ecc-auto-core-timer-active-p
+  "Alternative name for `ecc-auto-core-timer-active-p'.")
+
+(defalias 'ecc-auto-core-start-timer 'ecc-auto-core-timer-start
+  "Alternative name for `ecc-auto-core-timer-start'.")
+
+(defalias 'ecc-auto-core-stop-timer 'ecc-auto-core-timer-stop
+  "Alternative name for `ecc-auto-core-timer-stop'.")
 
 ;; Provide all names for backward compatibility
 (provide 'ecc-auto-core)
