@@ -1,15 +1,19 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 11:02:41>
+;;; Timestamp: <2025-05-20 17:15:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
 ;;; Commentary:
-;;; Global variables for emacs-claude-code.
+;;; Compatibility layer for emacs-claude-code variables.
+;;; This file loads the core variables implementation and provides backward compatibility.
 
-;; Core variables
+(require 'ecc-variables-core)
+
+;; The code below is for backward compatibility only
+;; New code should use ecc-variables-core directly
 
 (defvar ecc-buffer-registered-buffers-alist nil
   "Alist of registered Claude buffers and their properties.")

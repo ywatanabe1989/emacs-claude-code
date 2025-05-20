@@ -1,19 +1,15 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 15:35:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/ecc-auto/test-initial-waiting.el
+;;; Timestamp: <2025-05-20 19:00:00>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/ecc-auto/test-initial-waiting-updated.el
 
 ;;; Commentary:
 ;;; Manual test script for initial-waiting detection and auto-response.
 
 ;; Load necessary files
-(require 'ecc-variables)
+(require 'ecc-variables-core)
 (require 'ecc-auto-response)
-(when (locate-library "ecc-state-detect-prompt")
-  (require 'ecc-state-detect-prompt))
-(require 'ecc-auto-response-fix)
-(when (locate-library "ecc-auto-response-fix-improved")
-  (require 'ecc-auto-response-fix-improved))
+(require 'ecc-state-detection)
 
 ;; Set up variables for testing
 (setq ecc-debug-enabled t)  ;; Enable debug output
@@ -28,7 +24,7 @@
     (erase-buffer)
     (insert "Some content here\n")
     (insert "│ > Try \n")
-    (let ((state (ecc-detect-simple-state)))
+    (let ((state (ecc-detect-state)))
       (message "Standard pattern test: %s (expected: :initial-waiting)" state))
     
     ;; Test with alternative patterns
@@ -37,16 +33,13 @@
         (erase-buffer)
         (insert "Some content here\n")
         (insert pattern)
-        (let ((state (cond
-                      ((fboundp 'ecc-check-and-respond-improved)
-                       (let ((ecc-buffer-current-buffer (current-buffer))
-                             (result nil))
-                         (cl-letf (((symbol-function 'ecc-auto--send-response)
-                                   (lambda (buffer response type)
-                                     (setq result type))))
-                           (ecc-check-and-respond-improved)
-                           result)))
-                      (t nil))))
+        (let ((state (let ((ecc-buffer-current-buffer (current-buffer))
+                           (result nil))
+                       (cl-letf (((symbol-function 'ecc-auto-response-send-message)
+                                 (lambda (buffer response type)
+                                   (setq result type))))
+                         (ecc-auto-response-check)
+                         result))))
           (message "Alternative pattern '%s' test: %s" pattern state))))))
 
 ;; Test auto-response for initial-waiting
@@ -66,19 +59,14 @@
       (setq ecc-auto-response-initial-waiting "/user:understand-guidelines")
       
       ;; Mock the send function
-      (cl-letf (((symbol-function 'ecc-auto--send-vterm-response)
+      (cl-letf (((symbol-function 'ecc-auto-response-send-to-vterm)
                  (lambda (response)
                    (message "Would send response: %s" response)
                    (insert "Response sent: " response "\n"))))
         
         ;; Run the tests
-        (message "Testing original check-and-respond...")
-        (ecc-check-and-respond)
-        
-        ;; Test improved version if available
-        (when (fboundp 'ecc-check-and-respond-improved)
-          (message "Testing improved check-and-respond...")
-          (ecc-check-and-respond-improved))))
+        (message "Testing auto-response check...")
+        (ecc-auto-response-check)))
     
     ;; Display results
     (switch-to-buffer test-buffer)
@@ -93,6 +81,6 @@
 
 (message "Initial waiting test script loaded. Run tests with M-x ecc-test-initial-waiting-all")
 
-(provide 'test-initial-waiting)
+(provide 'test-initial-waiting-updated)
 
-;;; test-initial-waiting.el ends here
+;;; test-initial-waiting-updated.el ends here
