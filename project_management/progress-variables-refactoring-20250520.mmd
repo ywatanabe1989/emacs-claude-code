@@ -1,0 +1,36 @@
+graph TD
+    classDef completed fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef inProgress fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef todo fill:#fff,stroke:#333,stroke-width:2px;
+    classDef goal fill:#cce5ff,stroke:#333,stroke-width:2px,font-weight:bold;
+    classDef milestone fill:#efe,stroke:#333,stroke-width:2px;
+    
+    Project[Variables System Refactoring]:::completed --> Goal1[Improve Variables Organization]:::goal
+    Project --> Goal2[Enhance Customization Support]:::goal
+    
+    %% Goal 1 Milestones and Tasks
+    Goal1 --> MS1[Create organized customization groups]:::milestone
+    Goal1 --> MS2[Maintain backward compatibility]:::milestone
+    
+    MS1 --> Task1[Move variables to appropriate groups]:::completed
+    MS1 --> Task2[Test refactored variables]:::completed
+    MS1 --> Task3[Document variables system]:::completed
+    
+    MS2 --> Task4[Create compatibility layer]:::completed
+    MS2 --> Task5[Archive original variables file]:::completed
+    MS2 --> Task6[Test compatibility layer]:::completed
+    
+    %% Goal 2 Milestones and Tasks
+    Goal2 --> MS3[Convert vars to defcustom]:::milestone
+    
+    MS3 --> Task7[Add proper types to customization vars]:::completed
+    MS3 --> Task8[Group variables by functionality]:::completed
+    MS3 --> Task9[Improve variable documentation]:::completed
+    
+    %% Future Work
+    FutureWork[Next Steps]:::todo
+    Project --> FutureWork
+    
+    FutureWork --> Future1[Complete Migration]:::todo
+    FutureWork --> Future2[Enhanced Validation]:::todo
+    FutureWork --> Future3[Further Integration]:::todo
