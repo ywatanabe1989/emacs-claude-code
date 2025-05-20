@@ -1,0 +1,55 @@
+graph TD
+    subgraph Legend
+        Z1[Todo]:::todo
+        Z2[In Progress]:::inProgress
+        Z3[Done]:::done
+        Z4[Directory]:::directory
+    end
+    
+    subgraph "Emacs Claude Code Auto-response System"
+        subgraph "Core Goals"
+            G1[Advanced Claude prompt detection & auto-response]:::inProgress
+            G2[Clean, organized codebase]:::inProgress
+        end
+        
+        subgraph "Key Milestones"
+            M1[Basic prompt detection]:::done
+            M2[Enhanced state detection]:::done
+            M3[Restructured file organization]:::done
+        end
+        
+        subgraph "Completed Tasks"
+            T1[Y/N auto-response]:::done
+            T2[Continue auto-response]:::done
+            T3[Initial-waiting state detection]:::done
+            T4[Initial-waiting auto-response]:::done
+            T5[Tests for new states]:::done
+            T6[Version control workflow]:::done
+        end
+        
+        subgraph "Pending Tasks"
+            P1[Custom template responses]:::todo
+            P2[Notification capabilities]:::todo
+            P3[Complete documentation]:::todo
+        end
+    end
+    
+    G1 --> M1
+    G1 --> M2
+    G2 --> M3
+    
+    M1 --> T1
+    M1 --> T2
+    M2 --> T3
+    M2 --> T4
+    M2 --> T5
+    M3 --> T6
+    
+    G1 --> P1
+    G1 --> P2
+    G2 --> P3
+    
+    classDef todo fill:#fff,stroke:#333,stroke-width:2px;
+    classDef inProgress fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef done fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef directory fill:#efe,stroke:#333,stroke-width:1px;
