@@ -12,7 +12,7 @@
 (require 'ecc-variables)
 (require 'ecc-buffer-local)
 (require 'ecc-state-detection)
-(require 'ecc-auto-response-unified)
+(require 'ecc-auto-response)
 
 ;;; Code:
 

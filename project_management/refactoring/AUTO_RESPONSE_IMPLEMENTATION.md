@@ -1,23 +1,23 @@
-;;; -*- coding: utf-8; lexical-binding: t -*-
-;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 14:27:54>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
+# Auto-Response Module Implementation Plan
 
-;;; Commentary:
-;;; Refactored auto-response functionality for Claude prompts.
-;;; This module builds on the ecc-auto-core infrastructure and provides
-;;; user-facing commands and functions for automatically responding to
-;;; different types of Claude prompts.
+## Module Purpose
+The `ecc-auto-response.el` module serves as the API layer for the auto-response system. It provides:
+1. Public API functions for starting, stopping, and configuring the auto-response system
+2. Response action functions for different Claude prompt states
+3. Buffer management for tracked response targets
+4. Convenience commands for users
 
-(require 'ecc-variables)
-(require 'ecc-auto-core)
-(require 'ecc-state-detection)
-(require 'ecc-vterm-utils)
-(require 'ecc-debug-utils)
+This module builds on the `ecc-auto-core.el` infrastructure and focuses exclusively on the response action logic, leaving the timing, state detection, and throttling to the core module.
 
-;;; Code:
+## Key Dependencies
+- `ecc-auto-core.el` - For core infrastructure (timers, throttling, state tracking)
+- `ecc-state-detection.el` - For detecting Claude prompt states
+- `ecc-variables.el` - For shared variables and customization
 
-;; Customization options
+## Variables
+
+### Customization Variables
+```elisp
 (defgroup ecc-auto-response nil
   "Automatic response settings for Claude."
   :group 'ecc
@@ -52,14 +52,19 @@
   "Whether to show notifications when automatic responses are sent."
   :type 'boolean
   :group 'ecc-auto-response)
+```
 
-;; Internal variables
+### Internal Variables
+```elisp
 (defvar ecc-auto-response--registered-callback nil
   "Callback function to process detected states in registered buffers.")
+```
 
-;; Public API functions
+## Functions
 
-;;;###autoload
+### Public API Functions
+
+```elisp
 (defun ecc-auto-response-start ()
   "Start the auto-response system.
 Initializes and activates the auto-response system that automatically responds
@@ -97,7 +102,6 @@ Displays a message with the configured response values when started."
            ecc-auto-response-yes-plus
            ecc-auto-response-continue))
 
-;;;###autoload
 (defun ecc-auto-response-stop ()
   "Stop the auto-response system.
 Deactivates the auto-response system and cancels any pending timers."
@@ -117,7 +121,6 @@ Deactivates the auto-response system and cancels any pending timers."
   
   (message "Auto-response stopped"))
 
-;;;###autoload
 (defun ecc-auto-response-toggle ()
   "Toggle auto-response on/off."
   (interactive)
@@ -125,7 +128,6 @@ Deactivates the auto-response system and cancels any pending timers."
       (ecc-auto-response-stop)
     (ecc-auto-response-start)))
 
-;;;###autoload
 (defun ecc-auto-response-register-buffer (&optional buffer)
   "Register BUFFER for auto-response.
 If BUFFER is nil, use current buffer.
@@ -135,10 +137,11 @@ Returns the buffer if registered successfully."
     (prog1 (ecc-auto-core-register-buffer buf)
       (when (called-interactively-p 'any)
         (message "Buffer %s registered for auto-response" (buffer-name buf))))))
+```
 
-;; Response functions
+### Response Functions
 
-;;;###autoload
+```elisp
 (defun ecc-auto-response-send (buffer &optional state)
   "Send appropriate response to Claude prompts in BUFFER.
 Examines the buffer content to detect Claude's current prompt state, then
@@ -154,14 +157,12 @@ Returns t if a response was sent, nil otherwise."
   
   ;; Skip if auto-response is disabled
   (unless ecc-auto-response-enabled
-    (when (boundp 'ecc-debug-enabled)
-      (ecc-debug-message "Auto-response is disabled, not sending response"))
+    (ecc-debug-message "Auto-response is disabled, not sending response")
     (cl-return-from ecc-auto-response-send nil))
   
   ;; Skip if buffer is not live
   (unless (buffer-live-p buffer)
-    (when (boundp 'ecc-debug-enabled)
-      (ecc-debug-message "Buffer is not live, not sending response"))
+    (ecc-debug-message "Buffer is not live, not sending response")
     (cl-return-from ecc-auto-response-send nil))
   
   (with-current-buffer buffer
@@ -181,8 +182,7 @@ Returns t if a response was sent, nil otherwise."
         (ecc-auto-response--send-message buffer ecc-auto-response-continue "Continue"))
        
        (t ;; No recognized state
-        (when (boundp 'ecc-debug-enabled)
-          (ecc-debug-message "No recognized prompt state detected"))
+        (ecc-debug-message "No recognized prompt state detected")
         nil)))))
 
 (defun ecc-auto-response--send-message (buffer response type)
@@ -194,7 +194,7 @@ TYPE is used for notification messages."
       (cond
        ;; vterm mode
        ((derived-mode-p 'vterm-mode)
-        (ecc-auto-response--send-to-vterm buffer response))
+        (ecc-auto-response--send-to-vterm response))
        
        ;; comint mode (e.g., shell)
        ((derived-mode-p 'comint-mode)
@@ -214,10 +214,38 @@ TYPE is used for notification messages."
   ;; Return t to indicate success
   t)
 
-(defun ecc-auto-response--send-to-vterm (buffer response)
-  "Send RESPONSE to Claude in vterm BUFFER."
-  ;; Use the shared utility function with appropriate debug function
-  (ecc-vterm-utils-send-string buffer response (ecc-debug-utils-make-debug-fn)))
+(defun ecc-auto-response--send-to-vterm (response)
+  "Send RESPONSE to Claude in a vterm buffer."
+  ;; Only proceed if vterm is available
+  (when (fboundp 'vterm-send-string)
+    ;; Save current point position to potentially restore it later
+    (let ((distance-from-end (- (point-max) (point))))
+      ;; Output debug information
+      (ecc-debug-message "Sending response to vterm: %s" response)
+      (ecc-debug-message "Point: %d, Max: %d, Distance from end: %d"
+                      (point) (point-max) distance-from-end)
+      
+      ;; If user is more than 40 chars from the end, they might be reading
+      ;; earlier content, so use save-excursion to avoid disturbing their view
+      (if (< distance-from-end 40)
+          ;; User is at end of buffer - send directly
+          (progn
+            (ecc-debug-message "Sending directly at current point")
+            (sit-for 0.2) ; Small delay for stability
+            (vterm-send-string response)
+            (sit-for 0.2)
+            (vterm-send-return))
+        
+        ;; User might be reading earlier content, so don't move point
+        (save-excursion
+          (ecc-debug-message "Using save-excursion to send at end")
+          (goto-char (point-max))
+          (sit-for 0.2)
+          (vterm-send-string response)
+          (sit-for 0.2)
+          (vterm-send-return)))
+      
+      (ecc-debug-message "Send complete. Final point: %d" (point)))))
 
 (defun ecc-auto-response--notify (type response)
   "Display notification about auto-response of TYPE with actual RESPONSE string.
@@ -225,10 +253,11 @@ TYPE is a description of the response context (e.g., \"Y/N\").
 RESPONSE is the actual string sent to Claude."
   (let ((msg (format "Auto-responded: %s (\"%s\")" type response)))
     (message msg)))
+```
 
-;; Convenience functions
+### Convenience Functions
 
-;;;###autoload
+```elisp
 (defun ecc-auto-response-yes (&optional buffer)
   "Automatically send Y response to Claude Y/N prompt.
 Sends the yes response (defined by `ecc-auto-response-yes`) to
@@ -241,7 +270,6 @@ If BUFFER is nil, use current buffer."
    ecc-auto-response-yes
    "Y/N"))
 
-;;;###autoload
 (defun ecc-auto-response-yes-plus (&optional buffer)
   "Automatically send Y response to Claude Y/Y/N prompt.
 Sends the yes-plus response (defined by `ecc-auto-response-yes-plus`)
@@ -254,7 +282,6 @@ If BUFFER is nil, use current buffer."
    ecc-auto-response-yes-plus
    "Y/Y/N"))
 
-;;;###autoload
 (defun ecc-auto-response-continue (&optional buffer)
   "Automatically send continue to Claude waiting prompt.
 Sends the continue response (defined by `ecc-auto-response-continue`) to
@@ -267,7 +294,6 @@ If BUFFER is nil, use current buffer."
    ecc-auto-response-continue
    "Continue"))
 
-;;;###autoload
 (defun ecc-auto-response-custom (response-text)
   "Send custom RESPONSE-TEXT to Claude.
 This allows sending natural language responses instead of just command options."
@@ -278,21 +304,64 @@ This allows sending natural language responses instead of just command options."
        buffer
        response-text
        (format "Custom: %s" response-text)))))
+```
 
-;; Backward compatibility aliases
+### Backward Compatibility
 
-;; Compatibility with old code
+```elisp
+;; Aliases for compatibility with old code
 (defalias 'ecc-start-auto-response 'ecc-auto-response-start)
 (defalias 'ecc-stop-auto-response 'ecc-auto-response-stop)
 (defalias 'ecc-toggle-auto-response 'ecc-auto-response-toggle)
 (defalias 'ecc-auto-accept-send 'ecc-auto-response-send)
-(defalias 'ecc-auto-response-template 'ecc-auto-response-custom)
+(defalias 'ecc-check-and-respond 
+  (lambda ()
+    "Compatibility function for old auto-response checking."
+    (when ecc-auto-response-enabled
+      (ecc-auto-core-process-all-buffers ecc-auto-response--registered-callback))))
+```
 
-(defun ecc-check-and-respond ()
-  "Compatibility function for old auto-response checking."
-  (when ecc-auto-response-enabled
-    (ecc-auto-core-process-all-buffers ecc-auto-response--registered-callback)))
-
+## Module Exports (provide)
+```elisp
 (provide 'ecc-auto-response)
+```
 
-;;; ecc-auto-response.el ends here
+## Test Plan
+
+1. **Basic Functionality Tests**
+   - Test starting and stopping auto-response system
+   - Verify toggling behavior works correctly
+   - Test buffer registration and management
+
+2. **Response Function Tests**
+   - Test response functions for each state type (Y/N, Y/Y/N, waiting, etc.)
+   - Verify correct response values are sent
+   - Test notification behavior
+
+3. **Integration Tests**
+   - Test interaction with core infrastructure
+   - Verify timer management and state detection
+   - Test backwoard compatibility with existing code
+
+4. **Edge Case Tests**
+   - Test behavior with invalid states
+   - Test with disabled auto-response
+   - Test with dead buffers
+
+5. **Mode-specific Tests**
+   - Test vterm support
+   - Test comint mode support
+   - Test default fallback behavior
+
+## Implementation Sequence
+
+1. Create customization variables and groups
+2. Implement public API functions
+3. Add response sending core functions
+4. Build mode-specific response handling
+5. Create convenience wrapper functions
+6. Add backward compatibility functions
+7. Create comprehensive tests
+8. Review and refine
+
+This implementation plan provides a detailed guide for creating the `ecc-auto-response.el` module, ensuring all necessary functionality is included with proper organization and backward compatibility.

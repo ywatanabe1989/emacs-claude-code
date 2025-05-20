@@ -132,9 +132,6 @@ This is useful for troubleshooting auto-response and other functionality."
   (message "Claude debug messages %s" 
            (if ecc-debug-enabled "enabled" "disabled")))
 
-;;; ecc-variables.el ends here
-
-
 (provide 'ecc-variables)
 
 (when
@@ -142,3 +139,5 @@ This is useful for troubleshooting auto-response and other functionality."
   (message "ecc-variables.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))
+
+;;; ecc-variables.el ends here
