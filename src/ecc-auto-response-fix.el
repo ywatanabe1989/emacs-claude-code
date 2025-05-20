@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 10:21:14>
+;;; Timestamp: <2025-05-20 10:41:46>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response-fix.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -25,10 +25,10 @@ Prevents rapid consecutive auto-responses to waiting prompts."
   :type 'float
   :group 'ecc-auto-response-improvements)
 
-(defcustom ecc-auto-response-esc-disables t
-  "Whether pressing ESC disables auto-response mode."
-  :type 'boolean
-  :group 'ecc-auto-response-improvements)
+;; (defcustom ecc-auto-response-esc-disables t
+;;   "Whether pressing ESC disables auto-response mode."
+;;   :type 'boolean
+;;   :group 'ecc-auto-response-improvements)
 
 ;; Track last responses to prevent consecutive firing
 
@@ -89,6 +89,18 @@ BUFFER and STATE are passed to the original function."
 (advice-add 'ecc-auto-response-send :around
             #'ecc-auto-response-send-advised)
 
+;; Initial check when auto-response starts
+(defun ecc-auto-response-initial-check ()
+  "Perform an initial check for prompts when auto-response is started.
+This ensures we respond to prompts immediately without waiting for the timer."
+  (when (and ecc-buffer-auto-response-enabled
+            (buffer-live-p ecc-buffer-current-buffer))
+    (with-current-buffer ecc-buffer-current-buffer
+      (ecc-check-and-respond))))
+
+(advice-add 'ecc-start-auto-response :after
+            (lambda (&rest _) (run-at-time 0.5 nil #'ecc-auto-response-initial-check)))
+
 ;; Add similar throttling to the check-and-respond function
 
 (defun ecc-check-and-respond-advised ()
@@ -135,46 +147,46 @@ Replaces the original function completely."
 (advice-add 'ecc-check-and-respond :override
             #'ecc-check-and-respond-advised)
 
-;; ESC key binding to disable auto-response
+;; ;; ESC key binding to disable auto-response
 
-(defun ecc-esc-disable-auto-response ()
-  "Disable auto-response when ESC is pressed."
-  (interactive)
-  (when (and ecc-auto-response-esc-disables
-             (boundp 'ecc-buffer-auto-response-enabled)
-             ecc-buffer-auto-response-enabled)
-    (vterm-send-escape)
-    (ecc-stop-auto-response)
-    (message "Auto-response disabled by ESC"))
-  ;; Call the regular ESC function
-  (call-interactively 'keyboard-escape-quit))
+;; (defun ecc-esc-disable-auto-response ()
+;;   "Disable auto-response when ESC is pressed."
+;;   (interactive)
+;;   (when (and ecc-auto-response-esc-disables
+;;              (boundp 'ecc-buffer-auto-response-enabled)
+;;              ecc-buffer-auto-response-enabled)
+;;     (vterm-send-escape)
+;;     (ecc-stop-auto-response)
+;;     (message "Auto-response disabled by ESC"))
+;;   ;; Call the regular ESC function
+;;   (call-interactively 'keyboard-escape-quit))
 
 ;; Setup ESC key to disable auto-response in vterm mode
 
-(defun ecc-setup-esc-key-in-vterm ()
-  "Setup ESC key to disable auto-response in vterm mode."
-  (when (boundp 'vterm-mode-map)
-    ;; Use both [escape] and "\e" key sequences to ensure compatibility
-    (define-key vterm-mode-map [escape] 'ecc-esc-disable-auto-response)
-    (define-key vterm-mode-map "\e" 'ecc-esc-disable-auto-response)
-    ;; Also set up ESC key for ecc-term-claude-mode if it exists
-    (when (boundp 'ecc-term-claude-mode-map)
-      (define-key ecc-term-claude-mode-map [escape] 'ecc-esc-disable-auto-response)
-      (define-key ecc-term-claude-mode-map "\e" 'ecc-esc-disable-auto-response))
-    (message "ESC key binding for auto-response disable configured")))
+;; (defun ecc-setup-esc-key-in-vterm ()
+;;   "Setup ESC key to disable auto-response in vterm mode."
+;;   (when (boundp 'vterm-mode-map)
+;;     ;; Use both [escape] and "\e" key sequences to ensure compatibility
+;;     (define-key vterm-mode-map [escape] 'ecc-esc-disable-auto-response)
+;;     (define-key vterm-mode-map "\e" 'ecc-esc-disable-auto-response)
+;;     ;; Also set up ESC key for ecc-term-claude-mode if it exists
+;;     (when (boundp 'ecc-term-claude-mode-map)
+;;       (define-key ecc-term-claude-mode-map [escape] 'ecc-esc-disable-auto-response)
+;;       (define-key ecc-term-claude-mode-map "\e" 'ecc-esc-disable-auto-response))
+;;     (message "ESC key binding for auto-response disable configured")))
 
 ;; Make sure all required variables are defined to prevent errors
 
 (defvar ecc-auto-notify-completions t
   "Whether to notify when auto-response completes.")
 
-;; Ensure we set up ESC key after vterm is loaded
-(with-eval-after-load 'vterm
-  (ecc-setup-esc-key-in-vterm))
+;; ;; Ensure we set up ESC key after vterm is loaded
+;; (with-eval-after-load 'vterm
+;;   (ecc-setup-esc-key-in-vterm))
 
-;; Also set up ESC key after our mode is loaded
-(with-eval-after-load 'ecc-term-claude-mode
-  (ecc-setup-esc-key-in-vterm))
+;; ;; Also set up ESC key after our mode is loaded
+;; (with-eval-after-load 'ecc-term-claude-mode
+;;   (ecc-setup-esc-key-in-vterm))
 
 ;; Reset state when auto-response is stopped
 
@@ -202,14 +214,14 @@ ORIG-FUN is the original function."
   (message "Auto-response throttle time set to %.1f seconds"
            ecc-auto-response-throttle-time))
 
-(defun ecc-auto-response-toggle-esc-disable ()
-  "Toggle whether ESC disables auto-response."
-  (interactive)
-  (setq ecc-auto-response-esc-disables
-        (not ecc-auto-response-esc-disables))
-  (message "ESC key %s auto-response"
-           (if ecc-auto-response-esc-disables "will disable"
-             "won't disable")))
+;; (defun ecc-auto-response-toggle-esc-disable ()
+;;   "Toggle whether ESC disables auto-response."
+;;   (interactive)
+;;   (setq ecc-auto-response-esc-disables
+;;         (not ecc-auto-response-esc-disables))
+;;   (message "ESC key %s auto-response"
+;;            (if ecc-auto-response-esc-disables "will disable"
+;;              "won't disable")))
 
 ;;; ecc-auto-response-fix.el ends here
 
