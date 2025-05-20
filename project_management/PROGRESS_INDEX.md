@@ -32,8 +32,10 @@
 
 | Component | Description | Link |
 |-----------|-------------|------|
+| Phase 1 Update | State detection refactoring | [progress-refactoring-phase1-20250520.md](./progress-refactoring-phase1-20250520.md) |
 | State Detection | Refactored state detection module | [MERGE_REPORT_STATE_DETECTION.md](./MERGE_REPORT_STATE_DETECTION.md) |
 | Refactoring Plan | Overall refactoring strategy | [refactoring/REFACTORING_PLAN.md](./refactoring/REFACTORING_PLAN.md) |
+| Progress Report | Refactoring progress tracking | [refactoring/REFACTORING_PROGRESS.md](./refactoring/REFACTORING_PROGRESS.md) |
 
 ### Bug Fixes
 
