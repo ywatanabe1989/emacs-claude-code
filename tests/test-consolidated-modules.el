@@ -15,6 +15,7 @@
 (require 'ecc-state-detection)
 (require 'ecc-auto-core)
 (require 'ecc-debug-utils)
+(require 'ecc-auto-response-consolidated nil t) ;; Optional requirement
 
 ;;; Code:
 
@@ -203,6 +204,169 @@ Returns t if the feature is available, nil otherwise."
     ;; Cleanup
     (when (featurep 'ecc-term-claude-mode-consolidated)
       (unload-feature 'ecc-term-claude-mode-consolidated t))))
+
+(ert-deftest test-auto-response-consolidated-provided ()
+  "Test that the auto-response-consolidated feature is provided (if available)."
+  (if (not (locate-library "ecc-auto-response-consolidated"))
+      (skip-unless nil) ;; Skip if module not available
+    
+    (unwind-protect
+        (progn
+          ;; Unload first to ensure clean test
+          (when (featurep 'ecc-auto-response-consolidated)
+            (unload-feature 'ecc-auto-response-consolidated t))
+          
+          ;; Now require and verify
+          (when (require 'ecc-auto-response-consolidated nil t)
+            (should (test-consolidated-feature-provided-p 'ecc-auto-response-consolidated))))
+      
+      ;; Cleanup
+      (when (featurep 'ecc-auto-response-consolidated)
+        (unload-feature 'ecc-auto-response-consolidated t)))))
+
+(ert-deftest test-auto-response-consolidated-functions-available ()
+  "Test that core auto-response functions are available through the consolidated module."
+  (if (not (locate-library "ecc-auto-response-consolidated"))
+      (skip-unless nil) ;; Skip if module not available
+    
+    (unwind-protect
+        (progn
+          ;; Load through the wrapper
+          (when (require 'ecc-auto-response-consolidated nil t)
+            ;; Verify core functions are available
+            (should (fboundp 'ecc-auto-response-start))
+            (should (fboundp 'ecc-auto-response-stop))
+            (should (fboundp 'ecc-auto-response-toggle))
+            (should (fboundp 'ecc-auto-response-yes))
+            (should (fboundp 'ecc-auto-response-yes-plus))
+            (should (fboundp 'ecc-auto-response-continue))
+            (should (fboundp 'ecc-auto-response-send))
+            
+            ;; Verify buffer-local functions
+            (should (fboundp 'ecc-auto-response-buffer-start))
+            (should (fboundp 'ecc-auto-response-buffer-stop))
+            (should (fboundp 'ecc-auto-response-buffer-toggle))
+            
+            ;; Verify backward compatibility functions
+            (should (fboundp 'ecc-start-auto-response))
+            (should (fboundp 'ecc-stop-auto-response))
+            (should (fboundp 'ecc-toggle-auto-response))))
+      
+      ;; Cleanup
+      (when (featurep 'ecc-auto-response-consolidated)
+        (unload-feature 'ecc-auto-response-consolidated t)))))
+
+(ert-deftest test-auto-response-consolidated-features-provided ()
+  "Test that the auto-response-consolidated module provides all expected features."
+  (if (not (locate-library "ecc-auto-response-consolidated"))
+      (skip-unless nil) ;; Skip if module not available
+    
+    (unwind-protect
+        (progn
+          ;; Load the module
+          (when (require 'ecc-auto-response-consolidated nil t)
+            ;; Test that it provides all expected features
+            (should (featurep 'ecc-auto-response-consolidated))
+            (should (featurep 'ecc-auto-response))
+            (should (featurep 'ecc-auto-response-enhanced))
+            (should (featurep 'ecc-auto-response-buffer-local))))
+      
+      ;; Cleanup
+      (when (featurep 'ecc-auto-response-consolidated)
+        (unload-feature 'ecc-auto-response-consolidated t)))))
+
+(ert-deftest test-auto-response-consolidated-integrated ()
+  "Test integrated functionality of auto-response-consolidated module."
+  (if (not (locate-library "ecc-auto-response-consolidated"))
+      (skip-unless nil) ;; Skip if module not available
+  
+    ;; Define mock functions for testing
+    (cl-letf (((symbol-function 'vterm-send-string) (lambda (buf str) 
+                                                       (with-current-buffer buf
+                                                         (insert (format "\nSent: %s" str)))))
+              ((symbol-function 'vterm-send-return) (lambda () 
+                                                       (insert "\n<Return sent>")))
+              ((symbol-function 'message) (lambda (&rest args) 
+                                            (let ((msg (apply #'format args)))
+                                              (with-current-buffer (get-buffer-create "*Messages*")
+                                                (goto-char (point-max))
+                                                (insert (format "\n%s" msg)))))))
+      
+      (with-test-buffer
+        ;; Prepare test environment
+        (setq major-mode 'vterm-mode)
+        (insert-claude-prompt-y-n)
+        
+        ;; Load the consolidated module
+        (when (require 'ecc-auto-response-consolidated nil t)
+          
+          ;; Setup and start auto-response
+          (let ((ecc-auto-response-yes "test-yes-response")
+                (ecc-auto-response-notify t))
+            
+            ;; Enable auto-response
+            (ecc-auto-response-start)
+            (should ecc-auto-response-enabled)
+            
+            ;; Trigger a manual response
+            (ecc-auto-response-yes (current-buffer))
+            
+            ;; Check the response was inserted
+            (should (string-match-p "test-yes-response" (buffer-string)))
+            
+            ;; Disable auto-response
+            (ecc-auto-response-stop)
+            (should-not ecc-auto-response-enabled))))))
+
+(ert-deftest test-auto-response-consolidated-buffer-local ()
+  "Test buffer-local functionality of auto-response-consolidated module."
+  (if (not (locate-library "ecc-auto-response-consolidated"))
+      (skip-unless nil) ;; Skip if module not available
+  
+    ;; Define mock functions for testing
+    (cl-letf (((symbol-function 'vterm-send-string) (lambda (buf str) 
+                                                       (with-current-buffer buf
+                                                         (insert (format "\nSent: %s" str)))))
+              ((symbol-function 'vterm-send-return) (lambda () 
+                                                       (insert "\n<Return sent>")))
+              ((symbol-function 'message) (lambda (&rest args) 
+                                            (let ((msg (apply #'format args)))
+                                              (with-current-buffer (get-buffer-create "*Messages*")
+                                                (goto-char (point-max))
+                                                (insert (format "\n%s" msg)))))))
+      
+      (with-test-buffer
+        ;; Prepare test environment
+        (setq major-mode 'vterm-mode)
+        (insert-claude-prompt-y-n)
+        
+        ;; Load the consolidated module
+        (when (require 'ecc-auto-response-consolidated nil t)
+          
+          ;; Setup and start buffer-local auto-response
+          (let ((ecc-auto-response-buffer-local-default t))
+            ;; Enable buffer-local auto-response with custom responses
+            (ecc-auto-response-buffer-start (current-buffer) 
+                                          "buffer-yes" 
+                                          "buffer-yes-plus" 
+                                          "buffer-continue")
+            
+            ;; Check buffer-local variables are set
+            (should (local-variable-p 'ecc-auto-response-buffer-enabled))
+            (should ecc-auto-response-buffer-enabled)
+            (should (string= ecc-auto-response-buffer-yes "buffer-yes"))
+            (should (string= ecc-auto-response-buffer-yes-plus "buffer-yes-plus"))
+            (should (string= ecc-auto-response-buffer-continue "buffer-continue"))
+            
+            ;; Trigger a manual response
+            (ecc-auto-response-yes (current-buffer))
+            
+            ;; Check the buffer-local response was inserted
+            (should (string-match-p "buffer-yes" (buffer-string)))
+            
+            ;; Disable buffer-local auto-response
+            (ecc-auto-response-buffer-stop (current-buffer))
+            (should-not ecc-auto-response-buffer-enabled))))))
 
 ;;;; Auto core module tests
 
