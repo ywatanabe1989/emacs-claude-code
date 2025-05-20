@@ -55,7 +55,7 @@
 ## Next Steps
 
 ### High Priority
-- [ ] **Yank as file** - Streamlined file creation from buffer content
+- [x] **Yank as file** - Streamlined file creation from buffer content
 - [ ] **More visual indicators** - Enhanced status display in mode line
 - [ ] **Buffer visibility improvements** - Better buffer switching and management
 

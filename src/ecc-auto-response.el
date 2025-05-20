@@ -10,14 +10,36 @@
 
 ;;;###autoload
 (defun ecc-auto-accept-send ()
-  "Automatically check and respond to Claude prompts in the current buffer."
+  "Automatically check and respond to Claude prompts in the current buffer.
+Detects the current prompt state in the active buffer and sends an appropriate
+response based on the detected state. This is a convenience function that calls
+`ecc-auto-response-send` with the current buffer.
+
+This function can be bound to a key for quick access when you want to manually
+trigger an automatic response to the current prompt.
+
+See also `ecc-auto-response-send` for the underlying implementation."
   (interactive)
   (ecc-auto-response-send (current-buffer)))
 
 ;;;###autoload
 (defun ecc-auto-response-send (buffer &optional state)
   "Automatically respond to Claude prompts in BUFFER.
-Optional STATE can be provided to override automatic state detection."
+Examines the buffer content to detect Claude's current prompt state, then
+sends an appropriate pre-configured response based on that state.
+
+BUFFER is the buffer containing Claude's output to respond to.
+Optional STATE can be provided to override automatic state detection.
+Valid states are: `:y/n`, `:y/y/n`, `:initial-waiting`, `:waiting`
+
+Responds with:
+- `ecc-auto-response-y/n` for Y/N prompts (default: "1")
+- `ecc-auto-response-y/y/n` for Y/Y/N prompts (default: "2")
+- `ecc-auto-response-initial-waiting` for initial waiting state (default: "/user:understand-guidelines")
+- `ecc-auto-response-waiting` for waiting prompts (default: "/auto")
+
+Returns nil. Displays notification message when response is sent if
+`ecc-auto-notify-completions` is enabled."
   (interactive (list (current-buffer)))
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
@@ -57,31 +79,110 @@ TYPE is used for notification messages."
   
   ;; Notify user about the response
   (when (and (boundp 'ecc-auto-notify-completions) ecc-auto-notify-completions)
-    (ecc-auto--notify type)))
+    (ecc-auto--notify type response)))
+
+
+;; Make sure we have interaction counter defined
+(defvar ecc-interaction-counter 0
+  "Counter for tracking the number of interactions with Claude.")
 
 (defun ecc-auto--send-vterm-response (response)
-  "Send RESPONSE to Claude in a vterm buffer."
+  "Send RESPONSE to Claude in a vterm buffer.
+Special handling is applied for the first interaction to ensure reliability."
   (when (fboundp 'vterm-send-string)
+    ;; Ensure interaction counter is properly bound
+    (unless (boundp 'ecc-interaction-counter)
+      (setq ecc-interaction-counter 0))
+    
     ;; Save current point position
-    (let ((old-point (point)))
-      ;; Check if point is near the end (user not reading earlier content)
-      (if (> (point-max) (+ (point) 40))
-          ;; User might be reading earlier content, so don't move point
-          (save-excursion
-            (goto-char (point-max))
-            (sit-for 0.3)
-            (vterm-send-string response)
-            (vterm-send-return)
-            (sit-for 0.3))
-        ;; User is at end of buffer, proceed normally
-        (sit-for 0.3)
-        (vterm-send-string response)
-        (vterm-send-return)
-        (sit-for 0.3)))))
+    (let ((old-point (point))
+          (first-interaction-p (= ecc-interaction-counter 0))
+          (delay-base (if (= ecc-interaction-counter 0) 1.5 1.0))
+          (distance-from-end (- (point-max) (point))))
 
-(defun ecc-auto--notify (type)
-  "Display notification about auto-response of TYPE."
-  (let ((msg (format "Auto-responded: %s" type)))
+      ;; Output debug information using our macro
+      (ecc-debug-message "DEBUG: Interaction Counter: %d" ecc-interaction-counter)
+      (ecc-debug-message "DEBUG: Point: %d, Max: %d, Distance from end: %d" 
+                       (point) (point-max) distance-from-end)
+      (ecc-debug-message "DEBUG: First interaction? %s" 
+                       (if first-interaction-p "Yes" "No"))
+      (ecc-debug-message "DEBUG: Using condition: %s" 
+                       (if (or first-interaction-p (< distance-from-end 40))
+                           "Direct send (at point)" 
+                         "Save-excursion (at end)"))
+      
+      ;; For the first interaction, we always send at current point
+      ;; For later interactions, check if user is reading earlier content
+      (if (or first-interaction-p
+              (< distance-from-end 40)) ; Point is near the end
+          ;; User is at end of buffer or it's first interaction - send directly
+          (progn
+            (ecc-debug-message "DEBUG: Sending directly at current point")
+            (sit-for delay-base)
+            (vterm-send-string response)
+            (sit-for delay-base)                    
+            (vterm-send-return)
+            (sit-for delay-base))
+        ;; User might be reading earlier content, so don't move point
+        (save-excursion
+          (ecc-debug-message "DEBUG: Using save-excursion to send at end")
+          (goto-char (point-max))
+          (sit-for delay-base)
+          (vterm-send-string response)
+          (sit-for delay-base)            
+          (vterm-send-return)
+          (sit-for delay-base)))
+      
+      ;; Increment interaction counter after the first successful response
+      (when first-interaction-p
+        (ecc-debug-message "DEBUG: Incrementing interaction counter")
+        (setq ecc-interaction-counter (1+ ecc-interaction-counter))
+        ;; Add timestamp for this interaction
+        (when (boundp 'ecc-interaction-timestamps)
+          (push (current-time) ecc-interaction-timestamps)))
+      
+      (ecc-debug-message "DEBUG: Send complete. Final point: %d" (point)))))
+
+;; (defun ecc-auto--send-vterm-response (response)
+;;   "Send RESPONSE to Claude in a vterm buffer.
+;; Special handling is applied for the first interaction to ensure reliability."
+;;   (when (fboundp 'vterm-send-string)
+;;     ;; Save current point position
+;;     (let ((old-point (point))
+;;           (is-first-interaction (= ecc-interaction-counter 0))
+;;           (delay-base (if (= ecc-interaction-counter 0) 1.5 1.0)))
+      
+;;       ;; Check if point is near the end (user not reading earlier content)
+;;       ;; while accepting initial interaction
+;;       (if (or (> (point-max) (+ (point) 40))
+;;                   is-first-interaction)
+;;           ;; User might be reading earlier content, so don't move point
+;;           (save-excursion
+;;             (goto-char (point-max))
+;;             (sit-for delay-base)
+;;             (vterm-send-string response)
+;;             (sit-for delay-base)            
+;;             (vterm-send-return)
+;;             (sit-for delay-base))
+;;         ;; User is at end of buffer, proceed normally
+;;         (sit-for delay-base)
+;;         (vterm-send-string response)
+;;         (sit-for delay-base)                    
+;;         (vterm-send-return)
+;;         (sit-for delay-base))
+      
+;;       ;; Increment interaction counter after the first successful response
+;;       (when is-first-interaction
+;;         (setq ecc-interaction-counter (1+ ecc-interaction-counter))
+;;         ;; Add timestamp for this interaction
+;;         (when (boundp 'ecc-interaction-timestamps)
+;;           (push (current-time) ecc-interaction-timestamps))))))
+
+(defun ecc-auto--notify (type response)
+  "Display notification about auto-response of TYPE with actual RESPONSE string.
+TYPE is a description of the response context (e.g., \"Y/N\").
+RESPONSE is the actual string sent to Claude."
+  (let ((msg (format "Auto-responded: %s (\"%s\")" type response)))
     (message msg)))
 
 ;; Specific response functions with defaults (useful for interactive use)
@@ -89,7 +190,16 @@ TYPE is used for notification messages."
 ;;;###autoload
 (defun ecc-auto-response-continue (&optional buffer)
   "Automatically send continue to Claude waiting prompt.
-If BUFFER is nil, use current buffer."
+Sends the continue response (defined by `ecc-auto-response-waiting`) to
+Claude when it's in a waiting state, prompting for more output.
+
+If BUFFER is nil, use current buffer.
+
+This is an interactive convenience function that can be bound to a key
+for quickly continuing Claude's output without needing to type the
+continue command manually.
+
+See also `ecc-auto--send-response` for the underlying implementation."
   (interactive)
   (ecc-auto--send-response (or buffer (current-buffer))
                        ecc-auto-response-waiting
@@ -98,7 +208,16 @@ If BUFFER is nil, use current buffer."
 ;;;###autoload
 (defun ecc-auto-response-yes (&optional buffer)
   "Automatically send Y response to Claude Y/N prompt.
-If BUFFER is nil, use current buffer."
+Sends the yes response (defined by `ecc-auto-response-y/n`) to
+Claude when it's in a Y/N prompt state.
+
+If BUFFER is nil, use current buffer.
+
+This is an interactive convenience function that can be bound to a key
+for quickly responding affirmatively to Claude's yes/no questions without
+needing to type the response manually.
+
+See also `ecc-auto--send-response` for the underlying implementation."
   (interactive)
   (ecc-auto--send-response (or buffer (current-buffer))
                        ecc-auto-response-y/n
@@ -128,9 +247,20 @@ This allows sending natural language responses instead of just number options."
 ;;;###autoload
 (defun ecc-start-auto-response (&optional response-y/n response-y/y/n response-waiting)
   "Start automatic response system for Claude prompts.
-RESPONSE-Y/N: Response for Y/N prompts (default: \"1\")  
-RESPONSE-Y/Y/N: Response for Y/Y/N prompts (default: \"2\")
-RESPONSE-WAITING: Response for waiting prompts (default: \"/auto\")"
+Initializes and activates the auto-response system that automatically responds
+to different types of Claude prompts. Sets up a timer that periodically checks
+the current buffer for prompts and sends appropriate responses.
+
+RESPONSE-Y/N: Response for Y/N prompts (default: "1")
+RESPONSE-Y/Y/N: Response for Y/Y/N prompts (default: "2")
+RESPONSE-WAITING: Response for waiting prompts (default: "/auto")
+
+The timer runs every 0.5 seconds and calls `ecc-check-and-respond` to
+detect and respond to prompts. The timer can be cancelled with
+`ecc-stop-auto-response`.
+
+Displays a message with the configured response values when started.
+See also `ecc-buffer-auto-response-enabled` for the global toggle."
   (interactive)
   
   ;; Set response values

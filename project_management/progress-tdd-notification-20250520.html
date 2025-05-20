@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>TDD Notification System Progress</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TDD Notification System Progress</h1>
+        
+        <div class="mermaid">
+graph TD
+    subgraph Legend
+        Z1[Todo]:::todo
+        Z2[In Progress]:::inProgress
+        Z3[Done]:::done
+        Z4[Directory]:::directory
+    end
+    
+    subgraph "TDD Workflow: Notification System"
+        A1[Test Planning]:::done
+        A2[Test Creation]:::done
+        A3[Test Verification]:::done
+        A4[Implementation]:::done
+        A5[Test Passing]:::done
+        A6[Documentation]:::done
+        
+        A1 --> A2
+        A2 --> A3
+        A3 --> A4
+        A4 --> A5
+        A5 --> A6
+    end
+    
+    subgraph "Test Categories"
+        B1[Functional Tests]:::done
+        B2[Edge Case Tests]:::done
+        B3[Method Tests]:::done
+        B4[Configuration Tests]:::done
+        B5[Integration Tests]:::done
+        
+        A2 --> B1
+        A2 --> B2
+        A2 --> B3
+        A2 --> B4
+        A2 --> B5
+    end
+    
+    subgraph "Implementation Components"
+        C1[State Detection]:::done
+        C2[Bell Notifications]:::done
+        C3[Visual Notifications]:::done
+        C4[Buffer Integration]:::done
+        C5[Configuration]:::done
+        
+        A4 --> C1
+        A4 --> C2
+        A4 --> C3
+        A4 --> C4
+        A4 --> C5
+    end
+    
+    subgraph "Future Enhancements"
+        D1[Desktop Notifications]:::todo
+        D2[Rich Content]:::todo
+        D3[Notification Log]:::todo
+        D4[Per-Project Settings]:::todo
+        
+        A6 --> D1
+        A6 --> D2
+        A6 --> D3
+        A6 --> D4
+    end
+    
+    classDef todo fill:#fff,stroke:#333,stroke-width:2px;
+    classDef inProgress fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef done fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef directory fill:#efe,stroke:#333,stroke-width:1px;
+        </div>
+        
+        <div class="footer">
+            <p>Progress update generated on May 20, 2025</p>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                htmlLabels: true,
+                useMaxWidth: false
+            }
+        });
+    </script>
+</body>
+</html>

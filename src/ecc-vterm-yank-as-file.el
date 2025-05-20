@@ -52,7 +52,14 @@ The last entry should be a catch-all for plain text files."
 
 (defun ecc-vterm-detect-file-type (content)
   "Detect the file type based on CONTENT.
-Returns the appropriate file extension as a string."
+Analyzes the provided content using regex patterns to determine the most
+appropriate file type/extension. Iterates through `ecc-vterm-yank-extension-alist`
+to find a matching pattern.
+
+CONTENT is the text to analyze for file type detection.
+
+Returns the appropriate file extension as a string (without the dot).
+If no specific type is detected, defaults to "txt"."
   (catch 'found
     (dolist (entry ecc-vterm-yank-extension-alist)
       (when (string-match-p (cdr entry) content)
@@ -61,7 +68,17 @@ Returns the appropriate file extension as a string."
 
 (defun ecc-vterm-generate-file-from-region (start end filename)
   "Generate a file named FILENAME from the region between START and END.
-If FILENAME is nil or empty, auto-generate a name based on content."
+Extracts content from the specified region, detects appropriate file type if needed,
+and writes the content to the file. Directory is created if it doesn't exist.
+
+START is the beginning position of the region.
+END is the ending position of the region.
+FILENAME is the name to use for the file. If nil or empty, auto-generates a name
+based on content type and current timestamp.
+
+When the file already exists, prompts for confirmation before overwriting.
+
+Returns the full path to the created file.
   (let* ((content (buffer-substring-no-properties start end))
          (file-type (ecc-vterm-detect-file-type content))
          (dir (or ecc-vterm-yank-default-dir default-directory))
@@ -92,8 +109,19 @@ If FILENAME is nil or empty, auto-generate a name based on content."
 ;;;###autoload
 (defun ecc-vterm-yank-as-file (start end filename)
   "Yank the region between START and END to a file named FILENAME.
-When called interactively, use the active region and prompt for a filename.
-Auto-detects the file type based on content if no extension is provided."
+Extracts the selected region from the buffer and saves it to a file,
+auto-detecting the appropriate file type based on content analysis.
+
+START is the beginning position of the region.
+END is the ending position of the region.
+FILENAME is the target filename. When called interactively, prompts for this value.
+
+When called interactively:
+- Uses the currently active region
+- Prompts for a filename with a default based on detected content type
+- Offers to open the saved file in a new buffer
+
+Auto-detects the file type based on content if no extension is provided.
   (interactive 
    (if (region-active-p)
        (let* ((content (buffer-substring-no-properties 
@@ -117,8 +145,18 @@ Auto-detects the file type based on content if no extension is provided."
 ;;;###autoload
 (defun ecc-vterm-yank-buffer-as-file (filename)
   "Yank the entire vterm buffer content to a file named FILENAME.
-When called interactively, prompt for a filename.
-Auto-detects the file type based on content if no extension is provided."
+Saves the complete buffer content to a file, auto-detecting the
+appropriate file type based on content analysis.
+
+FILENAME is the target filename. When called interactively, prompts for this value
+with a default based on the detected content type.
+
+When called interactively:
+- Uses the entire buffer as content source
+- Prompts for a filename with a smart default based on detected content type
+- Offers to open the saved file in a new buffer
+
+Auto-detects the file type based on content if no extension is provided.
   (interactive
    (let* ((content (buffer-substring-no-properties 
                     (point-min) (point-max)))
@@ -141,7 +179,21 @@ Auto-detects the file type based on content if no extension is provided."
 ;;;###autoload
 (defun ecc-vterm-quick-yank-region ()
   "Quickly yank the active region to an auto-named file based on content.
-Uses auto-detection for file type and creates the file in the default directory."
+Provides a streamlined workflow for rapidly saving selected text to files
+with minimal interruption.
+
+This function:
+1. Extracts the currently selected region
+2. Auto-detects the appropriate file type based on content
+3. Generates a timestamped filename with the correct extension
+4. Saves the content without prompting (for maximum speed)
+5. Reports the saved filename
+
+Uses auto-detection for file type and creates the file in the default directory
+defined by `ecc-vterm-yank-default-dir`, or the current directory if not set.
+
+Unlike `ecc-vterm-yank-as-file`, this function never prompts for input,
+making it ideal for rapid extraction of multiple code snippets."
   (interactive)
   (if (region-active-p)
       (let* ((content (buffer-substring-no-properties 

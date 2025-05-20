@@ -13,7 +13,7 @@
   :group 'ecc
   :prefix "ecc-state-detect-")
 
-(defcustom ecc-state-detect-line-count 20
+(defcustom ecc-state-detect-line-count 256
   "Number of lines to check from the end of buffer for prompt detection."
   :type 'integer
   :group 'ecc-state-detect)

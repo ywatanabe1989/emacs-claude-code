@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 08:37:01>
+;;; Timestamp: <2025-05-20 11:02:41>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -22,7 +22,8 @@
 
 ;; Auto-response variables
 
-(defvar ecc-auto-response-initial-waiting "/understand-guidelines"
+(defvar ecc-auto-response-initial-waiting
+  "/user:understand-guidelines"
   "Response to send for initial waiting state.")
 
 (defvar ecc-auto-response-y/n "1"
@@ -98,6 +99,38 @@
 
 (defvar ecc-interaction-timestamps nil
   "List of timestamps for Claude interactions.")
+
+;; Additional initial waiting patterns for fallback detection
+(defvar ecc-state-prompt-initial-waiting-alternatives
+  '("Claude is ready" "Ready for your request" "How can I help")
+  "Alternative patterns that might indicate Claude's initial waiting state.
+These are used as fallbacks if the primary pattern doesn't match.")
+
+;; Debugging variables
+
+(defvar ecc-debug-enabled nil
+  "Whether to enable debugging output.
+When non-nil, debug messages will be printed to the *Messages* buffer.
+Set this to t during development and nil in production.
+
+To toggle debugging interactively, use the command `ecc-toggle-debug'.")
+
+(defmacro ecc-debug-message (format-string &rest args)
+  "Output a debug message if debugging is enabled.
+Only prints the message when `ecc-debug-enabled' is non-nil.
+Accepts the same arguments as `message': FORMAT-STRING and ARGS."
+  `(when (and (boundp 'ecc-debug-enabled) ecc-debug-enabled)
+     (message ,format-string ,@args)))
+
+;;;###autoload
+(defun ecc-toggle-debug ()
+  "Toggle debug message output.
+When enabled, debug messages will be shown in the *Messages* buffer.
+This is useful for troubleshooting auto-response and other functionality."
+  (interactive)
+  (setq ecc-debug-enabled (not ecc-debug-enabled))
+  (message "Claude debug messages %s" 
+           (if ecc-debug-enabled "enabled" "disabled")))
 
 ;;; ecc-variables.el ends here
 

@@ -1,0 +1,24 @@
+flowchart TD
+    A[Auto-response Function Call] --> B{ecc-debug-enabled?}
+    B -->|No| C[Skip Debug Messages]
+    B -->|Yes| D[Display Debug Messages]
+    
+    D --> D1[Show Interaction Counter]
+    D --> D2[Show Point Position]
+    D --> D3[Show First Interaction Status]
+    D --> D4[Show Sending Method]
+    
+    C --> E[Continue Normal Execution]
+    D --> E
+    
+    E --> F{Is First Interaction?}
+    F -->|Yes| G[Execute with First Interaction Handling]
+    F -->|No| H{Near End of Buffer?}
+    
+    H -->|Yes| I[Send Directly at Current Point]
+    H -->|No| J[Send Using save-excursion at End]
+    
+    G --> K[Increment Interaction Counter]
+    I --> L[Complete Auto-response]
+    J --> L
+    K --> L

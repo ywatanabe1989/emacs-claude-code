@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Emacs Claude Code Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .mermaid {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Emacs Claude Code Architecture</h1>
+    <div class="mermaid">
+graph TD
+    subgraph Legend
+        Z1[Todo]:::todo
+        Z2[In Progress]:::inProgress
+        Z3[Done]:::done
+        Z4[Directory]:::directory
+    end
+    
+    subgraph "Emacs Claude Code Architecture"
+        ECC[Emacs Claude Code]:::done
+        
+        subgraph "Core Components"
+            CC1[Term Claude Mode]:::done
+            CC2[Auto Response System]:::done
+            CC3[State Detection]:::done
+            CC4[Visual Aids]:::done
+            CC5[Interaction Limits]:::inProgress
+        end
+        
+        subgraph "Advanced Features"
+            AF1[Yank As File]:::done
+            AF2[Buffer Management]:::done
+            AF3[Templates]:::inProgress
+            AF4[Notifications]:::inProgress
+        end
+        
+        subgraph "Infrastructure"
+            I1[Variables & Configuration]:::done
+            I2[Testing Framework]:::done
+            I3[Documentation]:::inProgress
+        end
+        
+        subgraph "Bug Fixes"
+            BF1[Auto Response Timer]:::done
+            BF2[Dashboard Buffer Visibility]:::done
+            BF3[Debug Message Control]:::done
+            BF4[Initial Waiting Detection]:::done
+        end
+    end
+    
+    %% Core relationships
+    ECC --> CC1
+    ECC --> CC2
+    ECC --> CC3
+    ECC --> CC4
+    ECC --> CC5
+    
+    %% Advanced feature relationships
+    ECC --> AF1
+    ECC --> AF2
+    ECC --> AF3
+    ECC --> AF4
+    
+    %% Infrastructure relationships
+    ECC --> I1
+    ECC --> I2
+    ECC --> I3
+    
+    %% Bug fix relationships
+    CC2 --> BF1
+    AF2 --> BF2
+    I1 --> BF3
+    CC3 --> BF4
+    
+    %% Component interdependencies
+    CC3 --> CC2
+    AF1 --> CC1
+    CC4 --> CC1
+    CC5 --> CC2
+    
+    %% Feature dependencies
+    AF3 --> I1
+    AF4 --> CC2
+    AF2 --> CC1
+    
+    classDef todo fill:#fff,stroke:#333,stroke-width:2px;
+    classDef inProgress fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef done fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef directory fill:#efe,stroke:#333,stroke-width:1px;
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true
+            }
+        });
+    </script>
+</body>
+</html>

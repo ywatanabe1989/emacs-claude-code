@@ -8,6 +8,7 @@
 
 (require 'vterm)
 (require 'ecc-variables)
+(require 'ecc-vterm-yank-as-file)
 
 ;; Customization group
 (defgroup ecc-term-claude nil
@@ -39,16 +40,32 @@
 ;; Mode menu
 (defvar ecc-term-claude-menu
   (let ((menu (make-sparse-keymap "Claude-VTerm")))
+    ;; Basic commands
     (define-key menu [ecc-term-claude-clear]
       '(menu-item "Clear buffer" ecc-term-claude-clear
                   :help "Clear the vterm buffer"))
     (define-key menu [ecc-term-claude-separator-1]
       '(menu-item "--"))
+    
+    ;; Yank-as-file commands
+    (define-key menu [ecc-vterm-yank-buffer-as-file]
+      '(menu-item "Yank Buffer to File" ecc-vterm-yank-buffer-as-file
+                  :help "Save entire buffer content to a file"))
+    (define-key menu [ecc-vterm-yank-as-file]
+      '(menu-item "Yank Region to File" ecc-vterm-yank-as-file
+                  :help "Save selected region to a file"))
+    (define-key menu [ecc-vterm-quick-yank-region]
+      '(menu-item "Quick Yank Region" ecc-vterm-quick-yank-region
+                  :help "Quickly save selected region with auto-generated filename"))
+    (define-key menu [ecc-term-claude-separator-2]
+      '(menu-item "--"))
+    
+    ;; Auto mode & responses
     (define-key menu [ecc-term-claude-auto-mode-toggle]
       '(menu-item "Toggle Auto-mode" ecc-term-claude-auto-mode-toggle
                   :help "Toggle automatic response to Claude prompts"
                   :button (:toggle . ecc-term-claude-auto-mode)))
-    (define-key menu [ecc-term-claude-separator-2]
+    (define-key menu [ecc-term-claude-separator-3]
       '(menu-item "--"))
     (define-key menu [ecc-term-claude-yes]
       '(menu-item "Yes (y)" ecc-term-claude-yes
@@ -70,6 +87,11 @@
     (define-key map (kbd "C-c C-l") 'ecc-term-claude-clear)
     (define-key map (kbd "C-c C-a") 'ecc-term-claude-auto-mode-toggle)
     (define-key map (kbd "C-c C-v") 'ecc-term-claude-toggle-follow-bottom)
+    
+    ;; Yank-as-file keybindings
+    (define-key map (kbd "C-c C-f") 'ecc-vterm-yank-as-file)
+    (define-key map (kbd "C-c C-b") 'ecc-vterm-yank-buffer-as-file)
+    (define-key map (kbd "C-c C-q") 'ecc-vterm-quick-yank-region)
     
     ;; Add menu
     (define-key map [menu-bar claude-vterm] (cons "Claude" ecc-term-claude-menu))
@@ -372,11 +394,17 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   "Setup Claude-specific keybindings for vterm buffer."
   (when (eq major-mode 'vterm-mode)
     ;; Setup local key bindings similar to ecc-term-claude-mode
+    ;; Basic functions
     (local-set-key (kbd "C-c C-y") 'ecc-term-claude-yes)
     (local-set-key (kbd "C-c C-n") 'ecc-term-claude-no)
     (local-set-key (kbd "C-c C-l") 'ecc-term-claude-clear)
     (local-set-key (kbd "C-c C-a") 'ecc-term-claude-auto-mode-toggle)
-    (local-set-key (kbd "C-c C-v") 'ecc-term-claude-toggle-follow-bottom)))
+    (local-set-key (kbd "C-c C-v") 'ecc-term-claude-toggle-follow-bottom)
+    
+    ;; Yank-as-file functions
+    (local-set-key (kbd "C-c C-f") 'ecc-vterm-yank-as-file)
+    (local-set-key (kbd "C-c C-b") 'ecc-vterm-yank-buffer-as-file)
+    (local-set-key (kbd "C-c C-q") 'ecc-vterm-quick-yank-region)))
 
 ;; Create a new Claude buffer function
 (defun ecc-term-claude-enable ()

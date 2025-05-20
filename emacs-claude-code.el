@@ -9,6 +9,8 @@
 ;;; Commentary:
 ;;; Main entry point for emacs-claude-code package.
 
+(require 'cl-lib)
+
 (defun --ecc-add-all-to-loadpath ()
   "Add src and tests directories recursively to `load-path`."
   (let* ((base-dir (file-name-directory
@@ -47,7 +49,7 @@
 
 ;; State detection
 (condition-case nil
-    (require 'ecc-state-detect-prompt)
+    (require 'ecc-state-detection)
   (error nil))
 
 ;; VTerm integration
