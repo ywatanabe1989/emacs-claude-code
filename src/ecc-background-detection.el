@@ -76,10 +76,16 @@ Returns the detected state or nil."
             ;; Detect using the entire buffer
             (let ((state (ecc-detect-state)))
               (when state
-                ;; Update buffer-local state tracking
-                (ecc-buffer-state-update-prompt state)
+                ;; Update buffer-local state through consolidated interface if available
+                (when (fboundp 'ecc-state-update-buffer-state)
+                  (ecc-state-update-buffer-state buffer state))
+                
+                ;; Legacy support - Update buffer-local state tracking
+                (when (fboundp 'ecc-buffer-state-update-prompt)
+                  (ecc-buffer-state-update-prompt state))
                 ;; Also update traditional variables for compatibility
-                (ecc-buffer-state-export-standard)
+                (when (fboundp 'ecc-buffer-state-export-standard)
+                  (ecc-buffer-state-export-standard))
                 ;; Return detected state
                 state))))
       (error

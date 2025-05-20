@@ -58,7 +58,10 @@
       (require 'vterm)
       (require 'ecc-vterm-mode)
       (require 'ecc-vterm-yank-as-file)
-      (require 'ecc-term-claude-mode)
+      ;; Try to load the consolidated module first, fall back to the standard module
+      (if (locate-library "ecc-term-claude-mode-consolidated")
+          (require 'ecc-term-claude-mode-consolidated)
+        (require 'ecc-term-claude-mode))
       (require 'ecc-term-visual-aid)
       (require 'ecc-vterm-grayscale))
   (error

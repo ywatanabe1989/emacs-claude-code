@@ -19,12 +19,12 @@
   :group 'ecc
   :prefix "ecc-vterm-grayscale-")
 
-(defcustom ecc-vterm-grayscale-default nil
+(defcustom ecc-vterm-grayscale-default t
   "Whether grayscale mode is enabled by default in new vterm buffers."
   :type 'boolean
   :group 'ecc-vterm-grayscale)
 
-(defcustom ecc-vterm-grayscale-auto-enable nil
+(defcustom ecc-vterm-grayscale-auto-enable t
   "Automatically enable grayscale mode for Claude vterm buffers.
 When set to t, grayscale mode will be enabled automatically when
 opening a Claude vterm buffer."
@@ -43,7 +43,7 @@ opening a Claude vterm buffer."
 
 ;;;; Core functionality
 
-(defvar-local ecc-vterm-grayscale-mode nil
+(defvar-local ecc-vterm-grayscale-mode t
   "Whether grayscale mode is enabled in the current buffer.")
 
 ;;;###autoload

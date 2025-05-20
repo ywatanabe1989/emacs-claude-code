@@ -36,7 +36,7 @@ the user's reading position."
   :type 'integer
   :group 'ecc-vterm-utils)
 
-(defcustom ecc-vterm-utils-delay 0.2
+(defcustom ecc-vterm-utils-delay 1.0
   "Delay in seconds between vterm commands for stability.
 A small delay helps ensure commands are processed correctly by the terminal."
   :type 'number

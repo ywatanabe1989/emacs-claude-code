@@ -1,37 +1,36 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 17:45:00>
+;;; Timestamp: <2025-05-21 16:30:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Commentary:
 ;;; Centralized Claude prompt state detection functionality.
 ;;; This module consolidates all state detection logic in one place to eliminate duplication
 ;;; and ensure consistent behavior across different parts of the system.
+;;;
+;;; The core functionality includes:
+;;; - Detection of various Claude prompt states (Y/N, Y/Y/N, waiting, etc.)
+;;; - Multiple detection strategies for different contexts
+;;; - Buffer-wide, region-based, and line-based detection options
+;;; - Notification integration for detected states
+;;;
+;;; This module provides a comprehensive interface for all state detection needs.
 
 (require 'ecc-variables)
+(require 'cl-lib)
 
 ;;; Code:
 
-;; Customization for state detection
-(defgroup ecc-state-detection nil
-  "Settings for Claude prompt state detection."
-  :group 'ecc
-  :prefix "ecc-state-detection-")
+;; State symbols and documentation
+;;
+;; The following state symbols are used throughout this module:
+;; - :y/n - Represents a yes/no prompt (typically "1. Yes / 2. No")
+;; - :y/y/n - Represents a yes/yes+/no prompt (typically with a second "yes" option)
+;; - :waiting - Represents when Claude is waiting for the user to continue
+;; - :initial-waiting - Represents Claude's initial prompt at the start of a session
+;; - nil - Represents no recognized prompt state
 
-(defcustom ecc-state-detection-buffer-size 2000
-  "Number of characters to check from the end of buffer for basic prompt detection."
-  :type 'integer
-  :group 'ecc-state-detection)
-
-(defcustom ecc-state-detection-line-count 256
-  "Number of lines to check from the end of buffer for line-based prompt detection.
-A larger number increases detection accuracy but may impact performance
-with very large buffers. The default value of 256 is a balance between
-thorough detection and performance."
-  :type 'integer
-  :group 'ecc-state-detection)
-
-;; Main state detection functions
+;;;; Core detection functions
 
 ;;;###autoload
 (defun ecc-detect-state (&optional buffer)
@@ -53,43 +52,9 @@ line-based detection for accuracy when available."
   "Basic detection of Claude prompt state using buffer content matching.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (let ((buffer-text (buffer-substring-no-properties 
-                     (max (- (point-max) ecc-state-detection-buffer-size) (point-min))
-                     (point-max))))
-    (cond
-     ;; Check for y/y/n prompts using customized pattern
-     ((and (boundp 'ecc-state-prompt-y/y/n)
-           ecc-state-prompt-y/y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
-      :y/y/n)
-     
-     ;; Check for y/n prompts using customized pattern
-     ((and (boundp 'ecc-state-prompt-y/n)
-           ecc-state-prompt-y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
-      :y/n)
-     
-     ;; Check for waiting prompts using customized patterns
-     ((and (boundp 'ecc-state-prompt-waiting)
-           ecc-state-prompt-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
-      :waiting)
-     
-     ;; Check for initial prompts
-     ((and (boundp 'ecc-state-prompt-initial-waiting)
-           ecc-state-prompt-initial-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
-      :initial-waiting)
-     
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
-      :initial-waiting)
-     
-     ;; Fallback to common patterns
-     ((string-match-p "\\[Y/y/n\\]" buffer-text) :y/y/n)
-     ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) :y/n)
-     ((string-match-p "continue>\\|Continue>" buffer-text) :waiting)
-     
-     (t nil))))
+                    (max (- (point-max) ecc-state-detection-buffer-size) (point-min))
+                    (point-max))))
+    (ecc-analyze-buffer-text-for-state buffer-text)))
 
 ;;;###autoload
 (defun ecc-detect-prompt-in-last-lines (&optional n-lines)
@@ -105,39 +70,9 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                       (forward-line (1- start-line))
                       (point)))
          (buffer-text (buffer-substring-no-properties 
-                       start-pos
-                       (point-max))))
-    (cond
-     ;; Check for y/y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
-      :y/y/n)
-     
-     ;; Check for y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
-      :y/n)
-     
-     ;; Check for waiting prompts using customized patterns
-     ((and ecc-state-prompt-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
-      :waiting)
-     
-     ;; Check for initial prompts
-     ((and ecc-state-prompt-initial-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
-      :initial-waiting)
-     
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
-      :initial-waiting)
-     
-     ;; Fallback to common patterns
-     ((string-match-p "\\[Y/y/n\\]" buffer-text) :y/y/n)
-     ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) :y/n)
-     ((string-match-p "continue>\\|Continue>" buffer-text) :waiting)
-     
-     (t nil))))
+                      start-pos
+                      (point-max))))
+    (ecc-analyze-buffer-text-for-state buffer-text)))
 
 ;;;###autoload
 (defun ecc-detect-prompt-in-region (start end)
@@ -145,49 +80,58 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive "r")
   (let ((buffer-text (buffer-substring-no-properties start end)))
-    (cond
-     ;; Check for y/y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
-      :y/y/n)
-     
-     ;; Check for y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/n
-           (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
-      :y/n)
-     
-     ;; Check for waiting prompts using customized patterns
-     ((and ecc-state-prompt-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
-      :waiting)
-     
-     ;; Check for initial prompts
-     ((and ecc-state-prompt-initial-waiting
-           (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
-      :initial-waiting)
-     
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
-      :initial-waiting)
-      
-     ;; Fallback to common patterns
-     ((string-match-p "\\[Y/y/n\\]" buffer-text) :y/y/n)
-     ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) :y/n)
-     ((string-match-p "continue>\\|Continue>" buffer-text) :waiting)
-     
-     (t nil))))
+    (ecc-analyze-buffer-text-for-state buffer-text)))
+
+;;;; Analysis functions
+
+(defun ecc-analyze-buffer-text-for-state (buffer-text)
+  "Analyze BUFFER-TEXT to detect Claude prompt state.
+Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
+  (cond
+   ;; Check for y/y/n prompts using customized pattern
+   ((and (boundp 'ecc-state-prompt-y/y/n)
+         ecc-state-prompt-y/y/n
+         (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
+    :y/y/n)
+   
+   ;; Check for y/n prompts using customized pattern
+   ((and (boundp 'ecc-state-prompt-y/n)
+         ecc-state-prompt-y/n
+         (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
+    :y/n)
+   
+   ;; Check for waiting prompts using customized patterns
+   ((and (boundp 'ecc-state-prompt-waiting)
+         ecc-state-prompt-waiting
+         (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
+    :waiting)
+   
+   ;; Check for initial prompts
+   ((and (boundp 'ecc-state-prompt-initial-waiting)
+         ecc-state-prompt-initial-waiting
+         (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
+    :initial-waiting)
+   
+   ;; If no custom patterns match, try alternative initial waiting patterns
+   ((ecc-detect-alternative-initial-waiting buffer-text)
+    :initial-waiting)
+   
+   ;; Fallback to common patterns
+   ((string-match-p "\\[Y/y/n\\]" buffer-text) :y/y/n)
+   ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) :y/n)
+   ((string-match-p "continue>\\|Continue>" buffer-text) :waiting)
+   
+   (t nil)))
 
 (defun ecc-detect-alternative-initial-waiting (buffer-text)
   "Check if BUFFER-TEXT contains any alternative initial waiting patterns.
 Returns t if a match is found, nil otherwise."
   (when (boundp 'ecc-state-prompt-initial-waiting-alternatives)
-    (catch 'found
-      (dolist (pattern ecc-state-prompt-initial-waiting-alternatives)
-        (when (string-match-p pattern buffer-text)
-          (throw 'found t)))
-      nil)))
+    (cl-some (lambda (pattern)
+               (string-match-p pattern buffer-text))
+             ecc-state-prompt-initial-waiting-alternatives)))
 
-;; Utility function to get human-readable state name
+;;;; Utility functions
 
 ;;;###autoload
 (defun ecc-state-get-name (state)
@@ -199,7 +143,13 @@ Returns t if a match is found, nil otherwise."
    ((eq state :initial-waiting) "Initial-Waiting")
    (t (format "%s" state))))
 
-;; Notification interface
+;;;###autoload
+(defun ecc-state-symbols ()
+  "Return a list of all known state symbols used in state detection.
+This is useful for iterating over all possible states."
+  '(:y/y/n :y/n :waiting :initial-waiting))
+
+;;;; Notification interface
 
 ;;;###autoload
 (defun ecc-state-notify-if-prompt-detected (buffer)
@@ -209,13 +159,68 @@ Returns the detected state if a prompt is found, nil otherwise."
     (with-current-buffer buffer
       (let ((state (ecc-detect-state)))
         (when (and state
-                   (boundp 'ecc-auto-notify-on-claude-prompt)
-                   ecc-auto-notify-on-claude-prompt
-                   (fboundp 'ecc-auto-notify-check-state))
+                  (boundp 'ecc-auto-notify-on-claude-prompt)
+                  ecc-auto-notify-on-claude-prompt
+                  (fboundp 'ecc-auto-notify-check-state))
           (ecc-auto-notify-check-state state))
         state))))
 
-;; Backwards compatibility functions and aliases
+;;;; Debugging helpers
+
+;;;###autoload
+(defun ecc-state-detection-debug-info (&optional buffer)
+  "Return debug information about state detection in BUFFER or current buffer.
+Returns a string with details about the buffer and detected state."
+  (with-current-buffer (or buffer (current-buffer))
+    (let* ((state (ecc-detect-state))
+           (basic-state (ecc-detect-basic-state))
+           (line-state (ecc-detect-prompt-in-last-lines))
+           (last-lines (min 3 (count-lines (point-min) (point-max))))
+           (last-text (buffer-substring-no-properties
+                       (save-excursion
+                         (goto-char (point-max))
+                         (forward-line (- last-lines))
+                         (point))
+                       (point-max))))
+      (format "State Detection Debug Info:
+Buffer: %s
+Detected State: %s
+  via basic method: %s
+  via line method: %s
+Buffer size: %d chars, %d lines
+Last %d lines: %s"
+              (buffer-name)
+              (ecc-state-get-name state)
+              (ecc-state-get-name basic-state)
+              (ecc-state-get-name line-state)
+              (buffer-size)
+              (count-lines (point-min) (point-max))
+              last-lines
+              (replace-regexp-in-string "\n" "\\\\n" last-text)))))
+
+;;;; Background detection integration
+
+;;;###autoload
+(defun ecc-state-detect-buffer-bg (buffer)
+  "Detect the state of BUFFER in background processing.
+Returns the detected state if a prompt is found, nil otherwise."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (ecc-detect-state))))
+
+;;;; Buffer state integration
+
+;;;###autoload
+(defun ecc-state-update-buffer-state (buffer state)
+  "Update the buffer-local state in BUFFER with detected STATE.
+Returns the STATE argument for convenience in chaining."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (fboundp 'ecc-buffer-state-set)
+        (ecc-buffer-state-set 'prompt-state state))
+      state)))
+
+;;;; Backward compatibility functions and aliases
 
 ;;;###autoload
 (defalias 'ecc-detect-simple-state 'ecc-detect-state
@@ -233,8 +238,10 @@ Returns the detected state if a prompt is found, nil otherwise."
 (define-obsolete-function-alias 'ecc-state-detect-prompt
   'ecc-detect-state "May 2025")
 
-;; Provide both the new name and the old name for compatibility
+;; Provide both the standard name and compatibility names
 (provide 'ecc-state-detection)
+(provide 'ecc-state-detection-consolidated)
+(provide 'ecc-state-detection-improved)
 (provide 'ecc-state-detect-prompt)
 
 ;;; ecc-state-detection.el ends here

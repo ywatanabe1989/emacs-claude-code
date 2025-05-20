@@ -1,3 +1,9 @@
+<!-- ---
+!-- Timestamp: 2025-05-20 19:11:45
+!-- Author: ywatanabe
+!-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README-IMPROVED.md
+!-- --- -->
+
 # Emacs Claude Code
 
 An Emacs package for seamless integration with Claude AI, providing optimized terminal interaction, automatic response handling, and specialized features for an enhanced Claude experience.
@@ -64,7 +70,7 @@ M-x ecc-claude-vterm
 
 ```elisp
 ;; Auto-response settings
-(setq ecc-auto-response-yes "y")         ; Response for Y/N prompts
+(setq ecc-auto-response-yes "y")          ; Response for Y/N prompts
 (setq ecc-auto-response-continue "/auto") ; Response for continue prompts
 
 ;; Grayscale mode settings
@@ -72,7 +78,7 @@ M-x ecc-claude-vterm
 (setq ecc-vterm-grayscale-auto-enable t)  ; Auto-enable for Claude buffers
 
 ;; Theme settings
-(setq ecc-colors-theme 'dark)            ; 'dark, 'light, or 'gray
+(setq ecc-colors-theme 'gray)            ; 'dark, 'light, or 'gray
 ```
 
 ## Architecture
@@ -92,3 +98,5 @@ Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) fil
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+<!-- EOF -->

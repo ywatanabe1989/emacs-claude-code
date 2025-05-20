@@ -1,248 +1,251 @@
-# Term-Claude Mode Consolidation Documentation
-
-This document describes the consolidated `ecc-term-claude-mode` module in the emacs-claude-code project.
+# Term Claude Mode Consolidated
 
 ## Overview
 
-The `ecc-term-claude-mode-consolidated.el` module provides an optimized Emacs vterm mode for interacting with the Claude AI assistant. It combines functionality from multiple previous implementations into a single, well-organized module that follows clean code principles.
-
-This consolidation brings together:
-- `ecc-term-claude-mode.el` (original implementation)
-- `ecc-term-claude-mode-improved.el` (enhanced organization and documentation)
-
-The consolidated module maintains backward compatibility while providing a cleaner structure, better organization, and integration with other consolidated modules.
+The `ecc-term-claude-mode-consolidated.el` module provides a consolidated implementation of the Claude terminal interaction mode, combining the best features from multiple implementations while maintaining backward compatibility.
 
 ## Features
 
-The consolidated term-claude mode provides:
+### Core Functionality
+- **Dedicated Major Mode**: Derived from `vterm-mode` for Claude interaction
+- **Auto-Response System**: Automatic handling of Claude prompts (Y/N, continue, etc.)
+- **State Detection**: Integration with Claude's state detection system
+- **Buffer Registration**: Manages Claude buffers and their features
+- **Performance Optimizations**: Optimized for high-volume streaming output
 
-- **Performance Optimizations**: Tailored for high-volume streaming output from Claude
-- **State Detection**: Real-time detection of Claude prompt states (Y/N, waiting, etc.)
-- **Auto-Response**: Automatic responses to common Claude prompts
-- **Visual Indicators**: Mode line indicators for Claude's current state
-- **Follow-Bottom**: Smart scrolling to keep the latest output visible
-- **Yank-as-File**: Easy extraction of Claude's output to files
-- **Buffer Management**: Register buffers for Claude interaction
-- **Two Usage Modes**: 
-  - Full major mode (ecc-term-claude-mode)
-  - Enhancement functions for existing vterm buffers
+### Enhanced Features
+- **Debug Support**: Comprehensive debugging capabilities using consolidated debug utils
+- **Frame Title Updates**: Shows Claude state in the frame title
+- **Appearance Customization**: Control over font styles and appearance
+- **Robust Error Handling**: Better error messages and recovery
+- **Menu Integration**: Context menus with Claude-specific actions
 
-## Module Structure
+### Compatibility Features
+- **Backward Compatibility**: Full compatibility with existing code
+- **Module Integration**: Works with both original and consolidated modules
+- **Function Aliases**: Maintains old function names for compatibility
 
-The module is organized into clear functional sections:
-
-1. **Customization**: User-configurable options
-2. **Internal Variables**: Private variables for internal use
-3. **Mode Definition**: Major mode definition and keymaps
-4. **Buffer Setup**: Functions for setting up and configuring buffers
-5. **State Detection**: Functions for detecting and displaying Claude's state
-6. **Interaction Commands**: Commands for user interaction with Claude
-7. **Auto-Response**: Functionality for automatic responses to prompts
-8. **Buffer Management**: Functions for managing Claude buffers
-9. **Follow-Bottom**: Smart scrolling functionality
-10. **Public APIs**: Main user-facing commands
-11. **Backward Compatibility**: Aliases for functions and variables from older versions
-
-## API Reference
-
-### Main Commands
-
-| Command | Description |
-|---------|-------------|
-| `ecc-term-claude-mode` | Major mode for Claude interaction in vterm |
-| `ecc-term-claude` | Create a new Claude vterm buffer or enhance existing one |
-| `ecc-term-claude-enable` | Add Claude features to existing vterm buffer |
-| `ecc-term-claude-yes` | Send 'y' response to Claude |
-| `ecc-term-claude-no` | Send 'n' response to Claude |
-| `ecc-term-claude-clear` | Clear the vterm buffer |
-
-### Auto-Response Commands
-
-| Command | Description |
-|---------|-------------|
-| `ecc-term-claude-auto-mode-toggle` | Toggle automatic response to Claude prompts |
-
-### Buffer Management Commands
-
-| Command | Description |
-|---------|-------------|
-| `ecc-term-claude-toggle-follow-bottom` | Toggle follow-bottom scrolling |
-
-### Internal Functions
-
-These functions are prefixed with double-dash to indicate they are private:
-
-| Function | Description |
-|----------|-------------|
-| `ecc-term-claude--setup-buffer` | Set up buffer for Claude interaction |
-| `ecc-term-claude--register-buffer` | Register buffer for Claude interaction |
-| `ecc-term-claude--auto-send-respond` | Automatically respond to prompts |
-| `ecc-term-claude--mode-line-state-indicator` | Show Claude state in mode line |
-
-### Backward Compatibility
-
-Previous function names are aliased to new ones for backward compatibility:
-
-| Old Function | New Function |
-|--------------|--------------|
-| `ecc-register-buffer` | `ecc-term-claude--register-buffer` |
-| `ecc-term-claude-auto-send-accept` | `ecc-term-claude--auto-send-respond` |
-| `ecc-term-claude-setup-existing-buffer` | `ecc-term-claude--setup-existing-buffer` |
-
-## Customization Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `ecc-term-claude-line-numbers` | Show line numbers | `nil` |
-| `ecc-term-claude-scroll-conservatively` | Scroll smoothness | `10000` |
-| `ecc-term-claude-truncate-lines` | Truncate long lines | `t` |
-| `ecc-term-claude-state-update-interval` | How often to check state | `1.0` |
-| `ecc-term-claude-auto-mode` | Auto-respond to prompts | `nil` |
-| `ecc-term-claude-buffer-name` | Default buffer name | `"*CLAUDE-VTERM*"` |
-| `ecc-term-claude-show-state-in-mode-line` | Show state in mode line | `t` |
-
-## Integration with Other Modules
-
-The consolidated term-claude mode integrates with other consolidated modules:
-
-- `ecc-variables-consolidated.el`: Shared configuration variables
-- `ecc-state-detection-consolidated.el`: Claude prompt state detection
-- `ecc-auto-response-consolidated.el`: Auto-response functionality
-- `ecc-vterm-yank-as-file.el`: Output extraction to files
-
-## Usage Examples
+## Usage
 
 ### Basic Usage
 
 ```elisp
 ;; Create a new Claude vterm buffer
-M-x ecc-term-claude
+(ecc-term-claude)
 
-;; Or, in an existing vterm buffer:
-M-x ecc-term-claude-enable
-```
+;; Enable Claude features in existing vterm buffer
+(ecc-term-claude-enable)
 
-### Manual Responses to Prompts
-
-```elisp
-;; When Claude asks a Yes/No question:
-M-x ecc-term-claude-yes
-;; or
-M-x ecc-term-claude-no
-
-;; Or use the keybindings:
-;; C-c C-y for yes
-;; C-c C-n for no
-```
-
-### Auto-Response Mode
-
-```elisp
 ;; Toggle auto-response mode
-M-x ecc-term-claude-auto-mode-toggle
-
-;; Or use the keybinding:
-;; C-c C-a
+(ecc-term-claude-auto-mode-toggle)
 ```
 
-### Yank Output to Files
+### Customization
+
+The module provides extensive customization options:
 
 ```elisp
-;; Save region to file with prompt for filename
-M-x ecc-vterm-yank-as-file
-;; or C-c C-f
+;; Appearance
+(setq ecc-term-claude-line-numbers t)              ; Show line numbers
+(setq ecc-term-claude-disable-bold t)              ; Disable bold fonts
+(setq ecc-term-claude-disable-underline t)         ; Disable underlines
 
-;; Save entire buffer to file
-M-x ecc-vterm-yank-buffer-as-file
-;; or C-c C-b
+;; Performance
+(setq ecc-term-claude-scroll-conservatively 5000)  ; Scroll behavior
+(setq ecc-term-claude-truncate-lines nil)          ; Line wrapping
 
-;; Quick save with auto-generated filename
-M-x ecc-vterm-quick-yank-region
-;; or C-c C-q
+;; State detection
+(setq ecc-term-claude-state-update-interval 0.5)   ; Faster updates
+(setq ecc-term-claude-show-state-in-mode-line t)   ; Mode line indicator
+(setq ecc-term-claude-update-frame-title t)        ; Frame title updates
+
+;; Debug features
+(setq ecc-term-claude-debug t)                     ; Enable debug output
+(setq ecc-term-claude-debug-to-buffer t)           ; Debug to buffer
 ```
 
-### Follow-Bottom Behavior
+### Key Bindings
+
+In Claude vterm mode, the following key bindings are available:
+
+| Key Binding | Function | Description |
+|-------------|----------|-------------|
+| `C-c C-y` | `ecc-term-claude-yes` | Send 'y' response |
+| `C-c C-n` | `ecc-term-claude-no` | Send 'n' response |
+| `C-c C-l` | `ecc-term-claude-clear` | Clear buffer |
+| `C-c C-a` | `ecc-term-claude-auto-mode-toggle` | Toggle auto-mode |
+| `C-c C-v` | `ecc-term-claude-toggle-follow-bottom` | Toggle follow-bottom |
+| `C-c C-d` | `ecc-term-claude-debug-toggle` | Toggle debug mode |
+| `C-c C-f` | `ecc-vterm-yank-as-file` | Yank region to file |
+| `C-c C-b` | `ecc-vterm-yank-buffer-as-file` | Yank buffer to file |
+| `C-c C-q` | `ecc-vterm-quick-yank-region` | Quick yank region |
+
+### Debug Features
+
+The consolidated module includes enhanced debugging capabilities:
 
 ```elisp
-;; Toggle follow-bottom scrolling
-M-x ecc-term-claude-toggle-follow-bottom
-;; or C-c C-v
+;; Toggle debug mode
+(ecc-term-claude-debug-toggle)
+
+;; Show debug buffer
+(ecc-term-claude-debug-show-buffer)
+
+;; Enable debug messages to buffer instead of *Messages*
+(setq ecc-term-claude-debug-to-buffer t)
 ```
 
-## Improvements Over Previous Versions
+Debug messages include:
+- Buffer setup and registration
+- State changes and timer events
+- Auto-response actions
+- Hook execution
+- Error conditions
 
-The consolidated module offers several improvements:
+## Integration
 
-1. **Clean Code Principles**:
-   - Clear function responsibilities
-   - Private vs. public API separation
-   - Consistent naming conventions
-   - Better organization
+### With Other Modules
 
-2. **Enhanced Documentation**:
-   - Comprehensive docstrings
-   - Clear section organization
-   - Better function descriptions
+The consolidated module integrates with:
 
-3. **Improved Integration**:
-   - Works with consolidated state detection
-   - Works with consolidated auto-response system
-   - Better buffer management
+- **State Detection**: Uses consolidated state detection when available
+- **Auto Response**: Works with consolidated auto-response system
+- **Debug Utils**: Uses consolidated debug utilities for enhanced logging
+- **Variables**: Reads configuration from consolidated variables module
 
-4. **New Features**:
-   - Enhanced customization options
-   - Better error handling
-   - More consistent behavior
+### Fallback Behavior
+
+The module gracefully falls back to original modules if consolidated versions are not available:
+
+```elisp
+;; Prefers consolidated modules but falls back gracefully
+(if (featurep 'ecc-state-detection-consolidated)
+    (require 'ecc-state-detection-consolidated)
+  (require 'ecc-state-detection))
+```
+
+## API Reference
+
+### Main Functions
+
+#### `ecc-term-claude ()`
+Create a new Claude vterm buffer or apply Claude settings to existing vterm buffer.
+
+#### `ecc-term-claude-enable ()`
+Enable Claude features in the current vterm buffer without changing the major mode.
+
+#### `ecc-term-claude-mode`
+Major mode derived from `vterm-mode` for Claude interaction.
+
+### Configuration Functions
+
+#### `ecc-term-claude-auto-mode-toggle ()`
+Toggle automatic response to Claude prompts.
+
+#### `ecc-term-claude-toggle-follow-bottom ()`
+Toggle automatic scrolling to bottom of buffer.
+
+#### `ecc-term-claude-debug-toggle ()`
+Toggle debug output for Claude vterm mode.
+
+### Internal Functions
+
+All internal functions use the `ecc-term-claude--` prefix for clarity:
+
+- `ecc-term-claude--setup-buffer ()`
+- `ecc-term-claude--register-buffer (buffer)`
+- `ecc-term-claude--debug (format-string &rest args)`
+- `ecc-term-claude--mode-line-state-indicator ()`
+
+## Backward Compatibility
+
+The module maintains full backward compatibility through function and variable aliases:
+
+```elisp
+;; Old function names still work
+(ecc-register-buffer)                    ; → ecc-term-claude--register-buffer
+(ecc-term-claude-setup-existing-buffer)  ; → ecc-term-claude--setup-existing-buffer
+
+;; Old variable names still work
+ecc-term-claude-update-functions         ; → ecc-term-claude--update-functions
+ecc-term-claude-state-timer             ; → ecc-term-claude--state-timer
+```
 
 ## Migration Guide
 
-### From Original Mode
+### From Original Module
 
-If you were using the original `ecc-term-claude-mode`:
+No changes needed - the consolidated module provides the same interface with enhanced features.
 
-1. Replace `require` statements:
-   ```elisp
-   ;; Old
-   (require 'ecc-term-claude-mode)
-   
-   ;; New
-   (require 'ecc-term-claude-mode-consolidated)
-   ```
+### New Features Available
 
-2. Function calls remain compatible through aliases
-
-### From Improved Mode
-
-If you were using the improved `ecc-term-claude-mode-improved`:
-
-1. Replace `require` statements:
-   ```elisp
-   ;; Old
-   (require 'ecc-term-claude-mode-improved)
-   
-   ;; New
-   (require 'ecc-term-claude-mode-consolidated)
-   ```
-
-2. Update any internal function calls from `ecc-term-claude--function` to `ecc-term-claude--function`
-   (Note: Most function names remain the same, just with a consolidated module)
+1. **Debug Support**: Use `ecc-term-claude-debug-toggle` for troubleshooting
+2. **Frame Title Updates**: Enable with `ecc-term-claude-update-frame-title`
+3. **Enhanced Error Handling**: Better error messages and recovery
+4. **Appearance Control**: More customization options for font styles
 
 ## Testing
 
-The consolidated module comes with comprehensive tests in `tests/ecc-vterm/test-ecc-term-claude-mode-consolidated.el` covering:
+The module includes comprehensive tests covering:
 
 - Mode definition and customization
-- Basic commands
+- Debug functionality
+- Command availability and execution
 - Auto-mode functionality
 - Buffer setup and registration
 - State detection and mode line integration
+- Frame title updates
 - Auto-response functions
 - Follow-bottom functionality
 - Backward compatibility
-- Main user commands
+- Error handling
 
-## Conclusion
+Run tests with:
 
-The consolidated term-claude mode provides a more maintainable, better organized, and more robust implementation of Claude interaction functionality. It maintains backward compatibility with previous versions while offering improved integration with other consolidated modules and following clean code principles.
+```bash
+emacs -batch -L . -L src -L tests/ecc-term \
+  -l tests/ecc-term/test-ecc-term-claude-mode-consolidated.el \
+  -f ert-run-tests-batch-and-exit
+```
 
-By combining the best features of both previous implementations, it offers a superior experience for users interacting with Claude in Emacs.
+## Implementation Details
+
+### Clean Code Principles
+
+The consolidated module follows clean code principles:
+
+- **Single Responsibility**: Each function has a clear, single purpose
+- **Meaningful Names**: Function and variable names clearly indicate their purpose
+- **DRY (Don't Repeat Yourself)**: Common functionality is extracted into reusable functions
+- **Error Handling**: Robust error handling with informative messages
+
+### Module Organization
+
+```
+ecc-term-claude-mode-consolidated.el
+├── Customization (user options)
+├── Internal Variables (private state)
+├── Mode Menu (context menu)
+├── Keybindings (key mappings)
+├── Debugging Functions (debug support)
+├── Mode Definition (major mode)
+├── Buffer Setup Functions (initialization)
+├── State Detection (Claude state monitoring)
+├── Claude Interaction Commands (user commands)
+├── Auto-Response Functions (automatic responses)
+├── Buffer Management (lifecycle management)
+├── Follow Bottom Functionality (scrolling)
+├── Public APIs (main interface)
+└── Backward Compatibility (aliases)
+```
+
+### Integration Architecture
+
+The module uses a layered approach for integration:
+
+1. **Preference Layer**: Prefers consolidated modules when available
+2. **Fallback Layer**: Falls back to original modules gracefully
+3. **Compatibility Layer**: Maintains old interfaces through aliases
+4. **Enhancement Layer**: Adds new features without breaking existing code
+
+This architecture ensures maximum compatibility while providing enhanced functionality when consolidated modules are available.

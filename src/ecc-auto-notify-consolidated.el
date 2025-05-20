@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-21 00:15:00>
+;;; Timestamp: <2025-05-21 20:15:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-notify-consolidated.el
 
 ;;; Commentary:
@@ -19,42 +19,79 @@
 ;;; - Compatibility with different state detection approaches
 ;;; - Buffer-specific notification support
 ;;; - Hooks into terminal modes
+;;;
+;;; Example usage:
+;;; ```elisp
+;;; ;; Enable notifications with default settings
+;;; (setq ecc-auto-notify-on-claude-prompt t)
+;;;
+;;; ;; Configure notification methods
+;;; (setq ecc-auto-notify-bell t
+;;;       ecc-auto-notify-flash t
+;;;       ecc-auto-notify-bell-method 'audible)
+;;;
+;;; ;; For buffer-local notifications
+;;; (ecc-auto-notify-buffer-local-init)
+;;; (ecc-auto-notify-buffer-local-toggle)
+;;;
+;;; ;; Manually check state and notify
+;;; (ecc-auto-notify-check-unified (current-buffer))
+;;; ```
 
-;;; Code:
+(require 'cl-lib)
+(require 'ecc-variables)
 
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
-(require 'ecc-debug-utils-consolidated)
+;; Try to load optimized modules if available
+(when (locate-library "ecc-state-detection")
+  (require 'ecc-state-detection))
+
+(when (locate-library "ecc-debug-utils-consolidated")
+  (require 'ecc-debug-utils-consolidated)
+  (defalias 'ecc-auto-notify-debug 'ecc-debug-message))
 
 ;;;; Customization Options
 
 (defgroup ecc-auto-notify nil
   "Notification settings for Claude Auto mode."
-  :group 'ecc
+  :group 'emacs-claude-code
   :prefix "ecc-auto-notify-")
 
 (defcustom ecc-auto-notify-on-claude-prompt t
-  "Whether to show notifications for Claude prompts."
+  "Whether to show notifications for Claude prompts.
+When enabled, the system will display notifications for Claude prompts
+based on the configured notification methods."
   :type 'boolean
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-bell t
-  "Whether to ring the bell when a prompt is detected."
+  "Whether to ring the bell when a prompt is detected.
+When enabled, an audible or visible bell (based on `ecc-auto-notify-bell-method`)
+will be triggered whenever a Claude prompt is detected."
   :type 'boolean
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-flash t
-  "Whether to flash the mode line when a prompt is detected."
+  "Whether to flash the mode line when a prompt is detected.
+When enabled, the mode line will briefly invert its colors
+whenever a Claude prompt is detected, providing a visual cue."
   :type 'boolean
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-prompt-types '(:initial-waiting :waiting :y/n :y/y/n)
-  "List of prompt types to notify about."
+  "List of prompt types to notify about.
+Notification will only be triggered for prompt types in this list.
+Possible values are:
+- `:initial-waiting`: Claude's initial prompt when first started
+- `:waiting`: Claude's 'continue' prompt
+- `:y/n`: Claude's yes/no question prompt
+- `:y/y/n`: Claude's multi-choice question prompt"
   :type '(repeat symbol)
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-interval 2.0
-  "Minimum interval between notifications in seconds."
+  "Minimum interval between notifications in seconds.
+This prevents excessive notifications when the same prompt
+is detected multiple times in rapid succession."
   :type 'number
   :group 'ecc-auto-notify)
 
@@ -80,18 +117,27 @@ Example: \"paplay /usr/share/sounds/freedesktop/stereo/bell.oga\""
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-bell-duration 0.5
-  "Duration in seconds for visible bell flash."
+  "Duration in seconds for visible bell flash.
+Controls how long the screen flashes when using visible bell."
   :type 'number
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-bell-volume 100
-  "Volume for the bell (1-100). May not work on all systems."
+  "Volume for the bell (1-100). May not work on all systems.
+Some systems allow controlling the volume of the bell sound."
   :type 'integer
   :group 'ecc-auto-notify)
 
 (defcustom ecc-auto-notify-buffer-local-default nil
   "Whether to use buffer-local notification by default.
 When non-nil, notifications will be managed on a per-buffer basis."
+  :type 'boolean
+  :group 'ecc-auto-notify)
+
+(defcustom ecc-auto-notify-debug nil
+  "Whether to display debug messages for notification actions.
+When enabled, information about state detection, throttling decisions,
+and notification events will be shown."
   :type 'boolean
   :group 'ecc-auto-notify)
 
@@ -106,6 +152,31 @@ When non-nil, notifications will be managed on a per-buffer basis."
 (defvar ecc-auto-notify--flash-timer nil
   "Timer for mode line flashing.")
 
+(defvar-local ecc-buffer-auto-notify-enabled nil
+  "Whether notifications are enabled for this buffer.")
+
+(defvar-local ecc-buffer-auto-notify-bell t
+  "Whether to ring the bell for notifications in this buffer.")
+
+(defvar-local ecc-buffer-auto-notify-flash t
+  "Whether to flash mode line for notifications in this buffer.")
+
+(defvar-local ecc-buffer-auto-notify-last-time 0
+  "Time of the last notification for this buffer.")
+
+(defvar-local ecc-buffer-auto-notify-last-state nil
+  "Last Claude state that triggered a notification for this buffer.")
+
+;;;; Debug Utilities
+
+(defun ecc-auto-notify--log (format-string &rest args)
+  "Log a debug message if debugging is enabled.
+FORMAT-STRING and ARGS are passed to `format`."
+  (when ecc-auto-notify-debug
+    (if (fboundp 'ecc-auto-notify-debug)
+        (apply #'ecc-auto-notify-debug format-string args)
+      (apply #'message (concat "[Auto Notify] " format-string) args))))
+
 ;;;; Core Notification Functions
 
 ;;;###autoload
@@ -115,22 +186,26 @@ This function checks the current state against configured notification
 settings and triggers notifications when appropriate. It includes
 throttling to prevent excessive notifications.
 
-STATE is a symbol representing the detected Claude state, such as
-:waiting, :y/n, :y/y/n, or :initial-waiting."
+Arguments:
+  STATE: A symbol representing the detected Claude state, such as
+         :waiting, :y/n, :y/y/n, or :initial-waiting.
+
+Returns:
+  t if a notification was sent, nil otherwise."
   ;; Skip if notifications are disabled
   (unless (and (boundp 'ecc-auto-notify-on-claude-prompt)
                ecc-auto-notify-on-claude-prompt)
-    (ecc-debug-message "Notifications disabled, not checking state")
+    (ecc-auto-notify--log "Notifications disabled, not checking state")
     (cl-return-from ecc-auto-notify-check-state nil))
 
   ;; Skip if no state is detected
   (unless state
-    (ecc-debug-message "No state detected, not notifying")
+    (ecc-auto-notify--log "No state detected, not notifying")
     (cl-return-from ecc-auto-notify-check-state nil))
   
   ;; Skip if state type is not in our notification list
   (unless (memq state ecc-auto-notify-prompt-types)
-    (ecc-debug-message "State %s not in notification list, not notifying" state)
+    (ecc-auto-notify--log "State %s not in notification list, not notifying" state)
     (cl-return-from ecc-auto-notify-check-state nil))
   
   ;; Check if we should throttle notifications
@@ -140,7 +215,7 @@ STATE is a symbol representing the detected Claude state, such as
            ;; For same state, only notify after interval
            (> (- (float-time) ecc-auto-notify--last-time) 
               ecc-auto-notify-interval))
-    (ecc-debug-message "Throttling notification for state %s" state)
+    (ecc-auto-notify--log "Throttling notification for state %s" state)
     (cl-return-from ecc-auto-notify-check-state nil))
   
   ;; Proceed with notification
@@ -159,13 +234,14 @@ STATE is a symbol representing the detected Claude state, such as
 This function handles the actual notification using the configured
 methods (bell, mode line flash, etc.).
 
-TYPE is a symbol representing the prompt type, such as :waiting, :y/n, etc."
+Arguments:
+  TYPE: A symbol representing the prompt type, such as :waiting, :y/n, etc."
   (let ((type-name (pcase type
-                    (:initial-waiting "initial waiting for input")
-                    (:waiting "waiting for input")
-                    (:y/n "yes/no prompt")
-                    (:y/y/n "multi-choice prompt")
-                    (_ (format "%s" type)))))
+                     (:initial-waiting "initial waiting for input")
+                     (:waiting "waiting for input")
+                     (:y/n "yes/no prompt")
+                     (:y/y/n "multi-choice prompt")
+                     (_ (format "%s" type)))))
     ;; Ring bell if enabled
     (when ecc-auto-notify-bell
       (ecc-auto-notify-ring-bell))
@@ -175,7 +251,10 @@ TYPE is a symbol representing the prompt type, such as :waiting, :y/n, etc."
       (ecc-auto-notify-flash-mode-line))
     
     ;; Display message
-    (message "Claude prompt detected: %s" type-name)))
+    (message "Claude prompt detected: %s" type-name)
+    
+    ;; Log notification
+    (ecc-auto-notify--log "Notification sent for state %s" type)))
 
 ;;;###autoload
 (defun ecc-auto-notify-ring-bell ()
@@ -232,8 +311,8 @@ after a short delay to create a visual notification effect."
   (invert-face 'mode-line)
   (setq ecc-auto-notify--flash-timer
         (run-with-timer ecc-auto-notify-bell-duration nil
-                      (lambda ()
-                        (invert-face 'mode-line)))))
+                       (lambda ()
+                         (invert-face 'mode-line)))))
 
 ;;;; User Commands
 
@@ -267,6 +346,16 @@ Enables or disables the visual mode line flash component of notifications."
   (message "Mode line flash notifications %s"
            (if ecc-auto-notify-flash "enabled" "disabled")))
 
+;;;###autoload
+(defun ecc-auto-notify-toggle-debug ()
+  "Toggle debug output for notification events.
+Enables or disables detailed logging of notification activities."
+  (interactive)
+  (setq ecc-auto-notify-debug
+        (not ecc-auto-notify-debug))
+  (message "Notification debug messages %s"
+           (if ecc-auto-notify-debug "enabled" "disabled")))
+
 ;;;; Buffer Setup & Integration
 
 ;;;###autoload
@@ -275,10 +364,17 @@ Enables or disables the visual mode line flash component of notifications."
 This function is designed to be added to mode hooks for Claude-related
 buffer modes to automatically set up prompt notifications."
   (when (derived-mode-p 'ecc-term-claude-mode 'vterm-mode)
-    ;; Add state check hook for this buffer
+    ;; Add state check hook for this buffer using the unified detection function
     (add-hook 'ecc-term-claude-update-functions
               (lambda ()
-                (ecc-auto-notify-check-state (ecc-detect-state)))
+                (let ((state (if (fboundp 'ecc-detect-state)
+                               ;; Use new detection system if available
+                               (ecc-detect-state)
+                              ;; Fall back to simple state detection
+                              (when (boundp 'ecc-detect-simple-state)
+                                (ecc-detect-simple-state)))))
+                  (when state
+                    (ecc-auto-notify-check-state state))))
               nil t)))
 
 ;;;###autoload
@@ -304,20 +400,19 @@ both global and buffer-local configurations."
     (let ((buffer (current-buffer)))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
-          ;; Use the unified detection function
-          (when-let ((state (ecc-detect-state)))
-            (ecc-auto-notify-check-state state)))))))
+          ;; Use the unified detection function if available
+          (let ((state (cond
+                       ((fboundp 'ecc-detect-state)
+                        (ecc-detect-state))
+                       ((fboundp 'ecc-detect-prompt-in-last-lines)
+                        (ecc-detect-prompt-in-last-lines))
+                       ((fboundp 'ecc-detect-simple-state)
+                        (ecc-detect-simple-state))
+                       (t nil))))
+            (when state
+              (ecc-auto-notify-check-unified buffer))))))))
 
 ;;;; Buffer-Local Notification Support
-
-(defvar-local ecc-buffer-auto-notify-enabled nil
-  "Whether notifications are enabled for this buffer.")
-
-(defvar-local ecc-buffer-auto-notify-bell t
-  "Whether to ring the bell for notifications in this buffer.")
-
-(defvar-local ecc-buffer-auto-notify-flash t
-  "Whether to flash mode line for notifications in this buffer.")
 
 ;;;###autoload
 (defun ecc-auto-notify-buffer-local-init (&optional buffer)
@@ -328,6 +423,8 @@ If BUFFER is nil, use the current buffer."
     (setq-local ecc-buffer-auto-notify-enabled ecc-auto-notify-on-claude-prompt)
     (setq-local ecc-buffer-auto-notify-bell ecc-auto-notify-bell)
     (setq-local ecc-buffer-auto-notify-flash ecc-auto-notify-flash)
+    (setq-local ecc-buffer-auto-notify-last-time 0)
+    (setq-local ecc-buffer-auto-notify-last-state nil)
     
     (when (called-interactively-p 'any)
       (message "Buffer-local notifications initialized for %s" (buffer-name)))))
@@ -338,33 +435,69 @@ If BUFFER is nil, use the current buffer."
 If BUFFER is nil, use the current buffer."
   (interactive)
   (with-current-buffer (or buffer (current-buffer))
+    (unless (local-variable-p 'ecc-buffer-auto-notify-enabled)
+      (ecc-auto-notify-buffer-local-init))
+    
     (setq-local ecc-buffer-auto-notify-enabled 
                 (not ecc-buffer-auto-notify-enabled))
     (message "Buffer-local notifications %s for %s"
              (if ecc-buffer-auto-notify-enabled "enabled" "disabled")
              (buffer-name))))
 
-;;;; Unified Checking Functions
+;;;###autoload
+(defun ecc-auto-notify-buffer-local-check-state (state)
+  "Check if STATE requires notification using buffer-local settings.
+This is the buffer-local equivalent of `ecc-auto-notify-check-state`.
+
+Arguments:
+  STATE: The state to check for notification.
+
+Returns:
+  t if a notification was sent, nil otherwise."
+  ;; Skip if notifications are disabled for this buffer
+  (unless ecc-buffer-auto-notify-enabled
+    (ecc-auto-notify--log "Buffer-local notifications disabled for %s" (buffer-name))
+    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+  
+  ;; Skip if no state is detected
+  (unless state
+    (ecc-auto-notify--log "No state detected for %s" (buffer-name))
+    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+  
+  ;; Skip if state type is not in our notification list
+  (unless (memq state ecc-auto-notify-prompt-types)
+    (ecc-auto-notify--log "State %s not in notification list for %s"
+                        state (buffer-name))
+    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+  
+  ;; Check if we should throttle notifications for this buffer
+  (unless (or
+           ;; Always notify for new state
+           (not (eq state ecc-buffer-auto-notify-last-state))
+           ;; For same state, only notify after interval
+           (> (- (float-time) ecc-buffer-auto-notify-last-time) 
+              ecc-auto-notify-interval))
+    (ecc-auto-notify--log "Throttling buffer-local notification for state %s in %s" 
+                        state (buffer-name))
+    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+  
+  ;; Proceed with notification
+  (ecc-auto-notify-prompt-buffer-local state)
+  
+  ;; Update tracking variables
+  (setq-local ecc-buffer-auto-notify-last-state state)
+  (setq-local ecc-buffer-auto-notify-last-time (float-time))
+  
+  ;; Return t to indicate notification was sent
+  t)
 
 ;;;###autoload
-(defun ecc-auto-notify-check-unified (buffer)
-  "Check BUFFER for Claude prompts and notify if appropriate.
-Uses either global or buffer-local configuration based on settings."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (let ((state (ecc-detect-state)))
-        (if (and (boundp 'ecc-buffer-auto-notify-enabled)
-                 ecc-auto-notify-buffer-local-default)
-            ;; Use buffer-local settings
-            (when (and ecc-buffer-auto-notify-enabled
-                       state
-                       (memq state ecc-auto-notify-prompt-types))
-              (ecc-auto-notify-prompt-buffer-local state))
-          ;; Use global settings
-          (ecc-auto-notify-check-state state))))))
-
 (defun ecc-auto-notify-prompt-buffer-local (type)
-  "Notify about Claude prompt of TYPE using buffer-local settings."
+  "Notify about Claude prompt of TYPE using buffer-local settings.
+Handles notification using the configured methods specific to this buffer.
+
+Arguments:
+  TYPE: A symbol representing the prompt type, such as :waiting, :y/n, etc."
   (let ((type-name (pcase type
                      (:initial-waiting "initial waiting for input")
                      (:waiting "waiting for input")
@@ -380,13 +513,51 @@ Uses either global or buffer-local configuration based on settings."
       (ecc-auto-notify-flash-mode-line))
     
     ;; Display buffer-specific message
-    (message "Claude prompt in %s: %s" (buffer-name) type-name)))
+    (message "Claude prompt in %s: %s" (buffer-name) type-name)
+    
+    ;; Log notification
+    (ecc-auto-notify--log "Buffer-local notification sent for state %s in %s" 
+                        type (buffer-name))))
+
+;;;; Unified Checking Functions
+
+;;;###autoload
+(defun ecc-auto-notify-check-unified (buffer)
+  "Check BUFFER for Claude prompts and notify if appropriate.
+Uses either global or buffer-local configuration based on settings.
+
+Arguments:
+  BUFFER: The buffer to check for Claude prompts."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when-let ((state (if (fboundp 'ecc-detect-state)
+                          (ecc-detect-state)
+                         (when (fboundp 'ecc-detect-simple-state)
+                           (ecc-detect-simple-state)))))
+        (if (and (local-variable-p 'ecc-buffer-auto-notify-enabled)
+                 ecc-auto-notify-buffer-local-default)
+            ;; Use buffer-local settings
+            (ecc-auto-notify-buffer-local-check-state state)
+          ;; Use global settings
+          (ecc-auto-notify-check-state state))))))
 
 ;;;; Initialize Hook Setup
 
 ;; Set up hooks automatically when this module is loaded
 (ecc-auto-notify-setup-hooks)
 
+;;;; Backward Compatibility
+
+(defalias 'ecc-auto-notify-check-state-improved 'ecc-auto-notify-check-state
+  "Compatibility function for older code.")
+
+(defalias 'ecc-auto-notify-setup-for-buffer-improved 'ecc-auto-notify-setup-for-buffer
+  "Compatibility function for older code.")
+
+;; Provide all names for backward compatibility
+(provide 'ecc-auto-notify)
+(provide 'ecc-auto-notify-improved)
+(provide 'ecc-auto-notify-fix)
 (provide 'ecc-auto-notify-consolidated)
 
 ;;; ecc-auto-notify-consolidated.el ends here
