@@ -1,391 +1,218 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 20:15:00>
+;;; Timestamp: <2025-05-21 00:25:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/ecc-auto/test-ecc-auto-notify.el
 
 ;;; Commentary:
-;;; Test suite for the ecc-auto-notify module.
-;;; These tests cover the notification functionality for Claude prompts.
+;;; Tests for the notification system (ecc-auto-notify.el).
 
 (require 'ert)
 (require 'ecc-variables)
-;; We don't require ecc-auto-notify yet as per TDD principles
+(require 'ecc-auto-detect)
+(require 'ecc-auto-notify)
 
-;; Mock necessary functions and variables for testing
-(defvar ecc-auto-notify-on-claude-prompt)
-(defvar ecc-auto-notify-bell)
-(defvar ecc-auto-notify-flash)
-(defvar ecc-auto-notify-prompt-types)
-(defvar ecc-auto-notify-interval)
-(defvar ecc-auto-notify--last-time)
-(defvar ecc-auto-notify--last-state)
-(defvar ecc-auto-notify--flash-timer)
-(defvar ecc-auto-notify-bell-method)
-(defvar ecc-auto-notify-bell-external-command)
-(defvar ecc-auto-notify-bell-duration)
+;;; Code:
 
-;; Test state checking functionality
-(ert-deftest test-ecc-auto-notify-check-state-basic ()
-  "Test basic state checking functionality."
-  ;; Set up test environment
-  (let ((ecc-auto-notify-on-claude-prompt t)
-        (ecc-auto-notify-prompt-types '(:waiting :y/n :y/y/n :initial-waiting))
-        (ecc-auto-notify--last-state nil)
-        (ecc-auto-notify--last-time 0)
-        (ecc-auto-notify-interval 1.0)
-        (notification-called nil)
-        (notification-state nil))
+;; Test variables
+(defvar test-ecc-auto-notify--flash-called nil)
+(defvar test-ecc-auto-notify--ring-called nil)
+
+;; Mock functions for testing
+(defun test-ecc-auto-notify--mock-ring-bell ()
+  "Mock bell function for testing."
+  (setq test-ecc-auto-notify--ring-called t))
+
+(defun test-ecc-auto-notify--mock-flash-mode-line ()
+  "Mock flash function for testing."
+  (setq test-ecc-auto-notify--flash-called t))
+
+;; Tests
+(ert-deftest test-ecc-auto-notify-prompt ()
+  "Test notification for prompt detection."
+  ;; Set up mock environment
+  (let ((ecc-auto-notify-enabled t)
+        (ecc-auto-notify-method 'both)
+        (ecc-auto-notify-prompt-types '(:y/n :y/y/n :waiting :initial-waiting)))
     
-    ;; Mock notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-prompt)
-               (lambda (state)
-                 (setq notification-called t)
-                 (setq notification-state state))))
-      
-      ;; Call function with valid state
-      (ecc-auto-notify-check-state :waiting)
-      
-      ;; Verify notification was called
-      (should notification-called)
-      (should (eq notification-state :waiting))
-      (should (eq ecc-auto-notify--last-state :waiting))
-      (should (> ecc-auto-notify--last-time 0)))))
-
-(ert-deftest test-ecc-auto-notify-check-state-notifications-disabled ()
-  "Test that notifications are not triggered when disabled."
-  ;; Set up test environment
-  (let ((ecc-auto-notify-on-claude-prompt nil)
-        (ecc-auto-notify-prompt-types '(:waiting :y/n :y/y/n :initial-waiting))
-        (ecc-auto-notify--last-state nil)
-        (ecc-auto-notify--last-time 0)
-        (ecc-auto-notify-interval 1.0)
-        (notification-called nil))
+    ;; Reset state
+    (setq test-ecc-auto-notify--flash-called nil)
+    (setq test-ecc-auto-notify--ring-called nil)
     
-    ;; Mock notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-prompt)
-               (lambda (state)
-                 (setq notification-called t))))
+    ;; Temporarily override notification methods
+    (cl-letf (((symbol-function 'ecc-auto-notify-ring-bell)
+               #'test-ecc-auto-notify--mock-ring-bell)
+              ((symbol-function 'ecc-auto-notify-flash-mode-line)
+               #'test-ecc-auto-notify--mock-flash-mode-line))
       
-      ;; Call function with valid state
-      (ecc-auto-notify-check-state :waiting)
+      ;; Test Y/N notification
+      (ecc-auto-notify-prompt :y/n)
+      (should test-ecc-auto-notify--ring-called)
+      (should test-ecc-auto-notify--flash-called)
       
-      ;; Verify notification was not called
-      (should-not notification-called))))
-
-(ert-deftest test-ecc-auto-notify-check-state-not-in-prompt-types ()
-  "Test that notifications are not triggered for states not in prompt-types."
-  ;; Set up test environment
-  (let ((ecc-auto-notify-on-claude-prompt t)
-        (ecc-auto-notify-prompt-types '(:y/n :y/y/n)) ;; :waiting not included
-        (ecc-auto-notify--last-state nil)
-        (ecc-auto-notify--last-time 0)
-        (ecc-auto-notify-interval 1.0)
-        (notification-called nil))
-    
-    ;; Mock notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-prompt)
-               (lambda (state)
-                 (setq notification-called t))))
+      ;; Reset state for next test
+      (setq test-ecc-auto-notify--flash-called nil)
+      (setq test-ecc-auto-notify--ring-called nil)
       
-      ;; Call function with state not in prompt-types
-      (ecc-auto-notify-check-state :waiting)
-      
-      ;; Verify notification was not called
-      (should-not notification-called))))
-
-(ert-deftest test-ecc-auto-notify-check-state-throttling ()
-  "Test notification throttling based on time interval."
-  ;; Set up test environment
-  (let ((ecc-auto-notify-on-claude-prompt t)
-        (ecc-auto-notify-prompt-types '(:waiting :y/n))
-        (ecc-auto-notify--last-state :waiting)
-        (ecc-auto-notify--last-time (float-time))
-        (ecc-auto-notify-interval 10.0) ;; Long interval to ensure throttling
-        (notification-called nil))
-    
-    ;; Mock notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-prompt)
-               (lambda (state)
-                 (setq notification-called t))))
-      
-      ;; Call function with the same state - should be throttled
-      (ecc-auto-notify-check-state :waiting)
-      
-      ;; Verify notification was not called due to throttling
-      (should-not notification-called)
-      
-      ;; Call function with different state - should still throttle
-      (ecc-auto-notify-check-state :y/n)
-      
-      ;; Verify notification was called for new state despite interval
-      (should notification-called))))
-
-;; Test prompt notification functionality
-(ert-deftest test-ecc-auto-notify-prompt-basic ()
-  "Test basic prompt notification functionality."
-  (let ((ecc-auto-notify-bell nil) ;; Disable bell for testing
-        (ecc-auto-notify-flash nil) ;; Disable flash for testing
-        (message-output nil))
-    
-    ;; Mock message function
-    (cl-letf (((symbol-function 'message)
-               (lambda (format-string &rest args)
-                 (setq message-output (apply #'format format-string args)))))
-      
-      ;; Test with various prompt types
+      ;; Test waiting notification
       (ecc-auto-notify-prompt :waiting)
-      (should (string-match-p "waiting for input" message-output))
+      (should test-ecc-auto-notify--ring-called)
+      (should test-ecc-auto-notify--flash-called)
+      
+      ;; Test with disabled notifications
+      (setq ecc-auto-notify-enabled nil)
+      (setq test-ecc-auto-notify--flash-called nil)
+      (setq test-ecc-auto-notify--ring-called nil)
       
       (ecc-auto-notify-prompt :y/n)
-      (should (string-match-p "yes/no prompt" message-output))
-      
-      (ecc-auto-notify-prompt :y/y/n)
-      (should (string-match-p "multi-choice prompt" message-output))
-      
-      (ecc-auto-notify-prompt :initial-waiting)
-      (should (string-match-p "initial waiting for input" message-output))
-      
-      (ecc-auto-notify-prompt :unknown-state)
-      (should (string-match-p "unknown-state" message-output)))))
+      (should-not test-ecc-auto-notify--ring-called)
+      (should-not test-ecc-auto-notify--flash-called))))
 
-(ert-deftest test-ecc-auto-notify-prompt-with-bell ()
-  "Test prompt notification with bell enabled."
-  (let ((ecc-auto-notify-bell t)
-        (ecc-auto-notify-flash nil)
-        (bell-called nil))
+(ert-deftest test-ecc-auto-notify-response ()
+  "Test notification for auto-responses."
+  ;; Capture message output
+  (let ((ecc-auto-notify-enabled t)
+        (last-message nil))
     
-    ;; Mock bell function
+    ;; Override message function to capture output
+    (cl-letf (((symbol-function 'message)
+               (lambda (format-string &rest args)
+                 (setq last-message (apply #'format format-string args)))))
+      
+      ;; Test response notification
+      (ecc-auto-notify-response :y/n "test-response")
+      (should (string-match-p "Auto-responded to Y/N" last-message))
+      (should (string-match-p "test-response" last-message))
+      
+      ;; Test with different state
+      (setq last-message nil)
+      (ecc-auto-notify-response :waiting "test-continue")
+      (should (string-match-p "Auto-responded to Continue" last-message))
+      (should (string-match-p "test-continue" last-message))
+      
+      ;; Test with disabled notifications
+      (setq ecc-auto-notify-enabled nil)
+      (setq last-message nil)
+      (ecc-auto-notify-response :y/n "test-response")
+      (should-not last-message))))
+
+(ert-deftest test-ecc-auto-notify-methods ()
+  "Test different notification methods."
+  ;; Set up test environment
+  (let ((ecc-auto-notify-enabled t)
+        (ecc-auto-notify-prompt-types '(:y/n))
+        (original-message-fn (symbol-function 'message)))
+    
+    ;; Test bell-only method
+    (setq ecc-auto-notify-method 'bell)
+    (setq test-ecc-auto-notify--ring-called nil)
+    (setq test-ecc-auto-notify--flash-called nil)
+    
     (cl-letf (((symbol-function 'ecc-auto-notify-ring-bell)
-               (lambda ()
-                 (setq bell-called t)))
-              ((symbol-function 'message)
-               (lambda (&rest _) nil)))
+               #'test-ecc-auto-notify--mock-ring-bell)
+              ((symbol-function 'ecc-auto-notify-flash-mode-line)
+               #'test-ecc-auto-notify--mock-flash-mode-line))
       
-      ;; Test notification
-      (ecc-auto-notify-prompt :waiting)
-      
-      ;; Verify bell was called
-      (should bell-called))))
-
-(ert-deftest test-ecc-auto-notify-prompt-with-flash ()
-  "Test prompt notification with mode line flash enabled."
-  (let ((ecc-auto-notify-bell nil)
-        (ecc-auto-notify-flash t)
-        (flash-called nil))
+      (ecc-auto-notify-prompt :y/n)
+      (should test-ecc-auto-notify--ring-called)
+      (should-not test-ecc-auto-notify--flash-called))
     
-    ;; Mock flash function
-    (cl-letf (((symbol-function 'ecc-auto-notify-flash-mode-line)
-               (lambda ()
-                 (setq flash-called t)))
-              ((symbol-function 'message)
-               (lambda (&rest _) nil)))
+    ;; Test visual-only method
+    (setq ecc-auto-notify-method 'visual)
+    (setq test-ecc-auto-notify--ring-called nil)
+    (setq test-ecc-auto-notify--flash-called nil)
+    
+    (cl-letf (((symbol-function 'ecc-auto-notify-ring-bell)
+               #'test-ecc-auto-notify--mock-ring-bell)
+              ((symbol-function 'ecc-auto-notify-flash-mode-line)
+               #'test-ecc-auto-notify--mock-flash-mode-line))
       
-      ;; Test notification
-      (ecc-auto-notify-prompt :waiting)
+      (ecc-auto-notify-prompt :y/n)
+      (should-not test-ecc-auto-notify--ring-called)
+      (should test-ecc-auto-notify--flash-called))
+    
+    ;; Test none method
+    (setq ecc-auto-notify-method 'none)
+    (setq test-ecc-auto-notify--ring-called nil)
+    (setq test-ecc-auto-notify--flash-called nil)
+    
+    (cl-letf (((symbol-function 'ecc-auto-notify-ring-bell)
+               #'test-ecc-auto-notify--mock-ring-bell)
+              ((symbol-function 'ecc-auto-notify-flash-mode-line)
+               #'test-ecc-auto-notify--mock-flash-mode-line))
       
-      ;; Verify flash was called
-      (should flash-called))))
+      (ecc-auto-notify-prompt :y/n)
+      (should-not test-ecc-auto-notify--ring-called)
+      (should-not test-ecc-auto-notify--flash-called))))
 
-;; Test bell notification functionality
-(ert-deftest test-ecc-auto-notify-ring-bell-audible ()
-  "Test audible bell notification."
-  (let ((ecc-auto-notify-bell-method 'audible)
+(ert-deftest test-ecc-auto-notify-bell-methods ()
+  "Test different bell notification methods."
+  ;; Set up test environment
+  (let ((ecc-auto-notify-bell-method 'visible-bell)
+        (visible-bell-called nil)
         (ding-called nil))
     
-    ;; Mock bell functions
+    ;; Test visible-bell method
     (cl-letf (((symbol-function 'ding)
-               (lambda (&rest _)
+               (lambda (&optional arg)
                  (setq ding-called t)))
-              ((symbol-function 'play-sound-file)
+              ((symbol-function 'face-remap-add-relative)
                (lambda (&rest _) nil)))
       
-      ;; Call bell function
-      (ecc-auto-notify-ring-bell)
+      ;; Reset state
+      (setq visible-bell-called nil)
+      (setq ding-called nil)
       
-      ;; Verify ding was called
-      (should ding-called))))
-
-(ert-deftest test-ecc-auto-notify-ring-bell-visible ()
-  "Test visible bell notification."
-  (let ((ecc-auto-notify-bell-method 'visible)
-        (ding-called nil)
-        (visible-bell-value nil))
-    
-    ;; Mock bell functions
-    (cl-letf (((symbol-function 'ding)
-               (lambda (&rest _)
-                 (setq ding-called t)
-                 (setq visible-bell-value visible-bell))))
+      ;; Set visible-bell to capture call
+      (let ((visible-bell t))
+        (ecc-auto-notify-ring-bell)
+        (should ding-called))
       
-      ;; Call bell function
+      ;; Test beep method
+      (setq ecc-auto-notify-bell-method 'beep)
+      (setq ding-called nil)
+      
       (let ((visible-bell nil))
-        (ecc-auto-notify-ring-bell))
+        (ecc-auto-notify-ring-bell)
+        (should ding-called))
       
-      ;; Verify ding was called with visible-bell set to t
-      (should ding-called)
-      (should visible-bell-value))))
+      ;; Test flash method
+      (setq ecc-auto-notify-bell-method 'flash)
+      (setq test-ecc-auto-notify--flash-called nil)
+      
+      (cl-letf (((symbol-function 'ecc-auto-notify-flash-mode-line)
+                 #'test-ecc-auto-notify--mock-flash-mode-line))
+        (ecc-auto-notify-ring-bell)
+        (should test-ecc-auto-notify--flash-called)))))
 
-(ert-deftest test-ecc-auto-notify-ring-bell-external ()
-  "Test external command bell notification."
-  (let ((ecc-auto-notify-bell-method 'external)
-        (ecc-auto-notify-bell-external-command "echo 'bell'")
-        (start-process-called nil)
-        (shell-file-name-used nil)
-        (shell-command-switch-used nil))
-    
-    ;; Mock process function
-    (cl-letf (((symbol-function 'start-process)
-               (lambda (name buffer program &rest args)
-                 (setq start-process-called t)
-                 (setq shell-file-name-used program)
-                 (setq shell-command-switch-used (car args)))))
-      
-      ;; Call bell function
-      (ecc-auto-notify-ring-bell)
-      
-      ;; Verify external command was called
-      (should start-process-called)
-      (should (string= shell-file-name-used shell-file-name))
-      (should (string= shell-command-switch-used shell-command-switch)))))
-
-;; Test mode line flash functionality
-(ert-deftest test-ecc-auto-notify-flash-mode-line ()
-  "Test mode line flash functionality."
-  (let ((ecc-auto-notify--flash-timer nil)
-        (invert-face-called 0)
-        (run-with-timer-called nil)
-        (timer-duration nil))
-    
-    ;; Mock functions
-    (cl-letf (((symbol-function 'invert-face)
-               (lambda (_)
-                 (setq invert-face-called (1+ invert-face-called))))
-              ((symbol-function 'run-with-timer)
-               (lambda (secs repeat function &rest args)
-                 (setq run-with-timer-called t)
-                 (setq timer-duration secs)
-                 (funcall function))))
-      
-      ;; Call flash function
-      (ecc-auto-notify-flash-mode-line)
-      
-      ;; Verify behavior
-      (should run-with-timer-called)
-      (should (= timer-duration 0.5))
-      (should (= invert-face-called 2))))) ;; Once directly, once from the timer function
-
-;; Test notification toggle functionality
 (ert-deftest test-ecc-auto-notify-toggle ()
   "Test toggling notification functionality."
-  (let ((ecc-auto-notify-on-claude-prompt nil)
-        (message-output nil))
-    
-    ;; Mock message function
-    (cl-letf (((symbol-function 'message)
-               (lambda (format-string &rest args)
-                 (setq message-output (apply #'format format-string args)))))
-      
-      ;; Toggle notifications on
-      (ecc-auto-notify-toggle)
-      
-      ;; Verify state changed
-      (should ecc-auto-notify-on-claude-prompt)
-      (should (string-match-p "enabled" message-output))
-      
-      ;; Toggle notifications off
-      (ecc-auto-notify-toggle)
-      
-      ;; Verify state changed back
-      (should-not ecc-auto-notify-on-claude-prompt)
-      (should (string-match-p "disabled" message-output)))))
+  ;; Ensure known starting state
+  (setq ecc-auto-notify-enabled t)
+  
+  ;; Toggle off
+  (ecc-auto-notify-toggle)
+  (should-not ecc-auto-notify-enabled)
+  
+  ;; Toggle on
+  (ecc-auto-notify-toggle)
+  (should ecc-auto-notify-enabled))
 
-(ert-deftest test-ecc-auto-notify-toggle-bell ()
-  "Test toggling bell functionality."
-  (let ((ecc-auto-notify-bell nil)
-        (message-output nil))
-    
-    ;; Mock message function
-    (cl-letf (((symbol-function 'message)
-               (lambda (format-string &rest args)
-                 (setq message-output (apply #'format format-string args)))))
-      
-      ;; Toggle bell on
-      (ecc-auto-notify-toggle-bell)
-      
-      ;; Verify state changed
-      (should ecc-auto-notify-bell)
-      (should (string-match-p "enabled" message-output))
-      
-      ;; Toggle bell off
-      (ecc-auto-notify-toggle-bell)
-      
-      ;; Verify state changed back
-      (should-not ecc-auto-notify-bell)
-      (should (string-match-p "disabled" message-output)))))
-
-;; Test buffer setup functionality
-(ert-deftest test-ecc-auto-notify-setup-for-buffer ()
-  "Test notification setup for buffer."
-  (let ((mode-hooks nil)
-        (derived-mode 'ecc-term-claude-mode))
-    
-    ;; Mock functions
-    (cl-letf (((symbol-function 'derived-mode-p)
-               (lambda (&rest modes)
-                 (memq derived-mode modes)))
-              ((symbol-function 'add-hook)
-               (lambda (hook function &optional _append _local)
-                 (push (cons hook function) mode-hooks))))
-      
-      ;; Call setup function
-      (ecc-auto-notify-setup-for-buffer)
-      
-      ;; Verify hooks were added
-      (should (= (length mode-hooks) 1))
-      (should (eq (caar mode-hooks) 'ecc-term-claude-update-functions)))))
-
-(ert-deftest test-ecc-auto-notify-vterm-hook ()
-  "Test notification setup from vterm hook."
-  (let ((buffer-name "*CLAUDE-TEST*")
-        (mode-hooks nil)
-        (setup-called nil))
-    
-    ;; Mock functions
-    (cl-letf (((symbol-function 'buffer-name)
-               (lambda ()
-                 buffer-name))
-              ((symbol-function 'ecc-auto-notify-setup-for-buffer)
-               (lambda ()
-                 (setq setup-called t))))
-      
-      ;; Get the hook function
-      (let ((hook-function (car (last ecc-auto-notify--vterm-mode-hook))))
-        
-        ;; Call hook function with Claude buffer
-        (funcall hook-function)
-        
-        ;; Verify setup was called for Claude buffer
-        (should setup-called)
-        
-        ;; Reset and try with non-Claude buffer
-        (setq setup-called nil)
-        (setq buffer-name "*terminal*")
-        
-        ;; Call hook function with non-Claude buffer
-        (funcall hook-function)
-        
-        ;; Verify setup was not called for non-Claude buffer
-        (should-not setup-called)))))
-
-;; Define placeholder for hook used in test
-(defvar ecc-auto-notify--vterm-mode-hook
-  (list (lambda () 
-          (when (string-match-p "\\*CLAUDE.*\\*" (buffer-name))
-            (ecc-auto-notify-setup-for-buffer)))))
-
-;; Run tests
-(when noninteractive
-  (ert-run-tests-batch-and-exit))
+(ert-deftest test-ecc-auto-notify-bell-toggle ()
+  "Test toggling bell notification."
+  ;; Test starting with bell
+  (setq ecc-auto-notify-method 'bell)
+  (ecc-auto-notify-bell-toggle)
+  (should (eq ecc-auto-notify-method 'none))
+  
+  ;; Test starting with visual
+  (setq ecc-auto-notify-method 'visual)
+  (ecc-auto-notify-bell-toggle)
+  (should (eq ecc-auto-notify-method 'both))
+  
+  ;; Test starting with both
+  (setq ecc-auto-notify-method 'both)
+  (ecc-auto-notify-bell-toggle)
+  (should (eq ecc-auto-notify-method 'visual)))
 
 (provide 'test-ecc-auto-notify)
 

@@ -1,59 +1,57 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 17:45:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
+;;; Timestamp: <2025-05-20 23:00:00>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-detect.el
 
 ;;; Commentary:
-;;; Centralized Claude prompt state detection functionality.
-;;; This module consolidates all state detection logic in one place to eliminate duplication
-;;; and ensure consistent behavior across different parts of the system.
+;;; Centralized detection system for Claude prompt states.
+;;; This module provides a unified interface for detecting Claude prompt states
+;;; in buffers, supporting both global and buffer-local configurations.
+;;;
+;;; This is a clean consolidation of detection logic previously spread across
+;;; ecc-state-detection.el, ecc-buffer-state.el, and other modules.
 
 (require 'ecc-variables)
 
 ;;; Code:
 
-;; Customization for state detection
-(defgroup ecc-state-detection nil
-  "Settings for Claude prompt state detection."
+;; Customization options
+(defgroup ecc-auto-detect nil
+  "Settings for Claude prompt detection."
   :group 'ecc
-  :prefix "ecc-state-detection-")
+  :prefix "ecc-auto-detect-")
 
-(defcustom ecc-state-detection-buffer-size 2000
-  "Number of characters to check from the end of buffer for basic prompt detection."
+(defcustom ecc-auto-detect-buffer-size 2000
+  "Number of characters to check from end of buffer for prompt detection."
   :type 'integer
-  :group 'ecc-state-detection)
+  :group 'ecc-auto-detect)
 
-(defcustom ecc-state-detection-line-count 256
-  "Number of lines to check from the end of buffer for line-based prompt detection.
-A larger number increases detection accuracy but may impact performance
-with very large buffers. The default value of 256 is a balance between
-thorough detection and performance."
+(defcustom ecc-auto-detect-line-count 256
+  "Number of lines to check from end of buffer for line-based detection."
   :type 'integer
-  :group 'ecc-state-detection)
+  :group 'ecc-auto-detect)
 
-;; Main state detection functions
+;; Core detection functions
 
 ;;;###autoload
-(defun ecc-detect-state (&optional buffer)
+(defun ecc-auto-detect-prompt (&optional buffer)
   "Detect Claude prompt state in BUFFER (or current buffer).
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil.
 
-This is the main function that should be used for state detection.
-It automatically uses the best available detection method, prioritizing
-line-based detection for accuracy when available."
+This is the main function that should be used for prompt detection.
+It uses the most accurate method available for the current buffer."
   (with-current-buffer (or buffer (current-buffer))
     (or
      ;; First try line-based detection for better accuracy
-     (ecc-detect-prompt-in-last-lines ecc-state-detection-line-count)
+     (ecc-auto-detect-in-lines (or ecc-auto-detect-line-count 256))
      ;; Fall back to basic detection if line detection finds nothing
-     (ecc-detect-basic-state))))
+     (ecc-auto-detect-in-chars))))
 
-;;;###autoload
-(defun ecc-detect-basic-state ()
-  "Basic detection of Claude prompt state using buffer content matching.
+(defun ecc-auto-detect-in-chars ()
+  "Detect Claude prompt state using buffer content matching.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (let ((buffer-text (buffer-substring-no-properties 
-                     (max (- (point-max) ecc-state-detection-buffer-size) (point-min))
+                     (max (- (point-max) ecc-auto-detect-buffer-size) (point-min))
                      (point-max))))
     (cond
      ;; Check for y/y/n prompts using customized pattern
@@ -80,8 +78,8 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
            (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
       :initial-waiting)
      
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
+     ;; Try alternative initial waiting patterns
+     ((ecc-auto-detect-alternative-waiting buffer-text)
       :initial-waiting)
      
      ;; Fallback to common patterns
@@ -91,13 +89,11 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-;;;###autoload
-(defun ecc-detect-prompt-in-last-lines (&optional n-lines)
+(defun ecc-auto-detect-in-lines (&optional n-lines)
   "Detect Claude prompts in the last N-LINES of the current buffer.
-If N-LINES is nil, use `ecc-state-detection-line-count'.
+If N-LINES is nil, use `ecc-auto-detect-line-count'.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
-  (interactive)
-  (let* ((lines (or n-lines ecc-state-detection-line-count))
+  (let* ((lines (or n-lines ecc-auto-detect-line-count))
          (buffer-lines (count-lines (point-min) (point-max)))
          (start-line (max 1 (- buffer-lines lines)))
          (start-pos (save-excursion
@@ -109,27 +105,31 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                        (point-max))))
     (cond
      ;; Check for y/y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/y/n
+     ((and (boundp 'ecc-state-prompt-y/y/n)
+           ecc-state-prompt-y/y/n
            (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
       :y/y/n)
      
      ;; Check for y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/n
+     ((and (boundp 'ecc-state-prompt-y/n)
+           ecc-state-prompt-y/n
            (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
       :y/n)
      
      ;; Check for waiting prompts using customized patterns
-     ((and ecc-state-prompt-waiting
+     ((and (boundp 'ecc-state-prompt-waiting)
+           ecc-state-prompt-waiting
            (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
       :waiting)
      
      ;; Check for initial prompts
-     ((and ecc-state-prompt-initial-waiting
+     ((and (boundp 'ecc-state-prompt-initial-waiting)
+           ecc-state-prompt-initial-waiting
            (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
       :initial-waiting)
      
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
+     ;; Try alternative initial waiting patterns
+     ((ecc-auto-detect-alternative-waiting buffer-text)
       :initial-waiting)
      
      ;; Fallback to common patterns
@@ -140,34 +140,38 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      (t nil))))
 
 ;;;###autoload
-(defun ecc-detect-prompt-in-region (start end)
+(defun ecc-auto-detect-in-region (start end)
   "Detect Claude prompts in region between START and END.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive "r")
   (let ((buffer-text (buffer-substring-no-properties start end)))
     (cond
      ;; Check for y/y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/y/n
+     ((and (boundp 'ecc-state-prompt-y/y/n)
+           ecc-state-prompt-y/y/n
            (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
       :y/y/n)
      
      ;; Check for y/n prompts using customized pattern
-     ((and ecc-state-prompt-y/n
+     ((and (boundp 'ecc-state-prompt-y/n)
+           ecc-state-prompt-y/n
            (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
       :y/n)
      
      ;; Check for waiting prompts using customized patterns
-     ((and ecc-state-prompt-waiting
+     ((and (boundp 'ecc-state-prompt-waiting)
+           ecc-state-prompt-waiting
            (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
       :waiting)
      
      ;; Check for initial prompts
-     ((and ecc-state-prompt-initial-waiting
+     ((and (boundp 'ecc-state-prompt-initial-waiting)
+           ecc-state-prompt-initial-waiting
            (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
       :initial-waiting)
      
-     ;; If no custom patterns match, try alternative initial waiting patterns
-     ((ecc-detect-alternative-initial-waiting buffer-text)
+     ;; Try alternative initial waiting patterns
+     ((ecc-auto-detect-alternative-waiting buffer-text)
       :initial-waiting)
       
      ;; Fallback to common patterns
@@ -177,7 +181,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-(defun ecc-detect-alternative-initial-waiting (buffer-text)
+(defun ecc-auto-detect-alternative-waiting (buffer-text)
   "Check if BUFFER-TEXT contains any alternative initial waiting patterns.
 Returns t if a match is found, nil otherwise."
   (when (boundp 'ecc-state-prompt-initial-waiting-alternatives)
@@ -187,10 +191,10 @@ Returns t if a match is found, nil otherwise."
           (throw 'found t)))
       nil)))
 
-;; Utility function to get human-readable state name
+;; Utility functions
 
 ;;;###autoload
-(defun ecc-state-get-name (state)
+(defun ecc-auto-detect-name (state)
   "Convert STATE symbol to a human-readable name."
   (cond
    ((eq state :y/y/n) "Y/Y/N")
@@ -199,42 +203,49 @@ Returns t if a match is found, nil otherwise."
    ((eq state :initial-waiting) "Initial-Waiting")
    (t (format "%s" state))))
 
-;; Notification interface
+;; Predicates for checking specific states
 
 ;;;###autoload
-(defun ecc-state-notify-if-prompt-detected (buffer)
-  "Check if BUFFER contains a Claude prompt and notify if appropriate.
-Returns the detected state if a prompt is found, nil otherwise."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (let ((state (ecc-detect-state)))
-        (when (and state
-                   (boundp 'ecc-auto-notify-on-claude-prompt)
-                   ecc-auto-notify-on-claude-prompt
-                   (fboundp 'ecc-auto-notify-check-state))
-          (ecc-auto-notify-check-state state))
-        state))))
-
-;; Backwards compatibility functions and aliases
+(defun ecc-auto-detect-y/n-p (&optional buffer)
+  "Return non-nil if BUFFER has a Y/N prompt state.
+If BUFFER is nil, use current buffer."
+  (eq (ecc-auto-detect-prompt buffer) :y/n))
 
 ;;;###autoload
-(defalias 'ecc-detect-simple-state 'ecc-detect-state
-  "Alias for backwards compatibility with existing code.")
+(defun ecc-auto-detect-y/y/n-p (&optional buffer)
+  "Return non-nil if BUFFER has a Y/Y/N prompt state.
+If BUFFER is nil, use current buffer."
+  (eq (ecc-auto-detect-prompt buffer) :y/y/n))
 
 ;;;###autoload
-(defalias 'ecc-detect-enhanced-state 'ecc-detect-state
-  "Alias for backwards compatibility with existing code.")
+(defun ecc-auto-detect-waiting-p (&optional buffer)
+  "Return non-nil if BUFFER has a waiting prompt state.
+If BUFFER is nil, use current buffer."
+  (eq (ecc-auto-detect-prompt buffer) :waiting))
 
 ;;;###autoload
-(defalias 'ecc-detect-prompt-state 'ecc-detect-state
-  "Alias for backwards compatibility with existing code.")
+(defun ecc-auto-detect-initial-waiting-p (&optional buffer)
+  "Return non-nil if BUFFER has an initial waiting prompt state.
+If BUFFER is nil, use current buffer."
+  (eq (ecc-auto-detect-prompt buffer) :initial-waiting))
+
+;; Backwards compatibility
+;;;###autoload
+(defalias 'ecc-detect-state 'ecc-auto-detect-prompt
+  "Compatibility alias for `ecc-auto-detect-prompt'.")
 
 ;;;###autoload
-(define-obsolete-function-alias 'ecc-state-detect-prompt
-  'ecc-detect-state "May 2025")
+(defalias 'ecc-detect-prompt-in-last-lines 'ecc-auto-detect-in-lines
+  "Compatibility alias for `ecc-auto-detect-in-lines'.")
 
-;; Provide both the new name and the old name for compatibility
-(provide 'ecc-state-detection)
-(provide 'ecc-state-detect-prompt)
+;;;###autoload
+(defalias 'ecc-detect-prompt-in-region 'ecc-auto-detect-in-region
+  "Compatibility alias for `ecc-auto-detect-in-region'.")
 
-;;; ecc-state-detection.el ends here
+;;;###autoload
+(defalias 'ecc-state-get-name 'ecc-auto-detect-name
+  "Compatibility alias for `ecc-auto-detect-name'.")
+
+(provide 'ecc-auto-detect)
+
+;;; ecc-auto-detect.el ends here

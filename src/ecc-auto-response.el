@@ -1,21 +1,25 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 14:27:54>
+;;; Timestamp: <2025-05-20 23:40:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Commentary:
-;;; Refactored auto-response functionality for Claude prompts.
-;;; This module builds on the ecc-auto-core infrastructure and provides
-;;; user-facing commands and functions for automatically responding to
-;;; different types of Claude prompts.
+;;; Main auto-response module for Claude in Emacs.
+;;; This module provides the primary user interface for automatically
+;;; responding to Claude prompts. It integrates the core infrastructure,
+;;; detection, notification, and buffer-local functionality into a
+;;; cohesive auto-response system.
 
 (require 'ecc-variables)
 (require 'ecc-auto-core)
-(require 'ecc-state-detection)
-(require 'ecc-vterm-utils)
-(require 'ecc-debug-utils)
+(require 'ecc-auto-detect)
+(require 'ecc-auto-notify)
 
 ;;; Code:
+
+;; Attempt to load optional dependencies
+(when (locate-library "ecc-auto-buffer")
+  (require 'ecc-auto-buffer))
 
 ;; Customization options
 (defgroup ecc-auto-response nil
@@ -28,17 +32,17 @@
   :type 'boolean
   :group 'ecc-auto-response)
 
-(defcustom ecc-auto-response-yes "1"
+(defcustom ecc-auto-response-y/n "1"
   "Response to send for Y/N prompts (typically \"1\" for \"yes\")."
   :type 'string
   :group 'ecc-auto-response)
 
-(defcustom ecc-auto-response-yes-plus "2"
+(defcustom ecc-auto-response-y/y/n "2"
   "Response to send for Y/Y/N prompts (typically \"2\" for second option)."
   :type 'string
   :group 'ecc-auto-response)
 
-(defcustom ecc-auto-response-continue "/auto"
+(defcustom ecc-auto-response-waiting "/auto"
   "Response to send for waiting state (typically \"/auto\" or \"/continue\")."
   :type 'string 
   :group 'ecc-auto-response)
@@ -54,48 +58,144 @@
   :group 'ecc-auto-response)
 
 ;; Internal variables
-(defvar ecc-auto-response--registered-callback nil
-  "Callback function to process detected states in registered buffers.")
+(defvar ecc-auto-response--callback nil
+  "Callback function for processing detected states.")
 
-;; Public API functions
+;; Core functionality
+
+;;;###autoload
+(defun ecc-auto-response-check-and-respond (buffer)
+  "Check BUFFER for Claude prompts and respond if appropriate.
+Returns t if a response was sent, nil otherwise."
+  (when (and ecc-auto-response-enabled
+             (buffer-live-p buffer))
+    (with-current-buffer buffer
+      (let ((state (ecc-auto-detect-prompt)))
+        (when (and state (not (ecc-auto-core-throttled-p)))
+          (ecc-auto-response-send buffer state)
+          (ecc-auto-core-update-time)
+          t)))))
+
+;;;###autoload
+(defun ecc-auto-response-send (buffer state)
+  "Send appropriate response to Claude prompt in BUFFER.
+STATE indicates the type of prompt detected.
+Returns t if a response was sent, nil otherwise."
+  (interactive (list (current-buffer) (ecc-auto-detect-prompt)))
+  
+  ;; Skip if auto-response is disabled
+  (unless ecc-auto-response-enabled
+    (when ecc-auto-core-debug
+      (message "Auto-response is disabled, not sending response"))
+    (cl-return-from ecc-auto-response-send nil))
+  
+  ;; Skip if buffer is not live
+  (unless (buffer-live-p buffer)
+    (when ecc-auto-core-debug
+      (message "Buffer is not live, not sending response"))
+    (cl-return-from ecc-auto-response-send nil))
+  
+  ;; Process response based on state
+  (with-current-buffer buffer
+    (cond
+     ((eq state :y/y/n)
+      (ecc-auto-response--send-message buffer ecc-auto-response-y/y/n "Y/Y/N"))
+     
+     ((eq state :y/n)
+      (ecc-auto-response--send-message buffer ecc-auto-response-y/n "Y/N"))
+     
+     ((eq state :initial-waiting)
+      (ecc-auto-response--send-message buffer ecc-auto-response-initial-waiting "Initial-Waiting"))
+     
+     ((eq state :waiting)
+      (ecc-auto-response--send-message buffer ecc-auto-response-waiting "Continue"))
+     
+     (t ;; No recognized state
+      (when ecc-auto-core-debug
+        (message "No recognized prompt state detected"))
+      nil))))
+
+;;;###autoload
+(defun ecc-auto-response-process-timer ()
+  "Callback function for the auto-response timer.
+Checks all registered buffers for prompts and responds if needed."
+  (ecc-auto-core-process-all-buffers #'ecc-auto-response-check-and-respond)
+  (when ecc-auto-core-debug
+    (message "Processed auto-response timer")))
+
+;; Helper functions
+
+(defun ecc-auto-response--send-message (buffer response type)
+  "Send RESPONSE to Claude in BUFFER.
+TYPE is used for notification messages."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (cond
+       ;; vterm mode
+       ((derived-mode-p 'vterm-mode)
+        (ecc-auto-response--send-to-vterm buffer response))
+       
+       ;; comint mode (e.g., shell)
+       ((derived-mode-p 'comint-mode)
+        (comint-send-string
+         (get-buffer-process buffer)
+         (concat response "\n")))
+       
+       ;; Default fallback
+       (t
+        (insert response)
+        (message "Inserted response in buffer %s" (buffer-name buffer))))))
+  
+  ;; Notify user if notifications are enabled
+  (when ecc-auto-response-notify
+    (ecc-auto-notify-response type response))
+  
+  ;; Return t to indicate success
+  t)
+
+(defun ecc-auto-response--send-to-vterm (buffer response)
+  "Send RESPONSE to Claude in vterm BUFFER."
+  (if (fboundp 'vterm-send-string)
+      (progn
+        (with-current-buffer buffer
+          (vterm-send-string response)
+          (vterm-send-return)))
+    (message "vterm-send-string not available")))
+
+;; System start/stop
 
 ;;;###autoload
 (defun ecc-auto-response-start ()
   "Start the auto-response system.
 Initializes and activates the auto-response system that automatically responds
-to different types of Claude prompts.
-
-Sets up a timer using the core infrastructure that periodically checks
-buffers with Claude interactions for prompts and sends appropriate responses.
-
-Displays a message with the configured response values when started."
+to different types of Claude prompts."
   (interactive)
   
   ;; Enable auto-response
   (setq ecc-auto-response-enabled t)
   
-  ;; Set up callback for processing detected states
-  (setq ecc-auto-response--registered-callback 
-        (lambda (buffer state)
-          (ecc-auto-response-send buffer state)))
+  ;; Initialize core system
+  (ecc-auto-core-initialize)
   
-  ;; Register currently active buffer
+  ;; Start timer with our callback
+  (ecc-auto-core-timer-start #'ecc-auto-response-process-timer)
+  
+  ;; Register current buffer if any
   (when-let ((buf (current-buffer)))
-    (ecc-auto-core-register-buffer buf))
+    (ecc-auto-core-register-buffer buf)
+    
+    ;; Initialize buffer-local state if available
+    (when (fboundp 'ecc-auto-buffer-init)
+      (ecc-auto-buffer-init buf)))
   
-  ;; Initialize core timer for periodic checking
-  (ecc-auto-core-timer-start 
-   (lambda () 
-     (ecc-auto-core-process-all-buffers ecc-auto-response--registered-callback)))
-  
-  ;; Also do an immediate initial check for waiting prompts
-  (when-let ((buf (current-buffer)))
-    (ecc-auto-core-initial-check buf ecc-auto-response--registered-callback))
+  ;; Start buffer-local system if available
+  (when (fboundp 'ecc-auto-buffer-enable)
+    (ecc-auto-buffer-enable))
   
   (message "Auto-response started: Y/N=%s, Y/Y/N=%s, Continue=%s" 
-           ecc-auto-response-yes
-           ecc-auto-response-yes-plus
-           ecc-auto-response-continue))
+           ecc-auto-response-y/n
+           ecc-auto-response-y/y/n
+           ecc-auto-response-waiting))
 
 ;;;###autoload
 (defun ecc-auto-response-stop ()
@@ -106,14 +206,12 @@ Deactivates the auto-response system and cancels any pending timers."
   ;; Disable auto-response
   (setq ecc-auto-response-enabled nil)
   
-  ;; Clear callback
-  (setq ecc-auto-response--registered-callback nil)
+  ;; Shut down core system
+  (ecc-auto-core-shutdown)
   
-  ;; Stop core timer
-  (ecc-auto-core-timer-stop)
-  
-  ;; Reset core state
-  (ecc-auto-core-reset-state)
+  ;; Stop buffer-local system if available
+  (when (fboundp 'ecc-auto-buffer-disable)
+    (ecc-auto-buffer-disable))
   
   (message "Auto-response stopped"))
 
@@ -132,139 +230,58 @@ If BUFFER is nil, use current buffer.
 Returns the buffer if registered successfully."
   (interactive)
   (let ((buf (or buffer (current-buffer))))
-    (prog1 (ecc-auto-core-register-buffer buf)
-      (when (called-interactively-p 'any)
-        (message "Buffer %s registered for auto-response" (buffer-name buf))))))
-
-;; Response functions
-
-;;;###autoload
-(defun ecc-auto-response-send (buffer &optional state)
-  "Send appropriate response to Claude prompts in BUFFER.
-Examines the buffer content to detect Claude's current prompt state, then
-sends an appropriate pre-configured response based on that state.
-
-BUFFER is the buffer containing Claude's output to respond to.
-Optional STATE can be provided to override automatic state detection.
-Valid states are: `:y/n`, `:y/y/n`, `:initial-waiting`, `:waiting`
-
-Responds with configured variables for different prompt types.
-Returns t if a response was sent, nil otherwise."
-  (interactive (list (current-buffer)))
-  
-  ;; Skip if auto-response is disabled
-  (unless ecc-auto-response-enabled
-    (when (boundp 'ecc-debug-enabled)
-      (ecc-debug-message "Auto-response is disabled, not sending response"))
-    (cl-return-from ecc-auto-response-send nil))
-  
-  ;; Skip if buffer is not live
-  (unless (buffer-live-p buffer)
-    (when (boundp 'ecc-debug-enabled)
-      (ecc-debug-message "Buffer is not live, not sending response"))
-    (cl-return-from ecc-auto-response-send nil))
-  
-  (with-current-buffer buffer
-    ;; Get current state if not provided
-    (let ((current-state (or state (ecc-detect-state))))
-      (cond
-       ((eq current-state :y/y/n)
-        (ecc-auto-response--send-message buffer ecc-auto-response-yes-plus "Y/Y/N"))
-       
-       ((eq current-state :y/n)
-        (ecc-auto-response--send-message buffer ecc-auto-response-yes "Y/N"))
-       
-       ((eq current-state :initial-waiting)
-        (ecc-auto-response--send-message buffer ecc-auto-response-initial-waiting "Initial-Waiting"))
-       
-       ((eq current-state :waiting)
-        (ecc-auto-response--send-message buffer ecc-auto-response-continue "Continue"))
-       
-       (t ;; No recognized state
-        (when (boundp 'ecc-debug-enabled)
-          (ecc-debug-message "No recognized prompt state detected"))
-        nil)))))
-
-(defun ecc-auto-response--send-message (buffer response type)
-  "Send RESPONSE to Claude in BUFFER.
-TYPE is used for notification messages."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      ;; Check if we're in a terminal mode
-      (cond
-       ;; vterm mode
-       ((derived-mode-p 'vterm-mode)
-        (ecc-auto-response--send-to-vterm buffer response))
-       
-       ;; comint mode (e.g., shell)
-       ((derived-mode-p 'comint-mode)
-        (comint-send-string
-         (get-buffer-process buffer)
-         (concat response "\n")))
-       
-       ;; Default fallback - just insert at point
-       (t
-        (insert response)
-        (message "Inserted response in buffer %s" (buffer-name buffer))))))
-  
-  ;; Notify user about the response if notifications are enabled
-  (when ecc-auto-response-notify
-    (ecc-auto-response--notify type response))
-  
-  ;; Return t to indicate success
-  t)
-
-(defun ecc-auto-response--send-to-vterm (buffer response)
-  "Send RESPONSE to Claude in vterm BUFFER."
-  ;; Use the shared utility function with appropriate debug function
-  (ecc-vterm-utils-send-string buffer response (ecc-debug-utils-make-debug-fn)))
-
-(defun ecc-auto-response--notify (type response)
-  "Display notification about auto-response of TYPE with actual RESPONSE string.
-TYPE is a description of the response context (e.g., \"Y/N\").
-RESPONSE is the actual string sent to Claude."
-  (let ((msg (format "Auto-responded: %s (\"%s\")" type response)))
-    (message msg)))
+    ;; Register with core system
+    (ecc-auto-core-register-buffer buf)
+    
+    ;; Initialize buffer-local state if available
+    (when (fboundp 'ecc-auto-buffer-init)
+      (ecc-auto-buffer-init buf))
+    
+    ;; Notify if interactive
+    (when (called-interactively-p 'any)
+      (message "Buffer %s registered for auto-response" (buffer-name buf)))
+    
+    buf))
 
 ;; Convenience functions
 
 ;;;###autoload
 (defun ecc-auto-response-yes (&optional buffer)
   "Automatically send Y response to Claude Y/N prompt.
-Sends the yes response (defined by `ecc-auto-response-yes`) to
+Sends the yes response (defined by `ecc-auto-response-y/n`) to
 Claude when it's in a Y/N prompt state.
 
 If BUFFER is nil, use current buffer."
   (interactive)
   (ecc-auto-response--send-message 
    (or buffer (current-buffer))
-   ecc-auto-response-yes
+   ecc-auto-response-y/n
    "Y/N"))
 
 ;;;###autoload
 (defun ecc-auto-response-yes-plus (&optional buffer)
   "Automatically send Y response to Claude Y/Y/N prompt.
-Sends the yes-plus response (defined by `ecc-auto-response-yes-plus`)
+Sends the yes-plus response (defined by `ecc-auto-response-y/y/n`)
 to Claude when it's in a Y/Y/N prompt state.
 
 If BUFFER is nil, use current buffer."
   (interactive)
   (ecc-auto-response--send-message
    (or buffer (current-buffer))
-   ecc-auto-response-yes-plus
+   ecc-auto-response-y/y/n
    "Y/Y/N"))
 
 ;;;###autoload
 (defun ecc-auto-response-continue (&optional buffer)
   "Automatically send continue to Claude waiting prompt.
-Sends the continue response (defined by `ecc-auto-response-continue`) to
+Sends the continue response (defined by `ecc-auto-response-waiting`) to
 Claude when it's in a waiting state, prompting for more output.
 
 If BUFFER is nil, use current buffer."
   (interactive)
   (ecc-auto-response--send-message
    (or buffer (current-buffer))
-   ecc-auto-response-continue
+   ecc-auto-response-waiting
    "Continue"))
 
 ;;;###autoload
@@ -279,19 +296,42 @@ This allows sending natural language responses instead of just command options."
        response-text
        (format "Custom: %s" response-text)))))
 
-;; Backward compatibility aliases
+;; Debugging
 
-;; Compatibility with old code
+;;;###autoload
+(defun ecc-auto-response-debug-toggle ()
+  "Toggle debugging for auto-response system."
+  (interactive)
+  (ecc-auto-core-toggle-debug))
+
+;;;###autoload
+(defun ecc-auto-response-status ()
+  "Display status information for the auto-response system."
+  (interactive)
+  (message "Auto-response Status:
+Enabled: %s
+Timer Active: %s
+Core Debug: %s
+Y/N Response: %s
+Y/Y/N Response: %s
+Continue Response: %s
+Initial Response: %s
+Buffer-local Available: %s"
+           (if ecc-auto-response-enabled "Yes" "No")
+           (if (ecc-auto-core-timer-active-p) "Yes" "No")
+           (if ecc-auto-core-debug "Enabled" "Disabled")
+           ecc-auto-response-y/n
+           ecc-auto-response-y/y/n
+           ecc-auto-response-waiting
+           ecc-auto-response-initial-waiting
+           (if (fboundp 'ecc-auto-buffer-status) "Yes" "No")))
+
+;; Backward compatibility aliases
 (defalias 'ecc-start-auto-response 'ecc-auto-response-start)
 (defalias 'ecc-stop-auto-response 'ecc-auto-response-stop)
 (defalias 'ecc-toggle-auto-response 'ecc-auto-response-toggle)
 (defalias 'ecc-auto-accept-send 'ecc-auto-response-send)
 (defalias 'ecc-auto-response-template 'ecc-auto-response-custom)
-
-(defun ecc-check-and-respond ()
-  "Compatibility function for old auto-response checking."
-  (when ecc-auto-response-enabled
-    (ecc-auto-core-process-all-buffers ecc-auto-response--registered-callback)))
 
 (provide 'ecc-auto-response)
 

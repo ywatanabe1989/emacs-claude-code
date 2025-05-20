@@ -1,199 +1,199 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 07:50:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto/ecc-auto-notify.el
+;;; Timestamp: <2025-05-20 23:20:00>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-notify.el
 
 ;;; Commentary:
-;;; Notification functionality for Claude prompts, including bells.
+;;; Notification system for Claude auto-response.
+;;; This module provides a clean notification API for alerting users
+;;; about Claude prompts and auto-responses. It consolidates the notification
+;;; functionality previously spread across multiple modules.
 
 (require 'ecc-variables)
+(require 'ecc-auto-detect)
 
-;; Customization group
+;;; Code:
+
+;; Customization options
 (defgroup ecc-auto-notify nil
-  "Notification settings for Claude Auto mode."
-  :group 'ecc-auto
+  "Notification settings for Claude auto-response."
+  :group 'ecc
   :prefix "ecc-auto-notify-")
 
-(defcustom ecc-auto-notify-bell t
-  "Whether to ring the bell when a prompt is detected."
+(defcustom ecc-auto-notify-enabled t
+  "Whether notifications are enabled for Claude prompts and responses."
   :type 'boolean
   :group 'ecc-auto-notify)
 
-(defcustom ecc-auto-notify-flash t
-  "Whether to flash the mode line when a prompt is detected."
-  :type 'boolean
-  :group 'ecc-auto-notify)
-
-(defcustom ecc-auto-notify-prompt-types '(:initial-waiting :waiting :y/n :y/y/n)
-  "List of prompt types to notify about."
+(defcustom ecc-auto-notify-prompt-types
+  '(:y/n :y/y/n :waiting :initial-waiting)
+  "Types of Claude prompts to notify about."
   :type '(repeat symbol)
   :group 'ecc-auto-notify)
 
-(defcustom ecc-auto-notify-interval 2.0
-  "Minimum interval between notifications in seconds."
+(defcustom ecc-auto-notify-method 'both
+  "Method for notifying about Claude prompts.
+Possible values:
+- 'bell: Use auditory bell notification
+- 'visual: Use visual notification (mode line flashing)
+- 'both: Use both auditory and visual notifications
+- 'message: Use message area only
+- 'none: No notification"
+  :type '(choice (const :tag "Auditory bell" bell)
+                 (const :tag "Visual indicator" visual)
+                 (const :tag "Both auditory and visual" both)
+                 (const :tag "Message only" message)
+                 (const :tag "No notification" none))
+  :group 'ecc-auto-notify)
+
+(defcustom ecc-auto-notify-bell-method 'visible-bell
+  "Method for bell notification.
+Possible values:
+- 'visible-bell: Use Emacs' visible bell
+- 'beep: Use terminal beep
+- 'flash: Flash the mode line"
+  :type '(choice (const :tag "Visible bell" visible-bell)
+                 (const :tag "Terminal beep" beep)
+                 (const :tag "Flash mode line" flash))
+  :group 'ecc-auto-notify)
+
+(defcustom ecc-auto-notify-flash-time 0.3
+  "Duration in seconds for mode line flash."
+  :type 'number
+  :group 'ecc-auto-notify)
+
+(defcustom ecc-auto-notify-interval 5.0
+  "Minimum interval in seconds between consecutive notifications."
   :type 'number
   :group 'ecc-auto-notify)
 
 ;; Internal variables
-(defvar ecc-auto-notify--last-time 0
-  "Time of the last notification.")
+(defvar ecc-auto-notify-last-time 0.0
+  "Time of last notification.")
 
-(defvar ecc-auto-notify--last-state nil
-  "Last Claude state that triggered a notification.")
+(defvar ecc-auto-notify-last-type nil
+  "Last prompt type that triggered a notification.")
 
-(defvar ecc-auto-notify--flash-timer nil
-  "Timer for mode line flashing.")
+(defvar ecc-auto-notify-mode-line-cookie nil
+  "Mode line cookie for restoring original mode line face.")
 
-;;;###autoload
-(defun ecc-auto-notify-check-state (state)
-  "Check if STATE requires notification and notify if needed."
-  (when (and ecc-auto-notify-on-claude-prompt
-             state
-             (memq state ecc-auto-notify-prompt-types)
-             (not (eq state ecc-auto-notify--last-state))
-             (> (- (float-time) ecc-auto-notify--last-time) ecc-auto-notify-interval))
-    (ecc-auto-notify-prompt state)
-    (setq ecc-auto-notify--last-state state)
-    (setq ecc-auto-notify--last-time (float-time))))
+;; Core notification functions
 
 ;;;###autoload
-(defun ecc-auto-notify-prompt (type)
-  "Notify the user about a Claude prompt of TYPE."
-  (let ((type-name (pcase type
-                     (:initial-waiting "initial waiting for input")
-                     (:waiting "waiting for input")
-                     (:y/n "yes/no prompt")
-                     (:y/y/n "multi-choice prompt")
-                     (_ (format "%s" type)))))
-    ;; Ring bell if enabled
-    (when ecc-auto-notify-bell
-      (ecc-auto-notify-ring-bell))
+(defun ecc-auto-notify-prompt (prompt-type)
+  "Notify the user about a Claude prompt of PROMPT-TYPE.
+PROMPT-TYPE should be one of: :y/n, :y/y/n, :waiting, :initial-waiting."
+  (interactive (list (ecc-auto-detect-prompt)))
+  
+  (when (and ecc-auto-notify-enabled
+             (memq prompt-type ecc-auto-notify-prompt-types))
     
-    ;; Flash mode line if enabled
-    (when ecc-auto-notify-flash
-      (ecc-auto-notify-flash-mode-line))
-    
-    ;; Display message
-    (message "Claude prompt detected: %s" type-name)))
+    ;; Check for notification throttling
+    (let ((now (float-time))
+          (elapsed (- (float-time) ecc-auto-notify-last-time)))
+      
+      ;; Only notify if different type or enough time has elapsed
+      (when (or (not (eq prompt-type ecc-auto-notify-last-type))
+                (> elapsed ecc-auto-notify-interval))
+        
+        ;; Update tracking variables
+        (setq ecc-auto-notify-last-type prompt-type)
+        (setq ecc-auto-notify-last-time now)
+        
+        ;; Show appropriate notifications
+        (let ((type-name (ecc-auto-detect-name prompt-type)))
+          ;; Always show message
+          (message "Claude prompt detected: %s" type-name)
+          
+          ;; Auditory notification
+          (when (memq ecc-auto-notify-method '(bell both))
+            (ecc-auto-notify-ring-bell))
+          
+          ;; Visual notification
+          (when (memq ecc-auto-notify-method '(visual both))
+            (ecc-auto-notify-flash-mode-line)))))))
 
-(defcustom ecc-auto-notify-bell-method 'audible
-  "Method to use for bell notifications.
-Possible values:
-- 'audible: Standard audible bell (ding)
-- 'visible: Flash the screen instead of sound
-- 'both: Both audible and visible
-- 'external: Use external command for bell"
-  :type '(choice (const :tag "Audible" audible)
-                (const :tag "Visible" visible)
-                (const :tag "Both" both)
-                (const :tag "External Command" external))
-  :group 'ecc-auto-notify)
+;;;###autoload
+(defun ecc-auto-notify-response (prompt-type response)
+  "Notify the user about an auto-response to PROMPT-TYPE.
+PROMPT-TYPE should be one of: :y/n, :y/y/n, :waiting, :initial-waiting.
+RESPONSE is the text that was sent."
+  (when ecc-auto-notify-enabled
+    (let ((type-name (ecc-auto-detect-name prompt-type)))
+      (message "Auto-responded to %s: \"%s\"" type-name response))))
 
-(defcustom ecc-auto-notify-bell-external-command nil
-  "External command to run for bell notifications.
-This is used when `ecc-auto-notify-bell-method' is set to 'external.
-Example: \"paplay /usr/share/sounds/freedesktop/stereo/bell.oga\""
-  :type '(choice (const :tag "None" nil)
-                (string :tag "Command"))
-  :group 'ecc-auto-notify)
-
-(defcustom ecc-auto-notify-bell-duration 0.5
-  "Duration in seconds for visible bell flash."
-  :type 'number
-  :group 'ecc-auto-notify)
-
-(defcustom ecc-auto-notify-bell-volume 100
-  "Volume for the bell (1-100). May not work on all systems."
-  :type 'integer
-  :group 'ecc-auto-notify)
+;; Notification methods
 
 (defun ecc-auto-notify-ring-bell ()
-  "Ring the terminal bell using configured method.
-Handles different system configurations to ensure bell is audible."
-  (pcase ecc-auto-notify-bell-method
-    ('audible
-     ;; Try multiple bell methods to ensure at least one works
-     (when (fboundp 'play-sound-file)
-       (ignore-errors
-         (let ((bell-sound (expand-file-name "~/.emacs.d/sounds/bell.wav")))
-           (when (file-exists-p bell-sound)
-             (play-sound-file bell-sound)))))
-     
-     ;; Fall back to standard bell
-     (let ((ring-bell-function nil)) ; Temporarily disable any custom bell function
-       (ding t)))
-    
-    ('visible
-     ;; Use visible bell
-     (let ((visible-bell t))
-       (ding)))
-    
-    ('both
-     ;; Both audible and visible
-     (let ((visible-bell nil))
-       (ding t))
-     (invert-face 'mode-line)
-     (run-with-timer ecc-auto-notify-bell-duration nil
-                     (lambda () (invert-face 'mode-line))))
-    
-    ('external
-     ;; Use external command
-     (when (and ecc-auto-notify-bell-external-command
-                (not (string-empty-p ecc-auto-notify-bell-external-command)))
-       (start-process "ecc-bell" nil shell-file-name shell-command-switch
-                      ecc-auto-notify-bell-external-command)))
-    
-    (_ 
-     ;; Default fallback
-     (let ((ring-bell-function nil)
-           (visible-bell nil))
-       (ding t)))))
+  "Ring the terminal bell using configured method."
+  (cond
+   ;; Use Emacs visible bell
+   ((eq ecc-auto-notify-bell-method 'visible-bell)
+    (let ((ring-bell-function nil)
+          (visible-bell t))
+      (ding)))
+   
+   ;; Use terminal beep
+   ((eq ecc-auto-notify-bell-method 'beep)
+    (let ((ring-bell-function nil)
+          (visible-bell nil))
+      (ding)))
+   
+   ;; Use mode line flash (additional visual indicator)
+   ((eq ecc-auto-notify-bell-method 'flash)
+    (ecc-auto-notify-flash-mode-line))))
 
 (defun ecc-auto-notify-flash-mode-line ()
   "Flash the mode line to get attention."
-  (when ecc-auto-notify--flash-timer
-    (cancel-timer ecc-auto-notify--flash-timer))
+  (when ecc-auto-notify-mode-line-cookie
+    (face-remap-remove-relative ecc-auto-notify-mode-line-cookie))
   
-  (invert-face 'mode-line)
-  (setq ecc-auto-notify--flash-timer
-        (run-with-timer 0.5 nil
-                        (lambda ()
-                          (invert-face 'mode-line)))))
+  ;; Set mode-line to inverse video
+  (setq ecc-auto-notify-mode-line-cookie
+        (face-remap-add-relative 'mode-line '(:inverse-video t)))
+  
+  ;; Set timer to restore mode-line
+  (run-with-timer
+   ecc-auto-notify-flash-time nil
+   (lambda ()
+     (when ecc-auto-notify-mode-line-cookie
+       (face-remap-remove-relative ecc-auto-notify-mode-line-cookie)
+       (setq ecc-auto-notify-mode-line-cookie nil)))))
+
+;; User commands
 
 ;;;###autoload
 (defun ecc-auto-notify-toggle ()
   "Toggle notification for Claude prompts."
   (interactive)
-  (setq ecc-auto-notify-on-claude-prompt 
-        (not ecc-auto-notify-on-claude-prompt))
-  (message "Claude prompt notifications %s"
-           (if ecc-auto-notify-on-claude-prompt "enabled" "disabled")))
+  (setq ecc-auto-notify-enabled (not ecc-auto-notify-enabled))
+  (message "Claude notifications %s"
+           (if ecc-auto-notify-enabled "enabled" "disabled")))
 
 ;;;###autoload
-(defun ecc-auto-notify-toggle-bell ()
+(defun ecc-auto-notify-bell-toggle ()
   "Toggle bell notification for Claude prompts."
   (interactive)
-  (setq ecc-auto-notify-bell 
-        (not ecc-auto-notify-bell))
-  (message "Bell notifications %s"
-           (if ecc-auto-notify-bell "enabled" "disabled")))
+  (setq ecc-auto-notify-method
+        (if (memq ecc-auto-notify-method '(bell both))
+            (if (eq ecc-auto-notify-method 'both) 'visual 'none)
+          (if (eq ecc-auto-notify-method 'visual) 'both 'bell)))
+  (message "Claude bell notifications %s"
+           (if (memq ecc-auto-notify-method '(bell both))
+               "enabled" "disabled")))
 
-;; Hook function to enable automatic notifications
-(defun ecc-auto-notify-setup-for-buffer ()
-  "Set up notifications for the current buffer."
-  (when (derived-mode-p 'ecc-term-claude-mode 'vterm-mode)
-    ;; Add state check hook for this buffer
-    (add-hook 'ecc-term-claude-update-functions
-              (lambda ()
-                (ecc-auto-notify-check-state (ecc-detect-simple-state)))
-              nil t)))
+;; Backward compatibility
+;;;###autoload
+(defalias 'ecc-auto-notify-check-state 'ecc-auto-notify-prompt
+  "Compatibility alias for `ecc-auto-notify-prompt'.")
 
-;; Add hook to set up notifications
-(add-hook 'ecc-term-claude-mode-hook #'ecc-auto-notify-setup-for-buffer)
-(add-hook 'vterm-mode-hook
-          (lambda ()
-            (when (string-match-p "\\*CLAUDE.*\\*" (buffer-name))
-              (ecc-auto-notify-setup-for-buffer))))
+;;;###autoload
+(define-obsolete-function-alias 'ecc-notify-toggle
+  'ecc-auto-notify-toggle "May 2025")
+
+;;;###autoload
+(define-obsolete-function-alias 'ecc-bell-toggle
+  'ecc-auto-notify-bell-toggle "May 2025")
 
 (provide 'ecc-auto-notify)
 
