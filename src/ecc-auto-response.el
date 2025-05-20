@@ -12,6 +12,8 @@
 (require 'ecc-variables)
 (require 'ecc-auto-core)
 (require 'ecc-state-detection)
+(require 'ecc-vterm-utils)
+(require 'ecc-debug-utils)
 
 ;;; Code:
 
@@ -192,7 +194,7 @@ TYPE is used for notification messages."
       (cond
        ;; vterm mode
        ((derived-mode-p 'vterm-mode)
-        (ecc-auto-response--send-to-vterm response))
+        (ecc-auto-response--send-to-vterm buffer response))
        
        ;; comint mode (e.g., shell)
        ((derived-mode-p 'comint-mode)
@@ -212,42 +214,10 @@ TYPE is used for notification messages."
   ;; Return t to indicate success
   t)
 
-(defun ecc-auto-response--send-to-vterm (response)
-  "Send RESPONSE to Claude in a vterm buffer."
-  ;; Only proceed if vterm is available
-  (when (fboundp 'vterm-send-string)
-    ;; Save current point position to potentially restore it later
-    (let ((distance-from-end (- (point-max) (point))))
-      ;; Output debug information
-      (when (boundp 'ecc-debug-enabled)
-        (ecc-debug-message "Sending response to vterm: %s" response)
-        (ecc-debug-message "Point: %d, Max: %d, Distance from end: %d"
-                        (point) (point-max) distance-from-end))
-      
-      ;; If user is more than 40 chars from the end, they might be reading
-      ;; earlier content, so use save-excursion to avoid disturbing their view
-      (if (< distance-from-end 40)
-          ;; User is at end of buffer - send directly
-          (progn
-            (when (boundp 'ecc-debug-enabled)
-              (ecc-debug-message "Sending directly at current point"))
-            (sit-for 0.2) ; Small delay for stability
-            (vterm-send-string response)
-            (sit-for 0.2)
-            (vterm-send-return))
-        
-        ;; User might be reading earlier content, so don't move point
-        (save-excursion
-          (when (boundp 'ecc-debug-enabled)
-            (ecc-debug-message "Using save-excursion to send at end"))
-          (goto-char (point-max))
-          (sit-for 0.2)
-          (vterm-send-string response)
-          (sit-for 0.2)
-          (vterm-send-return)))
-      
-      (when (boundp 'ecc-debug-enabled)
-        (ecc-debug-message "Send complete. Final point: %d" (point))))))
+(defun ecc-auto-response--send-to-vterm (buffer response)
+  "Send RESPONSE to Claude in vterm BUFFER."
+  ;; Use the shared utility function with appropriate debug function
+  (ecc-vterm-utils-send-string buffer response (ecc-debug-utils-make-debug-fn)))
 
 (defun ecc-auto-response--notify (type response)
   "Display notification about auto-response of TYPE with actual RESPONSE string.
