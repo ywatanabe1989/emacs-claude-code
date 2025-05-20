@@ -1,0 +1,31 @@
+gantt
+    dateFormat  YYYY-MM-DD
+    title       Emacs Claude Code Refactoring Timeline
+    
+    section Refactoring Phase 1
+    Auto Response Core Infrastructure      :done,    auto_resp_core,     2025-05-01, 2025-05-08
+    State Detection Centralization         :done,    state_detect,       2025-05-05, 2025-05-12
+    Buffer Local State Management          :done,    buffer_state,       2025-05-10, 2025-05-15
+    
+    section Refactoring Phase 2
+    Buffer State Module Cleanup            :done,    buffer_state_clean, 2025-05-18, 2025-05-19
+    Notification System Consolidation      :done,    notification,       2025-05-19, 2025-05-20
+    Term Claude Mode Refactoring           :active,  term_claude,        2025-05-20, 2025-05-25
+    Auto Response System Integration       :active,  auto_resp_int,      2025-05-22, 2025-05-28
+    
+    section Testing & Documentation
+    Buffer State Tests                     :done,    buffer_tests,       2025-05-18, 2025-05-20
+    Notification Tests                     :done,    notif_tests,        2025-05-19, 2025-05-20
+    Refactoring Documentation              :active,  refactor_docs,      2025-05-18, 2025-05-22
+    Integration Tests                      :active,  integration_tests,  2025-05-20, 2025-05-26
+    
+    section Git Management
+    Feature Branch Creation                :done,    feature_branch,     2025-05-01, 2025-05-01
+    Buffer State Module PR                 :done,    buffer_pr,          2025-05-19, 2025-05-20
+    Notification Module PR                 :done,    notif_pr,           2025-05-20, 2025-05-21
+    Final Integration PR                   :crit,    final_pr,           2025-05-28, 2025-05-30
+
+%% Git commit hashes:
+%% buffer_state_clean: d29a384 - Refactor buffer state module following clean code principles
+%% notification: 0118fab - Refactor notification system with clean code principles
+%% buffer_pr + notif_pr: Pull request #4 - https://github.com/ywatanabe1989/emacs-claude-code/pull/4
