@@ -11,15 +11,21 @@
 (require 'vterm)
 (require 'ecc-variables)
 
+;; Forward declarations to prevent free variable warnings
+(defvar ecc-vterm-always-follow-bottom nil
+  "When non-nil, automatically scroll to show the bottom of the buffer after new output.")
+(defvar ecc-vterm-follow-bottom-margin 2
+  "Number of lines to keep between cursor and bottom of window.")
+
 ;;; Code:
 
 ;;;; Basic Claude interaction commands
 
 ;;;###autoload
 (defun ecc-term-claude-send-yes ()
-  "Send 'y' response to Claude prompt.
-Sends the text 'y' followed by a return keypress to the current
-vterm buffer, simulating the user typing 'y' and pressing Enter.
+  "Send y response to Claude prompt.
+Sends the text y followed by a return keypress to the current
+vterm buffer, simulating the user typing y and pressing Enter.
 
 This function is typically used to respond affirmatively to Claude's
 yes/no prompts.
@@ -33,9 +39,9 @@ Side Effects:
 
 ;;;###autoload
 (defun ecc-term-claude-send-no ()
-  "Send 'n' response to Claude prompt.
-Sends the text 'n' followed by a return keypress to the current
-vterm buffer, simulating the user typing 'n' and pressing Enter.
+  "Send n response to Claude prompt.
+Sends the text n followed by a return keypress to the current
+vterm buffer, simulating the user typing n and pressing Enter.
 
 This function is typically used to respond negatively to Claude's
 yes/no prompts.

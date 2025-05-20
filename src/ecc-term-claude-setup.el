@@ -11,6 +11,25 @@
 (require 'ecc-variables)
 (require 'ecc-term-claude-state)
 (require 'ecc-term-claude-auto)
+(require 'cl-lib)  ;; For cl-some
+
+;; Forward declarations to prevent free variable warnings
+(defvar ecc-term-claude-line-numbers nil
+  "When non-nil, display line numbers in Claude buffers.")
+(defvar ecc-term-claude-scroll-conservatively 101
+  "Value for scroll-conservatively in Claude buffers.")
+(defvar ecc-term-claude-truncate-lines t
+  "When non-nil, truncate lines in Claude buffers.")
+(defvar ecc-term-claude-state-timer nil
+  "Timer used to periodically check state in Claude buffers.")
+(defvar ecc-term-claude-state-update-interval 0.5
+  "Interval in seconds to check state in Claude buffers.")
+(defvar ecc-term-claude-update-functions nil
+  "Hook functions to run after each update in Claude buffers.")
+(defvar ecc-buffer-registered-buffers-alist nil
+  "Alist of registered Claude buffers.")
+(defvar ecc-buffer-current-buffer nil
+  "Currently active Claude buffer.")
 
 ;;; Code:
 

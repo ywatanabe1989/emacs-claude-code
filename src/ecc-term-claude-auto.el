@@ -13,6 +13,18 @@
 (require 'ecc-term-claude-state)
 (require 'vterm)
 
+;; Forward declarations to prevent free variable warnings
+(defvar ecc-term-claude-update-functions nil
+  "List of functions to call when the Claude terminal buffer updates.")
+(defvar ecc-auto-response-y/n "y"
+  "Response to send for Y/N prompts.")
+(defvar ecc-auto-response-y/y/n "y"
+  "Response to send for Y/Y/N prompts.")
+(defvar ecc-auto-response-waiting ""
+  "Response to send for 'continue>' prompts.")
+(defvar ecc-auto-response-initial-waiting ""
+  "Response to send for initial waiting prompts.")
+
 ;;; Code:
 
 ;;;; Auto-response configuration
@@ -144,11 +156,11 @@ responds to Claude prompts based on their type."
 ;; while leveraging the new unified implementation.
 
 (defun ecc-term-claude-auto-send-y/n ()
-  "Automatically respond with 'y' to Y/N prompts."
+  "Automatically respond with y to Y/N prompts."
   (ecc-term-claude-auto-send :y/n))
 
 (defun ecc-term-claude-auto-send-y/y/n ()
-  "Automatically respond with 'y' to Y/Y/N prompts."
+  "Automatically respond with y to Y/Y/N prompts."
   (ecc-term-claude-auto-send :y/y/n))
 
 (defun ecc-term-claude-auto-send-continue ()
