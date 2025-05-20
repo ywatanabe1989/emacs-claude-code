@@ -89,17 +89,53 @@ BUFFER and STATE are passed to the original function."
 (advice-add 'ecc-auto-response-send :around
             #'ecc-auto-response-send-advised)
 
-;; Initial check when auto-response starts
+;; Enhanced initial check when auto-response starts
 (defun ecc-auto-response-initial-check ()
-  "Perform an initial check for prompts when auto-response is started.
+  "Perform an enhanced initial check for prompts when auto-response is started.
 This ensures we respond to prompts immediately without waiting for the timer."
   (when (and ecc-buffer-auto-response-enabled
             (buffer-live-p ecc-buffer-current-buffer))
     (with-current-buffer ecc-buffer-current-buffer
-      (ecc-check-and-respond))))
+      ;; Try to use enhanced detection if available, fall back to simple detection
+      (let ((state (cond
+                    ;; Try preferred detection methods first
+                    ((fboundp 'ecc-detect-enhanced-state)
+                     (ecc-detect-enhanced-state))
+                    ((fboundp 'ecc-detect-prompt-in-last-lines)
+                     (ecc-detect-prompt-in-last-lines))
+                    ;; Fall back to simple detection
+                    (t (ecc-detect-simple-state)))))
+        
+        ;; If no state detected, try checking for alternative initial waiting patterns
+        (unless state
+          (when (boundp 'ecc-state-prompt-initial-waiting-alternatives)
+            (let ((buffer-text (buffer-substring-no-properties 
+                              (max (- (point-max) 2000) (point-min))
+                              (point-max))))
+              (catch 'found
+                (dolist (pattern ecc-state-prompt-initial-waiting-alternatives)
+                  (when (string-match-p pattern buffer-text)
+                    (setq state :initial-waiting)
+                    (throw 'found t)))))))
+        
+        ;; When state is detected, reset throttling to ensure response happens
+        (when state
+          (ecc-debug-message "Initial check detected state: %s" state)
+          ;; Reset throttling for initial check to ensure we respond
+          (setq ecc-auto-response-active-state nil)
+          (setf (alist-get state ecc-auto-response-last-time-alist) 0.0)
+          ;; Run the check and respond function
+          (ecc-check-and-respond))))))
 
+;; Run the initial check multiple times with staggered timing to ensure it captures the prompt
 (advice-add 'ecc-start-auto-response :after
-            (lambda (&rest _) (run-at-time 0.5 nil #'ecc-auto-response-initial-check)))
+            (lambda (&rest _) 
+              ;; Immediate check
+              (ecc-auto-response-initial-check)
+              ;; Additional checks with staggered timing to ensure we catch the prompt
+              (run-at-time 0.5 nil #'ecc-auto-response-initial-check)
+              (run-at-time 1.0 nil #'ecc-auto-response-initial-check)
+              (run-at-time 2.0 nil #'ecc-auto-response-initial-check)))
 
 ;; Add similar throttling to the check-and-respond function
 

@@ -81,20 +81,43 @@ TYPE is used for notification messages."
   (when (and (boundp 'ecc-auto-notify-completions) ecc-auto-notify-completions)
     (ecc-auto--notify type response)))
 
+
+;; Make sure we have interaction counter defined
+(defvar ecc-interaction-counter 0
+  "Counter for tracking the number of interactions with Claude.")
+
 (defun ecc-auto--send-vterm-response (response)
   "Send RESPONSE to Claude in a vterm buffer.
 Special handling is applied for the first interaction to ensure reliability."
   (when (fboundp 'vterm-send-string)
+    ;; Ensure interaction counter is properly bound
+    (unless (boundp 'ecc-interaction-counter)
+      (setq ecc-interaction-counter 0))
+    
     ;; Save current point position
     (let ((old-point (point))
-          (is-first-interaction (= ecc-interaction-counter 0))
-          (delay-base (if (= ecc-interaction-counter 0) 1.5 1.0)))
+          (first-interaction-p (= ecc-interaction-counter 0))
+          (delay-base (if (= ecc-interaction-counter 0) 1.5 1.0))
+          (distance-from-end (- (point-max) (point))))
+
+      ;; Output debug information using our macro
+      (ecc-debug-message "DEBUG: Interaction Counter: %d" ecc-interaction-counter)
+      (ecc-debug-message "DEBUG: Point: %d, Max: %d, Distance from end: %d" 
+                       (point) (point-max) distance-from-end)
+      (ecc-debug-message "DEBUG: First interaction? %s" 
+                       (if first-interaction-p "Yes" "No"))
+      (ecc-debug-message "DEBUG: Using condition: %s" 
+                       (if (or first-interaction-p (< distance-from-end 40))
+                           "Direct send (at point)" 
+                         "Save-excursion (at end)"))
+      
       ;; For the first interaction, we always send at current point
       ;; For later interactions, check if user is reading earlier content
-      (if (or is-first-interaction
-              (< (- (point-max) (point)) 40)) ; Point is near the end
+      (if (or first-interaction-p
+              (< distance-from-end 40)) ; Point is near the end
           ;; User is at end of buffer or it's first interaction - send directly
           (progn
+            (ecc-debug-message "DEBUG: Sending directly at current point")
             (sit-for delay-base)
             (vterm-send-string response)
             (sit-for delay-base)                    
@@ -102,18 +125,23 @@ Special handling is applied for the first interaction to ensure reliability."
             (sit-for delay-base))
         ;; User might be reading earlier content, so don't move point
         (save-excursion
+          (ecc-debug-message "DEBUG: Using save-excursion to send at end")
           (goto-char (point-max))
           (sit-for delay-base)
           (vterm-send-string response)
           (sit-for delay-base)            
           (vterm-send-return)
           (sit-for delay-base)))
+      
       ;; Increment interaction counter after the first successful response
-      (when is-first-interaction
+      (when first-interaction-p
+        (ecc-debug-message "DEBUG: Incrementing interaction counter")
         (setq ecc-interaction-counter (1+ ecc-interaction-counter))
         ;; Add timestamp for this interaction
         (when (boundp 'ecc-interaction-timestamps)
-          (push (current-time) ecc-interaction-timestamps))))))
+          (push (current-time) ecc-interaction-timestamps)))
+      
+      (ecc-debug-message "DEBUG: Send complete. Final point: %d" (point)))))
 
 ;; (defun ecc-auto--send-vterm-response (response)
 ;;   "Send RESPONSE to Claude in a vterm buffer.
