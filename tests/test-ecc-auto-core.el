@@ -61,83 +61,139 @@ Returns `auto-test-mock-state'."
 
 ;;;; Timer management tests
 
-(ert-deftest test-auto-core-timer-start ()
-  "Test starting the auto timer."
-  (unwind-protect
-      (progn
-        ;; Start timer with dummy callback
-        (ecc-auto-core-timer-start #'ignore)
-        
-        ;; Check that timer is active
-        (should (ecc-auto-core-timer-active-p))
-        (should (timerp ecc-auto-core--timer)))
+(ert-deftest test-auto-core-timer-start-activates-timer ()
+  "Test that starting the timer makes it active."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Timer is initially inactive
     
-    ;; Clean up
-    (ecc-auto-core-timer-stop)))
+    ;; Act: Start timer with callback
+    (ecc-auto-core-timer-start #'ignore)
+    
+    ;; Assert: Timer should be active
+    (should (ecc-auto-core-timer-active-p))))
 
-(ert-deftest test-auto-core-timer-stop ()
-  "Test stopping the auto timer."
-  ;; First start a timer
-  (ecc-auto-core-timer-start #'ignore)
-  
-  ;; Now stop it
-  (ecc-auto-core-timer-stop)
-  
-  ;; Check that timer is inactive
-  (should-not (ecc-auto-core-timer-active-p))
-  (should-not ecc-auto-core--timer))
+(ert-deftest test-auto-core-timer-start-creates-timer-object ()
+  "Test that starting the timer creates a valid timer object."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Timer reference is initially nil
+    
+    ;; Act: Start timer with callback
+    (ecc-auto-core-timer-start #'ignore)
+    
+    ;; Assert: Timer object should be created
+    (should (timerp ecc-auto-core--timer))))
 
-(ert-deftest test-auto-core-timer-restart ()
-  "Test restarting the timer with new callback."
-  (unwind-protect
-      (let ((original-callback (lambda () (message "Original")))
-            (new-callback (lambda () (message "New"))))
+(ert-deftest test-auto-core-timer-stop-deactivates-active-timer ()
+  "Test that stopping the timer deactivates an active timer."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Start a timer
+    (ecc-auto-core-timer-start #'ignore)
+    
+    ;; Act: Stop the timer
+    (ecc-auto-core-timer-stop)
+    
+    ;; Assert: Timer should be inactive
+    (should-not (ecc-auto-core-timer-active-p))))
+
+(ert-deftest test-auto-core-timer-stop-clears-timer-reference ()
+  "Test that stopping the timer clears the internal timer reference."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Start a timer
+    (ecc-auto-core-timer-start #'ignore)
+    
+    ;; Act: Stop the timer
+    (ecc-auto-core-timer-stop)
+    
+    ;; Assert: Timer reference should be nil
+    (should-not ecc-auto-core--timer)))
+
+(ert-deftest test-auto-core-timer-remains-active-after-restart ()
+  "Test that timer remains active when restarted with new callback."
+  (with-clean-ecc-auto-core-state
+    (let ((original-callback (lambda () (message "Original")))
+          (new-callback (lambda () (message "New"))))
+      
+      ;; Arrange: Start timer with original callback
+      (ecc-auto-core-timer-start original-callback)
+      
+      ;; Act: Restart with new callback
+      (ecc-auto-core-timer-start new-callback)
+      
+      ;; Assert: Timer should still be active
+      (should (ecc-auto-core-timer-active-p)))))
+
+(ert-deftest test-auto-core-timer-replaces-previous-timer-on-restart ()
+  "Test that restarting timer replaces the previous timer instance."
+  (with-clean-ecc-auto-core-state
+    (let ((original-callback (lambda () (message "Original")))
+          (new-callback (lambda () (message "New"))))
+      
+      ;; Arrange: Start timer and capture reference
+      (ecc-auto-core-timer-start original-callback)
+      (let ((first-timer ecc-auto-core--timer))
         
-        ;; Start with original callback
-        (ecc-auto-core-timer-start original-callback)
-        (should (ecc-auto-core-timer-active-p))
-        
-        ;; Restart with new callback
+        ;; Act: Restart with new callback
         (ecc-auto-core-timer-start new-callback)
-        (should (ecc-auto-core-timer-active-p)))
-    
-    ;; Clean up
-    (ecc-auto-core-timer-stop)))
+        
+        ;; Assert: Timer instance should be different
+        (should-not (eq first-timer ecc-auto-core--timer))))))
 
 ;;;; State management tests
 
-(ert-deftest test-auto-core-update-state ()
-  "Test updating state tracking."
-  ;; Set initial values to ensure we're testing changes
-  (setq ecc-auto-core--last-state nil
-        ecc-auto-core--last-response-time 0)
-  
-  ;; Update with test state
-  (ecc-auto-core-update-state :y/n)
-  
-  ;; Check state was updated
-  (should (eq ecc-auto-core--last-state :y/n))
-  (should (> ecc-auto-core--last-response-time 0)))
+(ert-deftest test-auto-core-update-state-stores-provided-state-value ()
+  "Test that update-state stores the provided state value."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Start with clean state
+    (setq ecc-auto-core--last-state nil)
+    
+    ;; Act: Update with test state
+    (ecc-auto-core-update-state :y/n)
+    
+    ;; Assert: State should be stored
+    (should (eq ecc-auto-core--last-state :y/n))))
 
-(ert-deftest test-auto-core-throttled-p ()
-  "Test throttling logic."
-  ;; Set up state with recent timestamp
-  (setq ecc-auto-core--last-state :y/n
-        ecc-auto-core--last-response-time (float-time))
-  
-  ;; Check if same state is throttled
-  (should (ecc-auto-core-throttled-p :y/n))
-  
-  ;; Check if different state is not throttled
-  (should-not (ecc-auto-core-throttled-p :waiting))
-  
-  ;; Set up state with old timestamp
-  (setq ecc-auto-core--last-state :y/n
-        ecc-auto-core--last-response-time 
-        (- (float-time) (* 2 ecc-auto-core-throttle-time)))
-  
-  ;; Check if same state is not throttled after timeout
-  (should-not (ecc-auto-core-throttled-p :y/n)))
+(ert-deftest test-auto-core-update-state-records-current-timestamp ()
+  "Test that update-state records the current timestamp."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Start with zero timestamp
+    (setq ecc-auto-core--last-response-time 0)
+    
+    ;; Act: Update state
+    (ecc-auto-core-update-state :y/n)
+    
+    ;; Assert: Timestamp should be updated to current time
+    (should (> ecc-auto-core--last-response-time 0))))
+
+(ert-deftest test-auto-core-throttled-p-blocks-duplicate-state-within-throttle-period ()
+  "Test that throttled-p returns true for same state within throttle period."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Set up state with recent timestamp
+    (setq ecc-auto-core--last-state :y/n
+          ecc-auto-core--last-response-time (float-time))
+    
+    ;; Act & Assert: Same state should be throttled
+    (should (ecc-auto-core-throttled-p :y/n))))
+
+(ert-deftest test-auto-core-throttled-p-allows-different-state-immediately ()
+  "Test that throttled-p returns false for different state regardless of timing."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Set up state with recent timestamp for :y/n
+    (setq ecc-auto-core--last-state :y/n
+          ecc-auto-core--last-response-time (float-time))
+    
+    ;; Act & Assert: Different state should not be throttled
+    (should-not (ecc-auto-core-throttled-p :waiting))))
+
+(ert-deftest test-auto-core-throttled-p-allows-same-state-after-throttle-period ()
+  "Test that throttled-p returns false for same state after throttle period expires."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Set up state with old timestamp (beyond throttle period)
+    (setq ecc-auto-core--last-state :y/n
+          ecc-auto-core--last-response-time 
+          (- (float-time) (* 2 ecc-auto-core-throttle-time)))
+    
+    ;; Act & Assert: Same state should not be throttled after timeout
+    (should-not (ecc-auto-core-throttled-p :y/n))))
 
 (ert-deftest test-auto-core-reset-state ()
   "Test resetting state tracking."
@@ -181,39 +237,75 @@ Returns `auto-test-mock-state'."
     ;; Check buffer was unregistered
     (should-not (memq temp-buffer ecc-auto-core--registered-buffers))))
 
-(ert-deftest test-auto-core-registered-buffers ()
-  "Test retrieving registered buffers."
-  (with-temp-buffer-fixture "Test content"
-    (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
-      (unwind-protect
-          (progn
-            ;; Clear existing registrations
-            (setq ecc-auto-core--registered-buffers nil)
-            
-            ;; Register test buffers
-            (ecc-auto-core-register-buffer temp-buffer)
-            (ecc-auto-core-register-buffer temp-buffer-2)
-            
-            ;; Get registered buffers
-            (let ((buffers (ecc-auto-core-registered-buffers)))
-              ;; Check both buffers are included
-              (should (= (length buffers) 2))
-              (should (memq temp-buffer buffers))
-              (should (memq temp-buffer-2 buffers)))
-            
-            ;; Kill one buffer
-            (kill-buffer temp-buffer-2)
-            
-            ;; Get registered buffers again
-            (let ((buffers (ecc-auto-core-registered-buffers)))
-              ;; Check only the live buffer is included
-              (should (= (length buffers) 1))
-              (should (memq temp-buffer buffers))
-              (should-not (memq temp-buffer-2 buffers))))
+;; Test isolation macro for clean state
+(defmacro with-clean-ecc-auto-core-state (&rest body)
+  "Execute BODY with clean ECC auto-core state."
+  `(let ((ecc-auto-core--registered-buffers nil)
+         (ecc-auto-core--last-state nil)
+         (original-timer ecc-auto-core--timer))
+     (unwind-protect
+         (progn
+           (setq ecc-auto-core--timer nil)
+           ,@body)
+       ;; Cleanup
+       (ecc-auto-core-timer-stop)
+       (setq ecc-auto-core--registered-buffers nil
+             ecc-auto-core--last-state nil
+             ecc-auto-core--timer original-timer))))
+
+(ert-deftest test-auto-core-registered-buffers-includes-multiple-registered-buffers ()
+  "Test that registered-buffers returns all registered live buffers."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        (unwind-protect
+            (progn
+              ;; Arrange: Register two test buffers
+              (ecc-auto-core-register-buffer temp-buffer)
+              (ecc-auto-core-register-buffer temp-buffer-2)
+              
+              ;; Act: Get registered buffers
+              (let ((buffers (ecc-auto-core-registered-buffers)))
+                
+                ;; Assert: Both buffers are included
+                (should (= (length buffers) 2))
+                (should (memq temp-buffer buffers))
+                (should (memq temp-buffer-2 buffers))))
+          
+          ;; Clean up
+          (when (buffer-live-p temp-buffer-2)
+            (kill-buffer temp-buffer-2)))))))
+
+(ert-deftest test-auto-core-registered-buffers-excludes-dead-buffers ()
+  "Test that registered-buffers excludes dead buffers from results."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        ;; Arrange: Register two buffers
+        (ecc-auto-core-register-buffer temp-buffer)
+        (ecc-auto-core-register-buffer temp-buffer-2)
         
-        ;; Clean up
-        (when (buffer-live-p temp-buffer-2)
-          (kill-buffer temp-buffer-2))))))
+        ;; Act: Kill one buffer
+        (kill-buffer temp-buffer-2)
+        
+        ;; Get registered buffers after killing one
+        (let ((buffers (ecc-auto-core-registered-buffers)))
+          
+          ;; Assert: Only live buffer is included
+          (should (= (length buffers) 1))
+          (should (memq temp-buffer buffers))
+          (should-not (memq temp-buffer-2 buffers)))))))
+
+(ert-deftest test-auto-core-registered-buffers-returns-empty-when-none-registered ()
+  "Test that registered-buffers returns empty list when no buffers registered."
+  (with-clean-ecc-auto-core-state
+    ;; Arrange: Start with clean state (no registered buffers)
+    
+    ;; Act: Get registered buffers
+    (let ((buffers (ecc-auto-core-registered-buffers)))
+      
+      ;; Assert: Empty list returned
+      (should (= (length buffers) 0)))))
 
 (ert-deftest test-auto-core-cleanup-buffers ()
   "Test cleaning up dead buffers."
