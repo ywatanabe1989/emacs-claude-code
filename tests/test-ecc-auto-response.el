@@ -248,25 +248,30 @@ Does nothing in testing."
 (ert-deftest test-auto-response-buffer-local-check ()
   "Test buffer-local state checking and response."
   (with-temp-buffer-fixture "Test content with [y/n] prompt"
-    ;; Set up buffer-local state
+    ;; Set up buffer-local mode and state
+    (setq ecc-auto-response-buffer-local-default t)
     (with-current-buffer temp-buffer
-      (setq ecc-buffer-auto-response-enabled t
-            ecc-buffer-auto-response-y/n "TEST_BUFFER_YES"))
+      (setq ecc-auto-response-buffer-enabled t
+            ecc-auto-response-buffer-yes "TEST_BUFFER_YES"
+            ;; Initialize throttling state
+            ecc-auto-response-buffer-last-state nil
+            ecc-auto-response-buffer-last-response-time 0))
     
     ;; Replace dependencies with mocks
     (cl-letf (((symbol-function 'ecc-detect-state) #'auto-response-test-mock-detect-state)
               ((symbol-function 'ecc-buffer-state-throttled-p) #'auto-response-test-mock-buffer-state-throttled-p)
               ((symbol-function 'ecc-buffer-state-get) #'auto-response-test-mock-buffer-state-get)
               ((symbol-function 'ecc-buffer-state-set) #'auto-response-test-mock-buffer-state-set)
-              ((symbol-function 'ecc-auto-response-buffer-local-send-message)
+              ((symbol-function 'ecc-auto-response--send-to-buffer)
                (lambda (buffer response type)
                  (setq auto-response-test-sent-string response
-                       auto-response-test-sent-buffer buffer))))
+                       auto-response-test-sent-buffer buffer)))
+              ((symbol-function 'ecc-auto-response--debug) #'ignore))
       
       ;; Test with y/n state
       (setq auto-response-test-mock-state :y/n)
       
-      ;; Check state and send response
+      ;; Check state and send response  
       (ecc-auto-response-buffer-local-check temp-buffer)
       
       ;; Verify response was sent
@@ -293,7 +298,7 @@ Does nothing in testing."
           ecc-auto-response-yes "TEST_GLOBAL_YES")
     
     ;; Replace dependencies with mocks
-    (cl-letf (((symbol-function 'ecc-auto-response--dispatch-response)
+    (cl-letf (((symbol-function 'ecc-auto-response--send-to-buffer)
                (lambda (buffer response type)
                  (setq auto-response-test-sent-string response
                        auto-response-test-sent-buffer buffer))))
@@ -336,7 +341,7 @@ Does nothing in testing."
     (setq ecc-auto-response-buffer-local-default nil)
     
     ;; Replace dependencies with mocks
-    (cl-letf (((symbol-function 'ecc-auto-response--dispatch-response)
+    (cl-letf (((symbol-function 'ecc-auto-response--send-to-buffer)
                (lambda (buffer response type)
                  (setq auto-response-test-sent-string response
                        auto-response-test-sent-buffer buffer))))

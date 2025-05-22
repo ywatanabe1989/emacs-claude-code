@@ -535,8 +535,9 @@ The buffer remains registered but won't receive auto-responses."
 
 (defun ecc-auto-response--process-buffer-local (buffer)
   "Process BUFFER for auto-response using buffer-local settings."
-  (with-current-buffer buffer
-    (let ((state (ecc-detect-state)))
+  (cl-block ecc-auto-response--process-buffer-local
+    (with-current-buffer buffer
+      (let ((state (ecc-detect-state)))
       (when state
         (ecc-auto-response--debug "Detected state %s in buffer %s (buffer-local mode)" 
                                  state (buffer-name))
@@ -578,7 +579,7 @@ The buffer remains registered but won't receive auto-responses."
            
            (t ;; Unrecognized state
             (ecc-auto-response--debug "Unknown state %s, not sending response" state)
-            nil)))))))
+            nil))))))))
 
 ;;;; Manual Response Commands
 
