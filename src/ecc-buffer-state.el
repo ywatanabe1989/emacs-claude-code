@@ -47,6 +47,9 @@
 (defvar-local ecc-buffer-state-current nil
   "Current Claude prompt state in this buffer.")
 
+(defvar-local ecc-buffer-state-prompt nil
+  "Current Claude prompt state (alias for ecc-buffer-state-current for test compatibility).")
+
 (defvar-local ecc-buffer-state-history nil
   "History of Claude prompt states in this buffer.")
 
@@ -55,6 +58,9 @@
 
 (defvar-local ecc-buffer-state-enabled nil
   "Whether buffer-local state tracking is enabled.")
+
+(defvar-local ecc-buffer-state-data nil
+  "Plist storage for arbitrary buffer state data.")
 
 (defvar-local ecc-buffer-auto-response-enabled nil
   "Whether auto-response is enabled for this buffer.")
@@ -80,8 +86,10 @@ This is an alias for `ecc-buffer-state-enable' that's used in tests."
   (with-current-buffer (or buffer (current-buffer))
     (setq ecc-buffer-state-enabled t
           ecc-buffer-state-current nil
+          ecc-buffer-state-prompt nil
           ecc-buffer-state-history nil
-          ecc-buffer-state-last-update 0)
+          ecc-buffer-state-last-update 0
+          ecc-buffer-state-data nil)
     (add-to-list 'ecc-buffer-state-registered-buffers (current-buffer))
     (ecc-buffer-state-debug-message "Enabled buffer-local state tracking")))
 
@@ -296,6 +304,18 @@ Uses FORMAT-STRING and ARGS like `message`."
         ecc-buffer-state-history
       nil)))
 
+;;;###autoload  
+(defun ecc-buffer-state-add-to-history (state &optional buffer)
+  "Add STATE to history for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      ;; Add to front of history list
+      (push state ecc-buffer-state-history)
+      ;; Trim history to max size
+      (when (> (length ecc-buffer-state-history) ecc-buffer-state-history-size)
+        (setq ecc-buffer-state-history
+              (cl-subseq ecc-buffer-state-history 0 ecc-buffer-state-history-size))))))
+
 ;;;###autoload
 (defun ecc-buffer-state-changed-p (&optional buffer)
   "Return t if state has changed in BUFFER or current buffer.
@@ -357,6 +377,46 @@ Compares current state with previous state in history."
   (setq ecc-buffer-state-debug (not ecc-buffer-state-debug))
   (message "Buffer state debug %s"
            (if ecc-buffer-state-debug "enabled" "disabled")))
+
+;; Test compatibility API functions
+;; These functions provide the interface expected by tests
+
+;;;###autoload
+(defun ecc-buffer-state-update-prompt (state &optional buffer)
+  "Update prompt state to STATE for BUFFER or current buffer.
+This is a test-compatible wrapper around the main state tracking."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      (setq ecc-buffer-state-current state
+            ecc-buffer-state-prompt state)
+      (ecc-buffer-state-add-to-history state))))
+
+;;;###autoload
+(defun ecc-buffer-state-get-prompt (&optional buffer)
+  "Get current prompt state for BUFFER or current buffer.
+This is a test-compatible function that returns the stored prompt state."
+  (with-current-buffer (or buffer (current-buffer))
+    (if ecc-buffer-state-enabled
+        ecc-buffer-state-current
+      nil)))
+
+;;;###autoload  
+(defun ecc-buffer-state-set (key value &optional buffer)
+  "Set arbitrary state KEY to VALUE for BUFFER or current buffer.
+This provides a generic key-value store for buffer state."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      ;; Store in a simple plist structure
+      (setq ecc-buffer-state-data
+            (plist-put (or ecc-buffer-state-data nil) key value)))))
+
+;;;###autoload
+(defun ecc-buffer-state-get (key &optional buffer)
+  "Get value for state KEY from BUFFER or current buffer.
+This retrieves values from the generic key-value store."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      (plist-get ecc-buffer-state-data key))))
 
 (provide 'ecc-buffer-state)
 
