@@ -7,8 +7,9 @@
 ;;; Tests for buffer-local state tracking in Claude state detection.
 
 (require 'ert)
-(require 'ecc-variables)
-(require 'ecc-state-detection)
+(require 'ecc-variables-consolidated)
+(require 'ecc-state-detection-consolidated)
+(require 'ecc-api)
 
 ;; Test fixtures
 (defvar ecc-test-buffer-1 nil "First test buffer.")

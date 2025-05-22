@@ -10,7 +10,7 @@
 ;;; across multiple buffers without relying on cursor position.
 
 (require 'ert)
-(require 'ecc-state-detection)
+(require 'ecc-state-detection-consolidated)
 (require 'ecc-buffer-state)
 (require 'ecc-background-detection)
 (require 'ecc-vterm-utils)

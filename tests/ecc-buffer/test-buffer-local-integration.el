@@ -8,10 +8,14 @@
 ;;; Tests the interaction between multiple Claude buffers with different configurations.
 
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
+(require 'ecc-api)
 
 ;; Test fixtures
 (defvar ecc-test-buffer-a nil "First test buffer.")

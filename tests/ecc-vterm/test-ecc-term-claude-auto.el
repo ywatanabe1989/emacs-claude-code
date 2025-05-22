@@ -14,7 +14,7 @@
 
 (require 'ert)
 (require 'ecc-term-claude-state)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 
 ;; Load the mock version of ecc-term-claude-auto.el for testing
 (load-file (expand-file-name "mock-ecc-term-claude-auto.el" 

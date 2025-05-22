@@ -10,10 +10,14 @@
 
 (require 'ert)
 (require 'vterm nil t) ;; Attempt to load vterm, but don't fail if not available
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
+(require 'ecc-api)
 
 ;; Check if vterm is available
 (defconst ecc-vterm-available (featurep 'vterm)

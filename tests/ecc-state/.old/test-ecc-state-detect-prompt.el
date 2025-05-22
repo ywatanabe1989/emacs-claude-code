@@ -7,7 +7,7 @@
 ;;; Tests for the Claude prompt state detection functionality
 
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 
 ;; Load the files under test
 (when (file-exists-p "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detect-prompt.el")

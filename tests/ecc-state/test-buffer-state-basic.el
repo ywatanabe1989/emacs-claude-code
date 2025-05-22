@@ -8,7 +8,7 @@
 
 (require 'ert)
 (require 'ecc-buffer-state)
-(require 'ecc-state-detection)
+(require 'ecc-state-detection-consolidated)
 
 ;; Test buffer-local state operations
 (ert-deftest test-buffer-state-basic ()

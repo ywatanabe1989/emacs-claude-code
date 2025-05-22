@@ -7,7 +7,7 @@
 ;;; System integration tests for buffer-local states and background detection.
 
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 (require 'ecc-buffer-local)
 (require 'ecc-buffer-state)
 (require 'ecc-background-detection)

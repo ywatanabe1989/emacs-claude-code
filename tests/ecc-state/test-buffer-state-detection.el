@@ -7,8 +7,8 @@
 
 ;;; Code:
 (require 'ert)
-(require 'ecc-variables)
-(require 'ecc-state-detection)
+(require 'ecc-variables-consolidated)
+(require 'ecc-state-detection-consolidated)
 
 ;;;; Utility functions
 

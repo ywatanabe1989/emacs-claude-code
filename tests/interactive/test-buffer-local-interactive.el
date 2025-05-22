@@ -8,10 +8,14 @@
 ;;; These tests provide a guided experience to verify the functionality works
 ;;; correctly in a real-world environment.
 
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
+(require 'ecc-api)
 
 ;;;###autoload
 (defun ecc-interactive-test-setup ()

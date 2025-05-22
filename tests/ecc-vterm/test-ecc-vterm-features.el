@@ -19,7 +19,7 @@
   (defun display-line-numbers-mode (_) nil)
   (provide 'vterm))
 
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 (require 'ecc-vterm-mode)
 
 ;; Define mock for ecc-color-themes

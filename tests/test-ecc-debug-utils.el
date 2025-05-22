@@ -10,7 +10,7 @@
 
 ;;; Code:
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 (require 'ecc-debug-utils-consolidated)
 
 ;;;; Test helpers

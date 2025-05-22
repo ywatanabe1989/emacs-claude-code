@@ -8,11 +8,16 @@
 ;;; These tests verify that the complete system works correctly from end to end.
 
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
-(require 'ecc-state-detection)
+(require 'ecc-api)
+(require 'ecc-state-detection-consolidated)
+(require 'ecc-api)
 
 ;; Test fixtures
 (defvar ecc-system-test-buffer-a nil "First test buffer.")

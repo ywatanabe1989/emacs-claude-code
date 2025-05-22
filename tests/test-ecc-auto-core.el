@@ -11,7 +11,7 @@
 
 (require 'ert)
 (require 'ecc-auto-core)
-(require 'ecc-state-detection)
+(require 'ecc-state-detection-consolidated)
 
 ;;; Code:
 

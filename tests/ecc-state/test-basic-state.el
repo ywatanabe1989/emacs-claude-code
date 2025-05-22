@@ -5,8 +5,8 @@
 
 ;;; Code:
 (require 'ert)
-(require 'ecc-variables)
-(require 'ecc-state-detection)
+(require 'ecc-variables-consolidated)
+(require 'ecc-state-detection-consolidated)
 
 (ert-deftest test-basic-state-detection ()
   "Test basic state detection."

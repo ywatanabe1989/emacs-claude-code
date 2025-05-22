@@ -1,162 +1,102 @@
+<!-- ---
+!-- Timestamp: 2025-05-22 14:39:26
+!-- Author: ywatanabe
+!-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
+!-- --- -->
+
 # Emacs Claude Code
 
-A streamlined Emacs interface for Claude AI coding assistance.
+An Emacs package for seamless integration with Claude AI, providing optimized terminal interaction, automatic response handling, and specialized features for an enhanced Claude experience.
 
-## Overview
+## Features
 
-Emacs Claude Code (ECC) enhances your workflow by seamlessly integrating Claude's AI capabilities directly into Emacs. The package provides:
-
-- Optimized VTERM mode for high-performance Claude interaction
-- Automatic response handling with state detection
-- Smart paste functionality for large text (yank-as-file)
-- Visual aids for Claude prompts
-- Notification bell for prompt alerts
-- Auto-scroll to follow Claude's output
+- **Claude VTerm Mode**: Optimized terminal mode for interacting with Claude
+- **Auto-Response System**: Automatically respond to Claude prompts (Y/N, continue, etc.)
+- **State Detection**: Intelligent detection of different Claude prompt states
+- **Grayscale Mode**: Toggle between color and grayscale in vterm buffers
+- **Yank as File**: Save Claude outputs to files with automatic file type detection
+- **Eye-Friendly Features**: Smooth scrolling and visual comfort optimizations
+- **Customizable Themes**: Switch between dark, light, and gray themes
 
 ## Installation
 
-### Requirements
+### Prerequisites
 
-- Emacs 28+
-- vterm package
-- Claude CLI (Anthropic)
+- Emacs 27.1 or later
+- VTerm package
 
-### Setup
+### Basic Installation
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/ywatanabe/emacs-claude-code.git ~/.emacs.d/lisp/emacs-claude-code
-   ```
+```elisp
+;; Clone the repository
+(let ((repo-dir (expand-file-name "~/.emacs.d/lisp/emacs-claude-code")))
+  (unless (file-exists-p repo-dir)
+    (make-directory repo-dir t)
+    (call-process "git" nil nil nil "clone" 
+                  "https://github.com/your-username/emacs-claude-code.git" 
+                  repo-dir)))
 
-2. Add to your Emacs configuration:
-   ```elisp
-   (add-to-list 'load-path "~/.emacs.d/lisp/emacs-claude-code")
-   (require 'emacs-claude-code)
-   ```
+;; Add to load path
+(add-to-list 'load-path "~/.emacs.d/lisp/emacs-claude-code")
+
+;; Load the package
+(require 'emacs-claude-code)
+```
 
 ## Usage
 
-Global key bindings for quick access:
+### Starting Claude VTerm
+
+```elisp
+M-x ecc-claude-vterm
+```
+
+### Key Bindings
 
 - `C-c c v` - Start a new Claude vterm session
-- `C-c c o` - Optimize current vterm for Claude
-- `C-c c a` - Enable auto-response for Claude prompts
-- `C-c c t` - Toggle visual aids for Claude interaction
+- `C-c c a` - Toggle auto-response mode
+- `C-c c g` - Toggle grayscale mode
+- `C-c c t` - Toggle visual aids
+- `C-c c m` - Toggle between color themes
+- `C-c c e` - Toggle eye-friendly mode
 
-### Quick Start
+### Yank as File
 
-```elisp
-M-x ecc-claude-vterm       ; Start a new optimized Claude vterm buffer
-M-x ecc-claude-auto-respond ; Enable auto-response for the current buffer
-```
-
-### Interactive Demo
-
-Try the comprehensive demo that showcases all features:
-
-```elisp
-(require 'claude-integrated-demo)
-M-x claude-demo-all-features
-```
-
-## Key Features
-
-### Optimized VTerm Mode
-
-Significantly enhances vterm performance for Claude's high-output interaction:
-
-- Increased process output buffer (1MB default)
-- GC optimizations during buffer updates
-- Disabled bidirectional text processing
-- Reduced visual effects (line numbers, font variations)
-- Buffer truncation to manage memory usage
-
-### Auto-Response Mode
-
-Automatically handles Claude's interactive prompts:
-
-- Detects y/n and continuation prompts
-- Sends customizable responses
-- Notifies about auto-responses
-- Timer-based checking for prompt detection
-- ESC key instantly disables auto-response
-- Smart throttling prevents duplicate responses
-- Configurable interaction limits to prevent runaway responses
-
-### Smart Yank (Paste-as-File)
-
-Prevents terminal overflow with large content:
-
-- Saves large clipboard content to temporary files
-- Inserts `cat` commands instead of raw content
-- Threshold-based decision (1000 chars by default)
-- Automatic cleanup of temporary files
-
-### Visual Aids
-
-Makes Claude's state clearly visible:
-
-- Highlighting of detected prompts
-- State indicators displayed in the buffer
-- Frame highlighting for active prompts
-- Mode line state indicators
-
-### Notification Bell
-
-Get alerted when Claude is waiting for input:
-
-- Audio bell notifications
-- Mode line flashing for visual feedback
-- State-based notification timing
-
-### Follow Bottom
-
-Keeps Claude's output visible:
-
-- Auto-scrolls to show new output
-- Preserves margins for readability
-- Detects manual scrolling to pause auto-scrolling
+- `C-c C-f` - Yank selected region to a file
+- `C-c C-b` - Yank entire buffer to a file
+- `C-c C-q` - Quick yank with auto-generated filename
 
 ## Customization
 
-Configure the behavior with these variables:
-
 ```elisp
 ;; Auto-response settings
-(setq ecc-auto-response-y/n "1")       ; Response for y/n prompts
-(setq ecc-auto-response-y/y/n "2")     ; Response for y/y/n prompts
-(setq ecc-auto-response-waiting "/auto") ; Response for continue prompts
-(setq ecc-auto-response-throttle-time 5.0) ; Seconds between identical responses
-(setq ecc-auto-response-esc-disables t)    ; ESC key disables auto-response
+(setq ecc-auto-response-yes "y")          ; Response for Y/N prompts
+(setq ecc-auto-response-continue "/auto") ; Response for continue prompts
 
-;; Auto-response limits
-(setq ecc-interaction-limit-enabled nil)   ; Enable/disable interaction limits
-(setq ecc-interaction-limit-count 50)      ; Max auto-responses per session
-(setq ecc-interaction-limit-per-time-enabled nil) ; Enable hourly limits
-(setq ecc-interaction-limit-per-hour 20)   ; Max auto-responses per hour
+;; Grayscale mode settings
+(setq ecc-vterm-grayscale-default t)      ; Enable grayscale by default
+(setq ecc-vterm-grayscale-auto-enable t)  ; Auto-enable for Claude buffers
 
-;; VTerm optimization settings
-(setq vterm-max-scrollback 10000)      ; Increase scrollback buffer
-
-;; Yank-as-file settings
-(setq ecc-vterm-yank-threshold 2000)   ; Character threshold for file-based yanking
+;; Theme settings
+(setq ecc-colors-theme 'gray)            ; 'dark, 'light, or 'gray
 ```
 
-## Examples
+## Architecture
 
-The `examples/simplified/` directory contains easy-to-understand examples:
+The package is designed with clean code principles and organized into several modules:
 
-- `simplified-usage.el` - Core functionality demonstration
-- `simplified-usage-interactive.el` - Interactive commands
-- `vterm-optimization-usage.el` - VTerm performance enhancements
-- `vterm-yank-file-usage.el` - Smart paste functionality
-- `vterm-comprehensive-demo.el` - Complete feature showcase
-- `claude-integrated-demo.el` - Interactive demo script
+- **Core modules**: Basic functionality and variables
+- **State detection**: Logic for detecting Claude prompt states
+- **Auto-response**: Automatic response to different prompt types
+- **VTerm enhancements**: Optimized terminal for Claude interaction
+- **Visual aids**: UI improvements for better user experience
 
-## Simplified Implementation
+## Contributing
 
-This release focuses on a streamlined, modular implementation. For more details, see the [src/README.md](src/README.md) file.
+Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
 
-## Contact
+## License
 
-Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+<!-- EOF -->

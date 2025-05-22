@@ -9,11 +9,17 @@
 
 (require 'ert)
 (require 'ecc-term-claude-state)
+(require 'ecc-api)
 (require 'ecc-term-claude-auto)
+(require 'ecc-api)
 (require 'ecc-term-claude-setup)
+(require 'ecc-api)
 (require 'ecc-term-claude-buffer)
+(require 'ecc-api)
 (require 'ecc-term-claude-interaction)
+(require 'ecc-api)
 (require 'ecc-term-claude-mode-v2)
+(require 'ecc-api)
 
 ;;; Code:
 

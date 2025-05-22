@@ -18,10 +18,10 @@
 ;;; - Automatic cleanup for dead buffers
 ;;; - Clear API for buffer registration and state querying
 
-(require 'ecc-variables)
-(require 'ecc-state-detection)
+(require 'ecc-variables-consolidated)
+(require 'ecc-state-detection-consolidated)
 (require 'ecc-auto-core)
-(require 'ecc-debug-utils)
+(require 'ecc-debug-utils-consolidated)
 
 ;;; Code:
 
@@ -130,17 +130,6 @@ When FORCE is non-nil, forces update even if throttled."
           ;; Return the new state
           new-state)))))
 
-;;;###autoload
-(defun ecc-buffer-state-get (&optional buffer)
-  "Get current Claude prompt state for BUFFER or current buffer.
-If state tracking is not enabled, detects state on demand."
-  (with-current-buffer (or buffer (current-buffer))
-    (if ecc-buffer-state-enabled
-        ;; Return tracked state or update if needed
-        (or ecc-buffer-state-current
-            (ecc-buffer-state-update))
-      ;; Detect on demand if tracking isn't enabled
-      (ecc-detect-state))))
 
 ;;;###autoload
 (defun ecc-buffer-state-get-last-update (&optional buffer)
@@ -182,6 +171,49 @@ Returns 0 if state tracking is not enabled."
       (ecc-buffer-state-init))
     (put 'ecc-buffer-state-current key value)
     value))
+
+;;;###autoload
+(defun ecc-buffer-state-get (&optional key-or-buffer buffer-if-key-provided)
+  "Get buffer-local state from BUFFER.
+If KEY-OR-BUFFER is a symbol and not a buffer, treats it as a property key.
+If KEY-OR-BUFFER is a buffer or nil, treats it as the buffer parameter.
+For backward compatibility with both calling patterns:
+  (ecc-buffer-state-get) -> get current state from current buffer
+  (ecc-buffer-state-get buffer) -> get current state from buffer
+  (ecc-buffer-state-get 'key) -> get property 'key from current buffer
+  (ecc-buffer-state-get 'key buffer) -> get property 'key from buffer"
+  (let ((key nil)
+        (buffer nil))
+    ;; Parse arguments to support both calling patterns
+    (cond
+     ;; No arguments: get current state from current buffer
+     ((null key-or-buffer)
+      (setq buffer (current-buffer)))
+     ;; First arg is a buffer: get current state from that buffer
+     ((bufferp key-or-buffer)
+      (setq buffer key-or-buffer))
+     ;; First arg is a symbol: treat as key, second arg as buffer
+     ((symbolp key-or-buffer)
+      (setq key key-or-buffer)
+      (setq buffer (or buffer-if-key-provided (current-buffer))))
+     ;; Fallback: treat first arg as buffer
+     (t
+      (setq buffer key-or-buffer)))
+    
+    (with-current-buffer buffer
+      (if key
+          ;; Get specific property key
+          (progn
+            (unless ecc-buffer-state-enabled 
+              (ecc-buffer-state-init))
+            (get 'ecc-buffer-state-current key))
+        ;; Get current state (original behavior)
+        (if ecc-buffer-state-enabled
+            ;; Return tracked state or update if needed
+            (or ecc-buffer-state-current
+                (ecc-buffer-state-update))
+          ;; Detect on demand if tracking isn't enabled
+          (ecc-detect-state))))))
 
 ;;;###autoload
 (defun ecc-buffer-state-get-prompt (&optional buffer)

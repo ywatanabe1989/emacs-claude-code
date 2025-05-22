@@ -7,8 +7,8 @@
 ;;; Tests for enhanced buffer-local state tracking.
 
 (require 'ert)
-(require 'ecc-variables)
-(require 'ecc-state-detection)
+(require 'ecc-variables-consolidated)
+(require 'ecc-state-detection-consolidated)
 (require 'ecc-buffer-state)
 
 ;; Test fixtures

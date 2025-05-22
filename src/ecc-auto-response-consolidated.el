@@ -185,6 +185,9 @@ where a single set of configurations applies to all buffers."
 (defvar ecc-auto-response--last-response-time 0
   "Timestamp of last auto-response.")
 
+(defvar ecc-auto-response--registered-callback nil
+  "Callback function registered with auto-core system.")
+
 ;; Buffer-local variables
 (defvar-local ecc-auto-response-buffer-enabled nil
   "Whether auto-response is enabled for this buffer.")
@@ -390,13 +393,14 @@ Returns t if throttled, nil otherwise."
 Handles different types of Claude prompts with the configured responses."
   (ecc-auto-response--debug "Sending response for state %s in buffer %s"
                            state (buffer-name buffer))
-  
+
   ;; Record state and time for throttling
   (setq ecc-auto-response--last-state state)
   (setq ecc-auto-response--last-response-time (float-time))
   
   ;; Send response based on state
   (with-current-buffer buffer
+    (ecc-auto-notify-prompt (format "%s" state))
     (cond
      ((eq state :y/y/n)
       (ecc-auto-response--send-to-buffer 
@@ -681,6 +685,36 @@ Displays current settings, state, and statistics."
 (defalias 'ecc-auto-response-enhanced-send 'ecc-auto-response-send)
 
 ;;;; Backward Compatibility - Buffer-Local Module
+
+;; Missing Functions for Test Compatibility
+
+(defun ecc-auto-response-buffer-local-init (buffer &optional yes yes-plus continue initial-waiting)
+  "Initialize buffer-local auto-response for BUFFER.
+This function sets up buffer-local variables and prepares the buffer
+for auto-response functionality."
+  (with-current-buffer buffer
+    (setq-local ecc-buffer-auto-response-enabled t)
+    (setq-local ecc-buffer-auto-response-y/n (or yes ecc-auto-response-yes))
+    (setq-local ecc-buffer-auto-response-y/y/n (or yes-plus ecc-auto-response-yes-plus))
+    (setq-local ecc-buffer-auto-response-waiting (or continue ecc-auto-response-continue))
+    (setq-local ecc-buffer-auto-response-initial-waiting (or initial-waiting ecc-auto-response-initial-waiting))
+    (setq-local ecc-buffer-auto-notify-completions ecc-auto-response-notify)
+    ;; Initialize buffer state if needed
+    (when (fboundp 'ecc-buffer-state-init)
+      (ecc-buffer-state-init))
+    (when (fboundp 'ecc-buffer-local-init)
+      (ecc-buffer-local-init))
+    (when (fboundp 'ecc-auto-core-register-buffer-local)
+      (ecc-auto-core-register-buffer-local buffer))))
+
+(defun ecc-auto-response-custom (text &optional buffer)
+  "Send custom TEXT as auto-response to BUFFER."
+  (ecc-auto-response-send text buffer))
+
+(defun ecc-auto-response--dispatch-response (buffer response type)
+  "Dispatch RESPONSE of TYPE to BUFFER.
+This is the core dispatch function that sends responses to buffers."
+  (ecc-auto-response--send-to-buffer buffer response type))
 
 ;; Variables
 (defvaralias 'ecc-auto-response-buffer-local-default-enabled 'ecc-auto-response-buffer-local-default)

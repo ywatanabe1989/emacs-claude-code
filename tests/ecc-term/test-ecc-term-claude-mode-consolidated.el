@@ -63,6 +63,7 @@
 
 ;; Load the module under test
 (require 'ecc-term-claude-mode-consolidated)
+(require 'ecc-api)
 
 ;;; Tests for mode definition and customization
 

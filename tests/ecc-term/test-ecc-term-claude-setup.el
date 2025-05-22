@@ -8,6 +8,7 @@
 
 (require 'ert)
 (require 'ecc-term-claude-setup)
+(require 'ecc-api)
 
 ;;; Code:
 

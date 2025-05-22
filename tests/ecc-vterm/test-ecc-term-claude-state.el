@@ -14,7 +14,7 @@
 
 (require 'ert)
 (require 'ecc-term-claude-state)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 
 ;; Mock vterm for tests
 (unless (featurep 'vterm)

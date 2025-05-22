@@ -8,7 +8,7 @@
 
 ;;; Code:
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
 (require 'ecc-auto-notify)
 
 ;; Mocks

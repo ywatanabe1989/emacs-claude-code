@@ -8,6 +8,7 @@
 
 (require 'ert)
 (require 'ecc-term-claude-buffer)
+(require 'ecc-api)
 
 ;;; Code:
 

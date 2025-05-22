@@ -9,10 +9,14 @@
 ;;; states from realistic buffer content snapshots.
 
 (require 'ert)
-(require 'ecc-variables)
+(require 'ecc-variables-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
-(require 'ecc-state-detection)
+(require 'ecc-api)
+(require 'ecc-state-detection-consolidated)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 
 ;; Test buffer for snapshots
 (defvar ecc-snapshot-test-buffer nil "Buffer for snapshot tests.")
