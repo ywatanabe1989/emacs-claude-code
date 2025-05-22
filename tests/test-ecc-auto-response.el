@@ -172,7 +172,11 @@ Does nothing in testing."
     
     ;; Replace dependencies with mocks
     (cl-letf (((symbol-function 'ecc-detect-state) #'auto-response-test-mock-detect-state)
-              ((symbol-function 'ecc-vterm-utils-send-string) #'auto-response-test-mock-vterm-send-string)
+              ((symbol-function 'vterm-send-string) 
+               (lambda (text) 
+                 (setq auto-response-test-sent-string text
+                       auto-response-test-sent-buffer (current-buffer))))
+              ((symbol-function 'vterm-send-return) #'ignore)
               ((symbol-function 'message) #'auto-response-test-mock-message))
       
       ;; Test y/n prompt
@@ -199,7 +203,11 @@ Does nothing in testing."
 (ert-deftest test-auto-response-dispatch-response ()
   "Test dispatching responses to different terminal types."
   (with-temp-buffer-fixture "Test content"
-    (cl-letf (((symbol-function 'ecc-vterm-utils-send-string) #'auto-response-test-mock-vterm-send-string)
+    (cl-letf (((symbol-function 'vterm-send-string) 
+               (lambda (text) 
+                 (setq auto-response-test-sent-string text
+                       auto-response-test-sent-buffer (current-buffer))))
+              ((symbol-function 'vterm-send-return) #'ignore)
               ((symbol-function 'message) #'auto-response-test-mock-message))
       
       ;; Test vterm mode
