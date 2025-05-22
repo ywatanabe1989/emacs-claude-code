@@ -157,45 +157,46 @@ Arguments:
 
 Returns:
   t if a notification was sent, nil otherwise."
-  ;; Skip if notifications are disabled
-  (unless (and (boundp 'ecc-auto-notify-on-claude-prompt)
-               ecc-auto-notify-on-claude-prompt)
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "Notifications disabled, not checking state"))
-    (cl-return-from ecc-auto-notify-check-state nil))
+  (cl-block ecc-auto-notify-check-state
+    ;; Skip if notifications are disabled
+    (unless (and (boundp 'ecc-auto-notify-on-claude-prompt)
+                 ecc-auto-notify-on-claude-prompt)
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "Notifications disabled, not checking state"))
+      (cl-return-from ecc-auto-notify-check-state nil))
 
-  ;; Skip if no state is detected
-  (unless state
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "No state detected, not notifying"))
-    (cl-return-from ecc-auto-notify-check-state nil))
-  
-  ;; Skip if state type is not in our notification list
-  (unless (memq state ecc-auto-notify-prompt-types)
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "State %s not in notification list, not notifying" state))
-    (cl-return-from ecc-auto-notify-check-state nil))
-  
-  ;; Check if we should throttle notifications
-  (unless (or
-           ;; Always notify for new state
-           (not (eq state ecc-auto-notify--last-state))
-           ;; For same state, only notify after interval
-           (> (- (float-time) ecc-auto-notify--last-time) 
-              ecc-auto-notify-interval))
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "Throttling notification for state %s" state))
-    (cl-return-from ecc-auto-notify-check-state nil))
-  
-  ;; Proceed with notification
-  (ecc-auto-notify-prompt state)
-  
-  ;; Update tracking variables
-  (setq ecc-auto-notify--last-state state)
-  (setq ecc-auto-notify--last-time (float-time))
-  
-  ;; Return t to indicate notification was sent
-  t)
+    ;; Skip if no state is detected
+    (unless state
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "No state detected, not notifying"))
+      (cl-return-from ecc-auto-notify-check-state nil))
+    
+    ;; Skip if state type is not in our notification list
+    (unless (memq state ecc-auto-notify-prompt-types)
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "State %s not in notification list, not notifying" state))
+      (cl-return-from ecc-auto-notify-check-state nil))
+    
+    ;; Check if we should throttle notifications
+    (unless (or
+             ;; Always notify for new state
+             (not (eq state ecc-auto-notify--last-state))
+             ;; For same state, only notify after interval
+             (> (- (float-time) ecc-auto-notify--last-time) 
+                ecc-auto-notify-interval))
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "Throttling notification for state %s" state))
+      (cl-return-from ecc-auto-notify-check-state nil))
+    
+    ;; Proceed with notification
+    (ecc-auto-notify-prompt state)
+    
+    ;; Update tracking variables
+    (setq ecc-auto-notify--last-state state)
+    (setq ecc-auto-notify--last-time (float-time))
+    
+    ;; Return t to indicate notification was sent
+    t))
 
 ;;;###autoload
 (defun ecc-auto-notify-prompt (type)
@@ -399,30 +400,31 @@ Arguments:
 
 Returns:
   t if a notification was sent, nil otherwise."
-  ;; Skip if notifications are disabled for this buffer
-  (unless ecc-buffer-auto-notify-enabled
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "Buffer-local notifications disabled for %s" (buffer-name)))
-    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
-  
-  ;; Skip if no state is detected
-  (unless state
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "No state detected for %s" (buffer-name)))
-    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
-  
-  ;; Skip if state type is not in our notification list
-  (unless (memq state ecc-auto-notify-prompt-types)
-    (when (fboundp 'ecc-debug-message)
-      (ecc-debug-message "State %s not in notification list for %s"
-                       state (buffer-name)))
-    (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
-  
-  ;; Proceed with notification
-  (ecc-auto-notify-prompt-buffer-local state)
-  
-  ;; Return t to indicate notification was sent
-  t)
+  (cl-block ecc-auto-notify-buffer-local-check-state
+    ;; Skip if notifications are disabled for this buffer
+    (unless ecc-buffer-auto-notify-enabled
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "Buffer-local notifications disabled for %s" (buffer-name)))
+      (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+    
+    ;; Skip if no state is detected
+    (unless state
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "No state detected for %s" (buffer-name)))
+      (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+    
+    ;; Skip if state type is not in our notification list
+    (unless (memq state ecc-auto-notify-prompt-types)
+      (when (fboundp 'ecc-debug-message)
+        (ecc-debug-message "State %s not in notification list for %s"
+                         state (buffer-name)))
+      (cl-return-from ecc-auto-notify-buffer-local-check-state nil))
+    
+    ;; Proceed with notification
+    (ecc-auto-notify-prompt-buffer-local state)
+    
+    ;; Return t to indicate notification was sent
+    t))
 
 ;;;###autoload
 (defun ecc-auto-notify-prompt-buffer-local (type)
