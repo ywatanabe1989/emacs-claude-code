@@ -21,44 +21,48 @@
 (defvar test-ecc-auto-notify-flash-called nil
   "Whether the flash function was called.")
 
+;; Named advice functions for proper cleanup
+(defun test-ecc-auto-notify-message-advice (orig-fun &rest args)
+  "Advice for message function to capture test output."
+  (when (and args (stringp (car args)))
+    (push (apply #'format args) test-ecc-auto-notify-message-log))
+  (apply orig-fun args))
+
+(defun test-ecc-auto-notify-bell-advice ()
+  "Advice for bell function to track test calls."
+  (setq test-ecc-auto-notify-bell-called t))
+
+(defun test-ecc-auto-notify-flash-advice ()
+  "Advice for flash function to track test calls."
+  (setq test-ecc-auto-notify-flash-called t))
+
 (defun test-ecc-auto-notify-setup ()
   "Set up test environment."
   (setq test-ecc-auto-notify-message-log nil)
   (setq test-ecc-auto-notify-bell-called nil)
   (setq test-ecc-auto-notify-flash-called nil)
   
-  ;; Mock functions
-  (advice-add 'message :around
-              (lambda (orig-fun &rest args)
-                (when (and args (stringp (car args)))
-                  (push (apply #'format args) test-ecc-auto-notify-message-log))
-                (apply orig-fun args)))
-  
-  (advice-add 'ecc-auto-notify-ring-bell :override
-              (lambda () (setq test-ecc-auto-notify-bell-called t)))
-  
-  (advice-add 'ecc-auto-notify-flash-mode-line :override
-              (lambda () (setq test-ecc-auto-notify-flash-called t)))
+  ;; Mock functions with named advice
+  (advice-add 'message :around #'test-ecc-auto-notify-message-advice)
+  (advice-add 'ecc-auto-notify-ring-bell :override #'test-ecc-auto-notify-bell-advice)
+  (advice-add 'ecc-auto-notify-flash-mode-line :override #'test-ecc-auto-notify-flash-advice)
   
   ;; Set global notification settings
   (setq ecc-auto-notify-on-claude-prompt t)
   (setq ecc-auto-notify-bell t)
   (setq ecc-auto-notify-flash t)
   (setq ecc-auto-notify-prompt-types '(:initial-waiting :waiting :y/n :y/y/n))
-  (setq ecc-auto-notify-interval 0.1))
+  (setq ecc-auto-notify-interval 0.1)
+  
+  ;; Reset throttling state for clean tests
+  (setq ecc-auto-notify--last-state nil)
+  (setq ecc-auto-notify--last-time 0))
 
 (defun test-ecc-auto-notify-teardown ()
   "Clean up test environment."
-  (advice-remove 'message (lambda (orig-fun &rest args)
-                            (when (and args (stringp (car args)))
-                              (push (apply #'format args) test-ecc-auto-notify-message-log))
-                            (apply orig-fun args)))
-  
-  (advice-remove 'ecc-auto-notify-ring-bell
-                 (lambda () (setq test-ecc-auto-notify-bell-called t)))
-  
-  (advice-remove 'ecc-auto-notify-flash-mode-line
-                 (lambda () (setq test-ecc-auto-notify-flash-called t))))
+  (advice-remove 'message #'test-ecc-auto-notify-message-advice)
+  (advice-remove 'ecc-auto-notify-ring-bell #'test-ecc-auto-notify-bell-advice)
+  (advice-remove 'ecc-auto-notify-flash-mode-line #'test-ecc-auto-notify-flash-advice))
 
 ;; Global Mode Tests
 
