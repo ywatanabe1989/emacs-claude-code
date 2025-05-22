@@ -16,8 +16,8 @@
                               (file-name-directory
                                (or load-file-name buffer-file-name))))
 
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-variables)
+(require 'ecc-state-detection)
 (require 'ecc-buffer-local)
 (require 'ecc-buffer-state)
 

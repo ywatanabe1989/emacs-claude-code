@@ -24,7 +24,7 @@
   (define-derived-mode vterm-mode nil "VTerm")
   (provide 'vterm))
 
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 
 ;; Load the files under test
 (when (file-exists-p "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el")

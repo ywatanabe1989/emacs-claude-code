@@ -7,8 +7,8 @@
 ;;; Tests for buffer-local state tracking in Claude state detection.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-variables)
+(require 'ecc-state-detection)
 (require 'ecc-api)
 
 ;; Test fixtures

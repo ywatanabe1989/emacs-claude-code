@@ -10,7 +10,7 @@
 
 (require 'ert)
 (require 'ecc-buffer-state)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-state-detection)
 
 ;; Test buffer-local state initialization
 (ert-deftest test-buffer-state-init-creates-buffer-local-variables ()

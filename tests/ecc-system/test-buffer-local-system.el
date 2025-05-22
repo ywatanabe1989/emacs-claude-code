@@ -8,7 +8,7 @@
 ;;; These tests verify that the complete system works correctly from end to end.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-api)
 (require 'ecc-buffer-local)
 (require 'ecc-api)
@@ -16,7 +16,7 @@
 (require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
 (require 'ecc-api)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-state-detection)
 (require 'ecc-api)
 
 ;; Test fixtures

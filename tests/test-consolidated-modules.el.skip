@@ -12,7 +12,7 @@
 
 (require 'ert)
 (require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-state-detection)
 (require 'ecc-auto-core)
 (require 'ecc-debug-utils-consolidated)
 (require 'ecc-auto-response-consolidated nil t) ;; Optional requirement
@@ -135,22 +135,22 @@ Returns t if the feature is available, nil otherwise."
   (unwind-protect
       (progn
         ;; Unload first to ensure clean test
-        (when (featurep 'ecc-state-detection-consolidated)
-          (unload-feature 'ecc-state-detection-consolidated t))
+        (when (featurep 'ecc-state-detection)
+          (unload-feature 'ecc-state-detection t))
         
         ;; Now require and verify
-        (require 'ecc-state-detection-consolidated)
-        (should (test-consolidated-feature-provided-p 'ecc-state-detection-consolidated)))
+        (require 'ecc-state-detection)
+        (should (test-consolidated-feature-provided-p 'ecc-state-detection)))
     ;; Cleanup - ensure we reload for other tests
-    (when (featurep 'ecc-state-detection-consolidated)
-      (unload-feature 'ecc-state-detection-consolidated t))))
+    (when (featurep 'ecc-state-detection)
+      (unload-feature 'ecc-state-detection t))))
 
 (ert-deftest test-state-detection-functions-available ()
   "Test that core functions are available through the consolidated module."
   (unwind-protect
       (progn
         ;; Load through the wrapper
-        (require 'ecc-state-detection-consolidated)
+        (require 'ecc-state-detection)
         
         ;; Verify core functions are available
         (should (fboundp 'ecc-detect-state))
@@ -164,8 +164,8 @@ Returns t if the feature is available, nil otherwise."
         (should (fboundp 'ecc-detect-prompt-state)))
     
     ;; Cleanup
-    (when (featurep 'ecc-state-detection-consolidated)
-      (unload-feature 'ecc-state-detection-consolidated t))))
+    (when (featurep 'ecc-state-detection)
+      (unload-feature 'ecc-state-detection t))))
 
 ;;;; Test other consolidated modules (can be expanded as more modules are consolidated)
 
@@ -268,7 +268,7 @@ Returns t if the feature is available, nil otherwise."
             ;; Test that it provides all expected features
             (should (featurep 'ecc-auto-response-consolidated))
             (should (featurep 'ecc-auto-response))
-            (should (featurep 'ecc-auto-response-enhanced))
+            (should (featurep 'ecc-auto-response))
             (should (featurep 'ecc-auto-response-buffer-local))))
       
       ;; Cleanup

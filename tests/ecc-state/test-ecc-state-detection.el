@@ -7,8 +7,8 @@
 ;;; Tests for the consolidated state detection module.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-variables)
+(require 'ecc-state-detection)
 
 ;;; Code:
 

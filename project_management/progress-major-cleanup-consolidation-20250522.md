@@ -27,8 +27,8 @@
 |      |      | 📌 `/src/ecc-*-consolidated.el` modules created |
 | 📋   | [x]  | Created ecc-variables-consolidated.el |
 |      |      | 📌 `/src/ecc-variables-consolidated.el` |
-| 📋   | [x]  | Created ecc-state-detection-consolidated.el |
-|      |      | 📌 `/src/ecc-state-detection-consolidated.el` |
+| 📋   | [x]  | Created ecc-state-detection.el |
+|      |      | 📌 `/src/ecc-state-detection.el` |
 | 📋   | [x]  | Created ecc-auto-response-consolidated.el |
 |      |      | 📌 `/src/ecc-auto-response-consolidated.el` |
 | 📋   | [x]  | Created ecc-debug-utils-consolidated.el |

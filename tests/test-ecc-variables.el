@@ -10,7 +10,7 @@
 
 ;;; Code:
 (require 'ert)
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-api)
 
 ;;; Feature availability tests

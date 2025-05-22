@@ -8,7 +8,7 @@
 ;;; Tests the interaction between multiple Claude buffers with different configurations.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-api)
 (require 'ecc-buffer-local)
 (require 'ecc-api)

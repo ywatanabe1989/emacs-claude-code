@@ -8,7 +8,7 @@
 ;;; These tests provide a guided experience to verify the functionality works
 ;;; correctly in a real-world environment.
 
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-api)
 (require 'ecc-buffer-local)
 (require 'ecc-api)

@@ -7,8 +7,8 @@
 ;;; Tests for the background detection system.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-variables)
+(require 'ecc-state-detection)
 (require 'ecc-buffer-state)
 (require 'ecc-background-detection)
 

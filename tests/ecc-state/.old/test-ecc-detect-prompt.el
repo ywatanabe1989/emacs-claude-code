@@ -7,7 +7,7 @@
 ;;; Tests for ecc-detect-prompt functions.
 
 (require 'ert)
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-state-detect-prompt)
 
 ;; Test detection in last n lines

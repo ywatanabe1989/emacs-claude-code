@@ -240,7 +240,7 @@ Returns the STATE argument for convenience in chaining."
 
 ;; Provide both the standard name and compatibility names
 (provide 'ecc-state-detection)
-(provide 'ecc-state-detection-consolidated)
+(provide 'ecc-state-detection)
 (provide 'ecc-state-detection-improved)
 (provide 'ecc-state-detect-prompt)
 

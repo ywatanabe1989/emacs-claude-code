@@ -18,10 +18,10 @@
 ;;; - Automatic cleanup for dead buffers
 ;;; - Clear API for buffer registration and state querying
 
-(require 'ecc-variables-consolidated)
-(require 'ecc-state-detection-consolidated)
+(require 'ecc-variables)
+(require 'ecc-state-detection)
 (require 'ecc-auto-core)
-(require 'ecc-debug-utils-consolidated)
+(require 'ecc-debug-utils)
 
 ;;; Code:
 

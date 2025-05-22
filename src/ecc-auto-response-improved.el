@@ -1,1 +1,0 @@
-ecc-auto-response-consolidated.el

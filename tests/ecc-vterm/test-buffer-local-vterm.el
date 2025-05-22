@@ -10,7 +10,7 @@
 
 (require 'ert)
 (require 'vterm nil t) ;; Attempt to load vterm, but don't fail if not available
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 (require 'ecc-api)
 (require 'ecc-buffer-local)
 (require 'ecc-api)

@@ -40,10 +40,10 @@
   (defvar ecc-buffer-current-buffer nil)
   (provide 'ecc-variables-consolidated))
 
-(unless (featurep 'ecc-state-detection-consolidated)
+(unless (featurep 'ecc-state-detection)
   (defun ecc-detect-state ()
     (or (get 'ecc-test-state 'current-state) nil))
-  (provide 'ecc-state-detection-consolidated))
+  (provide 'ecc-state-detection))
 
 (unless (featurep 'ecc-auto-response-consolidated)
   (defun ecc-auto-response-register-buffer (buffer)
@@ -62,7 +62,7 @@
   (provide 'ecc-vterm-yank-as-file))
 
 ;; Load the module under test
-(require 'ecc-term-claude-mode-consolidated)
+(require 'ecc-term-claude-mode)
 (require 'ecc-api)
 
 ;;; Tests for mode definition and customization

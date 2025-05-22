@@ -9,7 +9,7 @@
 (require 'ert)
 (require 'ecc-term-claude-auto)
 (require 'ecc-term-claude-state)
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 
 ;;; Code:
 

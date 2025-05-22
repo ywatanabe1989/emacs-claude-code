@@ -19,13 +19,13 @@
 ;; Test that variables can be loaded
 (ert-deftest test-ecc-variables-loads ()
   "Test that ecc-variables.el loads successfully."
-  (require 'ecc-variables-consolidated)
+  (require 'ecc-variables)
   (should (boundp 'ecc-state-prompt-waiting)))
 
 ;; Test that state detection module loads
 (ert-deftest test-ecc-state-detection-loads ()
   "Test that ecc-state-detection.el loads successfully."
-  (require 'ecc-state-detection-consolidated)
+  (require 'ecc-state-detection)
   (should (fboundp 'ecc-detect-state)))
 
 ;; Test that buffer state module loads

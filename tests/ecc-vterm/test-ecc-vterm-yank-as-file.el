@@ -22,7 +22,7 @@
   (defun display-line-numbers-mode (_) nil)
   (provide 'vterm))
 
-(require 'ecc-variables-consolidated)
+(require 'ecc-variables)
 
 ;; Load the file under test
 (when (file-exists-p "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el")
