@@ -47,15 +47,15 @@
     (message "Auto-response functionality not available")))
 
 (defun ecc-claude-quick-auto-response ()
-  "Quickly enable auto-response with the '/auto' continue response.
+  "Quickly enable auto-response with the '/user:auto' continue response.
 This is a convenience function that enables auto-response with
-default settings but using '/auto' for the continue prompt."
+default settings but using '/user:auto' for the continue prompt."
   (interactive)
   (if (fboundp 'ecc-start-auto-response)
       (progn
         (ecc-register-buffer)
-        (ecc-start-auto-response "1" "2" "/auto")
-        (message "Quick auto-response enabled with /auto continue"))
+        (ecc-start-auto-response "1" "2" "/user:auto")
+        (message "Quick auto-response enabled with /user:auto continue"))
     (message "Auto-response functionality not available")))
 
 (defun ecc-claude-visual-aid-toggle ()
@@ -162,7 +162,7 @@ default settings but using '/auto' for the continue prompt."
     (princ
      "C-c c a      ecc-auto-response-toggle Toggle auto-response on/off\n")
     (princ
-     "C-c c q      ecc-quick-auto          Quick enable auto-response with /auto\n")
+     "C-c c q      ecc-quick-auto          Quick enable auto-response with /user:auto\n")
     (princ
      "C-c c s      ecc-claude-stop-auto    Emergency stop auto-response\n")
 
@@ -201,7 +201,7 @@ default settings but using '/auto' for the continue prompt."
      "The auto-response system automatically responds to Claude prompts:\n")
     (princ "- Y/N prompts: Sends \"1\" (Yes) by default\n")
     (princ "- Y/Y/N prompts: Sends \"2\" (Yes, and) by default\n")
-    (princ "- Continue prompts: Sends \"/auto\" by default\n\n")
+    (princ "- Continue prompts: Sends \"/user:auto\" by default\n\n")
 
     ;; Notification System
     (princ "Notification System\n")

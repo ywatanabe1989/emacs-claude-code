@@ -71,7 +71,7 @@ M-x ecc-claude-vterm
 ```elisp
 ;; Auto-response settings
 (setq ecc-auto-response-yes "y")          ; Response for Y/N prompts
-(setq ecc-auto-response-continue "/auto") ; Response for continue prompts
+(setq ecc-auto-response-continue "/user:auto") ; Response for continue prompts
 
 ;; Grayscale mode settings
 (setq ecc-vterm-grayscale-default t)      ; Enable grayscale by default

@@ -1,7 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 23:56:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-term-claude-auto.el
+;;; Timestamp: <2025-05-23 12:23:23>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-term-claude-auto.el
+
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 ;;; Commentary:
 ;;; Consolidated auto-response functionality for Claude prompts.
@@ -14,14 +17,19 @@
 (require 'vterm)
 
 ;; Forward declarations to prevent free variable warnings
+
 (defvar ecc-term-claude-update-functions nil
   "List of functions to call when the Claude terminal buffer updates.")
+
 (defvar ecc-auto-response-y/n "y"
   "Response to send for Y/N prompts.")
+
 (defvar ecc-auto-response-y/y/n "y"
   "Response to send for Y/Y/N prompts.")
+
 (defvar ecc-auto-response-waiting ""
   "Response to send for 'continue>' prompts.")
+
 (defvar ecc-auto-response-initial-waiting ""
   "Response to send for initial waiting prompts.")
 
@@ -42,7 +50,7 @@ to them based on the configured responses."
   :type 'boolean
   :group 'ecc-term-claude-auto)
 
-(defcustom ecc-term-claude-auto-delay 0
+(defcustom ecc-term-claude-auto-delay 1.0
   "Delay in seconds before sending an automatic response.
 A value of 0 means no delay. Adding a small delay can make the
 auto-response behavior feel less jarring to the user."
@@ -81,24 +89,26 @@ Returns t if a response was sent, nil otherwise."
   ;; Validate state
   (unless (memq state (ecc-term-claude-state-symbols))
     (error "Invalid state: %s" state))
-  
-  (let* ((response-var (cdr (assq state ecc-term-claude-auto-response-map)))
-         (response (and response-var (boundp response-var) 
-                       (symbol-value response-var)))
-         (state-name (ecc-term-claude-state-name state)))
-    
+
+  (let*
+      ((response-var
+        (cdr (assq state ecc-term-claude-auto-response-map)))
+       (response (and response-var (boundp response-var)
+                      (symbol-value response-var)))
+       (state-name (ecc-term-claude-state-name state)))
+
     ;; Log debug info if enabled
     (when ecc-term-claude-auto-debug
       (message "Auto-response debug: state=%s, var=%s, value=%s"
                state response-var response))
-    
+
     ;; Validate response
     (unless (and response-var (boundp response-var))
       (error "No response variable defined for state: %s" state))
-    
+
     (unless response
       (error "Response variable %s has no value" response-var))
-    
+
     ;; Send the response
     (if (> ecc-term-claude-auto-delay 0)
         ;; Delayed response
@@ -107,7 +117,7 @@ Returns t if a response was sent, nil otherwise."
                           (when (buffer-live-p (current-buffer))
                             (vterm-send-string response)
                             (vterm-send-return)
-                            (message "Auto-responded to %s prompt: %s" 
+                            (message "Auto-responded to %s prompt: %s"
                                      state-name response))))
       ;; Immediate response
       (vterm-send-string response)
@@ -141,11 +151,11 @@ responds to Claude prompts based on their type."
   (setq ecc-term-claude-auto-mode (not ecc-term-claude-auto-mode))
   (message "Claude auto-mode %s"
            (if ecc-term-claude-auto-mode "enabled" "disabled"))
-  
+
   ;; Set up hooks for auto-responses
   (if ecc-term-claude-auto-mode
       (add-to-list 'ecc-term-claude-update-functions
-                  'ecc-term-claude-auto-send-accept)
+                   'ecc-term-claude-auto-send-accept)
     (setq ecc-term-claude-update-functions
           (remove 'ecc-term-claude-auto-send-accept
                   ecc-term-claude-update-functions))))
@@ -172,8 +182,17 @@ responds to Claude prompts based on their type."
   (ecc-term-claude-auto-send :initial-waiting))
 
 ;; Legacy alias
-(defalias 'ecc-term-claude-auto-mode-toggle 'ecc-term-claude-toggle-auto-mode)
+
+(defalias 'ecc-term-claude-auto-mode-toggle
+  'ecc-term-claude-toggle-auto-mode)
+
+;;; ecc-term-claude-auto.el ends here
+
 
 (provide 'ecc-term-claude-auto)
 
-;;; ecc-term-claude-auto.el ends here
+(when
+    (not load-file-name)
+  (message "ecc-term-claude-auto.el loaded."
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))
