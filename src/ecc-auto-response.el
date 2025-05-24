@@ -25,7 +25,7 @@
 ;;;
 ;;; ;; Configure response values (optional)
 ;;; (setq ecc-auto-response-yes "1")
-;;; (setq ecc-auto-response-continue "/auto")
+;;; (setq ecc-auto-response-continue "/user:auto")
 ;;;
 ;;; ;; Toggle auto-response on/off
 ;;; (ecc-auto-response-toggle)
@@ -114,8 +114,8 @@ and auto-response is enabled."
   :type 'string
   :group 'ecc-auto-response)
 
-(defcustom ecc-auto-response-continue "/auto"
-  "Response to send for waiting state (typically \"/auto\" or \"/continue\").
+(defcustom ecc-auto-response-continue "/user:auto"
+  "Response to send for waiting state (typically \"/user:auto\" or \"/continue\").
 This string will be sent automatically when Claude displays a waiting prompt
 and auto-response is enabled."
   :type 'string 
@@ -154,6 +154,20 @@ When enabled, detailed debug messages are displayed for auto-response operations
   :type 'boolean
   :group 'ecc-auto-response)
 
+(defcustom ecc-auto-response-accumulation-threshold 5
+  "Maximum number of responses allowed within accumulation window.
+If more than this many responses are sent within the accumulation window,
+the system will detect accumulation and automatically stop auto-response."
+  :type 'number
+  :group 'ecc-auto-response)
+
+(defcustom ecc-auto-response-accumulation-window 3.0
+  "Time window in seconds for accumulation detection.
+If more than `ecc-auto-response-accumulation-threshold' responses are sent
+within this time window, accumulation will be detected."
+  :type 'number
+  :group 'ecc-auto-response)
+
 ;; Buffer-local mode settings
 (defcustom ecc-auto-response-default nil
   "Whether to use buffer-local mode by default.
@@ -181,6 +195,13 @@ where a single set of configurations applies to all buffers."
 (defvar ecc-auto-response--registered-callback nil
   "Callback function registered with auto-core system.")
 
+;; Accumulation tracking variables
+(defvar ecc-auto-response--accumulation-count 0
+  "Counter for responses sent within current accumulation window.")
+
+(defvar ecc-auto-response--accumulation-start-time 0
+  "Start time of current accumulation tracking window.")
+
 ;; Buffer-local variables
 (defvar-local ecc-auto-response-buffer-enabled nil
   "Whether auto-response is enabled for this buffer.")
@@ -191,7 +212,7 @@ where a single set of configurations applies to all buffers."
 (defvar-local ecc-auto-response-buffer-yes-plus "2"
   "Response to send for Y/Y/N prompts in this buffer.")
 
-(defvar-local ecc-auto-response-buffer-continue "/auto"
+(defvar-local ecc-auto-response-buffer-continue "/user:auto"
   "Response to send for waiting state in this buffer.")
 
 (defvar-local ecc-auto-response-buffer-initial-waiting "/user:understand-guidelines"
@@ -203,6 +224,16 @@ where a single set of configurations applies to all buffers."
 (defvar-local ecc-auto-response-buffer-last-response-time 0
   "Timestamp of last auto-response in this buffer.")
 
+;; Buffer-local accumulation tracking
+(defvar-local ecc-auto-response-buffer-accumulation-count 0
+  "Buffer-local counter for responses sent within current accumulation window.")
+
+(defvar-local ecc-auto-response-buffer-accumulation-start-time 0
+  "Buffer-local start time of current accumulation tracking window.")
+
+(defvar-local ecc-auto-response-buffer-interrupt-detected nil
+  "Buffer-local flag indicating if ESC interrupt was detected.")
+
 ;;;; Debugging Utilities
 
 (defun ecc-auto-response--debug (format-string &rest args)
@@ -213,6 +244,136 @@ Uses the consolidated debug utils if available, otherwise falls back."
     (if (fboundp 'ecc-debug-message)
         (apply #'ecc-debug-message (concat "[Auto-Response] " format-string) args)
       (message "[Auto-Response Debug] %s" (apply #'format format-string args)))))
+
+;;;; Accumulation Detection
+
+(defun ecc-auto-response--accumulation-detected-p ()
+  "Check if auto-response accumulation has been detected.
+Returns t if too many responses have been sent within the accumulation window."
+  (let ((current-time (float-time)))
+    ;; Reset counter if outside window
+    (when (> (- current-time ecc-auto-response--accumulation-start-time)
+             ecc-auto-response-accumulation-window)
+      (ecc-auto-response--reset-accumulation-counter))
+    
+    ;; Check if threshold exceeded
+    (when (>= ecc-auto-response--accumulation-count
+              ecc-auto-response-accumulation-threshold)
+      (ecc-auto-response--debug "Accumulation detected: %d responses in %s seconds"
+                               ecc-auto-response--accumulation-count
+                               (- current-time ecc-auto-response--accumulation-start-time))
+      t)))
+
+(defun ecc-auto-response--reset-accumulation-counter ()
+  "Reset the accumulation counter and start time."
+  (setq ecc-auto-response--accumulation-count 0
+        ecc-auto-response--accumulation-start-time 0)
+  (ecc-auto-response--debug "Reset accumulation counter"))
+
+(defun ecc-auto-response--increment-accumulation-counter ()
+  "Increment the accumulation counter and set start time if needed."
+  (let ((current-time (float-time)))
+    ;; Set start time if this is the first response in window
+    (when (= ecc-auto-response--accumulation-count 0)
+      (setq ecc-auto-response--accumulation-start-time current-time))
+    
+    ;; Increment counter
+    (setq ecc-auto-response--accumulation-count 
+          (1+ ecc-auto-response--accumulation-count))
+    
+    (ecc-auto-response--debug "Accumulation count: %d (started at %s)"
+                             ecc-auto-response--accumulation-count
+                             ecc-auto-response--accumulation-start-time)))
+
+;;;; ESC Interrupt Detection
+
+(defun ecc-auto-response--esc-interrupt-detected-p (buffer)
+  "Check if ESC interrupt sequence is detected in BUFFER.
+Returns t if buffer content contains ESC interrupt patterns."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      ;; Look for ESC patterns in recent output (last 1000 chars)
+      (let ((start-pos (max (point-min) (- (point-max) 1000))))
+        (goto-char start-pos)
+        (or
+         ;; Look for literal ESC character (ASCII 27)
+         (search-forward "\e" nil t)
+         ;; Look for caret notation ^[
+         (search-forward "^[" nil t)
+         ;; Look for text patterns
+         (re-search-forward "\\(ESC\\|esc\\)\\s-+to\\s-+interrupt" nil t)
+         ;; Look for bracketed ESC
+         (search-forward "[ESC]" nil t))))))
+
+(defun ecc-auto-response--running-state-with-esc-p (buffer)
+  "Check if buffer shows running state with ESC interrupt available.
+Returns t if ESC interrupt is present but command is still running.
+This means auto-response should be disabled during execution but 
+can resume if prompt appears after the ESC line."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      ;; Look for ESC interrupt pattern in recent output
+      (let ((start-pos (max (point-min) (- (point-max) 1000)))
+            (esc-pos nil)
+            (prompt-pos nil))
+        (goto-char start-pos)
+        
+        ;; Find ESC interrupt position
+        (when (re-search-forward "\\(ESC\\|esc\\)\\s-+to\\s-+interrupt" nil t)
+          (setq esc-pos (match-beginning 0)))
+        
+        ;; If ESC found, check if there's a prompt after it
+        (when esc-pos
+          (goto-char esc-pos)
+          ;; Look for prompt patterns after ESC line
+          (when (re-search-forward "\\[y/n\\]\\|\\[y/y/n\\]\\|>\\s-*$" nil t)
+            (setq prompt-pos (match-beginning 0)))
+          
+          ;; Return t if ESC exists but no prompt after it (still running)
+          ;; Return nil if prompt exists after ESC (can respond to prompt)
+          (not prompt-pos))))))
+
+;;;; Buffer-Local Accumulation Detection
+
+(defun ecc-auto-response--buffer-accumulation-detected-p ()
+  "Check if buffer-local auto-response accumulation has been detected.
+Returns t if too many responses have been sent within the accumulation window."
+  (let ((current-time (float-time)))
+    ;; Reset counter if outside window
+    (when (> (- current-time ecc-auto-response-buffer-accumulation-start-time)
+             ecc-auto-response-accumulation-window)
+      (ecc-auto-response--reset-buffer-accumulation-counter))
+    
+    ;; Check if threshold exceeded
+    (when (>= ecc-auto-response-buffer-accumulation-count
+              ecc-auto-response-accumulation-threshold)
+      (ecc-auto-response--debug "Buffer-local accumulation detected: %d responses in %s seconds"
+                               ecc-auto-response-buffer-accumulation-count
+                               (- current-time ecc-auto-response-buffer-accumulation-start-time))
+      t)))
+
+(defun ecc-auto-response--reset-buffer-accumulation-counter ()
+  "Reset the buffer-local accumulation counter and start time."
+  (setq-local ecc-auto-response-buffer-accumulation-count 0)
+  (setq-local ecc-auto-response-buffer-accumulation-start-time 0)
+  (ecc-auto-response--debug "Reset buffer-local accumulation counter"))
+
+(defun ecc-auto-response--increment-buffer-accumulation-counter ()
+  "Increment the buffer-local accumulation counter and set start time if needed."
+  (let ((current-time (float-time)))
+    ;; Set start time if this is the first response in window
+    (when (= ecc-auto-response-buffer-accumulation-count 0)
+      (setq-local ecc-auto-response-buffer-accumulation-start-time current-time))
+    
+    ;; Increment counter
+    (setq-local ecc-auto-response-buffer-accumulation-count 
+                (1+ ecc-auto-response-buffer-accumulation-count))
+    
+    (ecc-auto-response--debug "Buffer-local accumulation count: %d (started at %s)"
+                             ecc-auto-response-buffer-accumulation-count
+                             ecc-auto-response-buffer-accumulation-start-time)))
 
 ;;;; Core Functions - Global Mode
 
@@ -359,6 +520,27 @@ Checks each buffer for Claude prompts and sends responses if appropriate."
   "Process BUFFER for auto-response using global settings.
 Checks buffer for Claude prompts and sends responses if appropriate."
   (with-current-buffer buffer
+    ;; Check if command is running with ESC interrupt available
+    (when (ecc-auto-response--running-state-with-esc-p buffer)
+      (ecc-auto-response--debug "Command running with ESC interrupt in %s, skipping auto-response" 
+                               (buffer-name buffer))
+      (return))
+    
+    ;; Check for ESC interrupt (command finished with interrupt)
+    (when (ecc-auto-response--esc-interrupt-detected-p buffer)
+      (ecc-auto-response--debug "ESC interrupt detected in %s, stopping auto-response" 
+                               (buffer-name buffer))
+      (setq ecc-auto-response-enabled nil)
+      (message "Auto-response stopped due to ESC interrupt")
+      (return))
+    
+    ;; Check for accumulation
+    (when (ecc-auto-response--accumulation-detected-p)
+      (ecc-auto-response--debug "Accumulation detected, stopping auto-response")
+      (setq ecc-auto-response-enabled nil)
+      (message "Auto-response stopped due to accumulation detection")
+      (return))
+    
     (let ((state (ecc-detect-state)))
       (when state
         (ecc-auto-response--debug "Detected state %s in buffer %s" 
@@ -366,6 +548,9 @@ Checks buffer for Claude prompts and sends responses if appropriate."
         
         ;; Check if throttling needed
         (unless (ecc-auto-response--throttled-p state)
+          ;; Increment accumulation counter
+          (ecc-auto-response--increment-accumulation-counter)
+          
           ;; Send response based on state
           (ecc-auto-response--send-for-state state buffer))))))
 
@@ -538,6 +723,29 @@ If not already started, initializes with default settings."
   "Process BUFFER for auto-response using buffer-local settings."
   (cl-block ecc-auto-response--process-buffer-local
     (with-current-buffer buffer
+      ;; Check if command is running with ESC interrupt available (buffer-local)
+      (when (ecc-auto-response--running-state-with-esc-p buffer)
+        (ecc-auto-response--debug "Command running with ESC interrupt in %s, skipping buffer-local auto-response" 
+                                 (buffer-name buffer))
+        (cl-return-from ecc-auto-response--process-buffer-local nil))
+      
+      ;; Check for ESC interrupt first (buffer-local)
+      (when (and (not ecc-auto-response-buffer-interrupt-detected)
+                 (ecc-auto-response--esc-interrupt-detected-p buffer))
+        (ecc-auto-response--debug "ESC interrupt detected in %s, disabling buffer-local auto-response" 
+                                 (buffer-name buffer))
+        (setq-local ecc-auto-response-buffer-enabled nil)
+        (setq-local ecc-auto-response-buffer-interrupt-detected t)
+        (message "Buffer-local auto-response stopped due to ESC interrupt in %s" (buffer-name buffer))
+        (cl-return-from ecc-auto-response--process-buffer-local nil))
+      
+      ;; Check for buffer-local accumulation
+      (when (ecc-auto-response--buffer-accumulation-detected-p)
+        (ecc-auto-response--debug "Buffer-local accumulation detected, disabling auto-response")
+        (setq-local ecc-auto-response-buffer-enabled nil)
+        (message "Buffer-local auto-response stopped due to accumulation detection in %s" (buffer-name buffer))
+        (cl-return-from ecc-auto-response--process-buffer-local nil))
+      
       (let ((state (ecc-detect-state)))
       (when state
         (ecc-auto-response--debug "Detected state %s in buffer %s (buffer-local mode)" 
@@ -555,6 +763,9 @@ If not already started, initializes with default settings."
             (ecc-auto-response--debug "Throttled buffer-local response to %s (time since last: %s)"
                                      state time-since-last)
             (cl-return-from ecc-auto-response--process-buffer-local nil))
+          
+          ;; Increment buffer-local accumulation counter
+          (ecc-auto-response--increment-buffer-accumulation-counter)
           
           ;; Record state and time for throttling
           (setq-local ecc-auto-response-buffer-last-state state)
@@ -711,7 +922,7 @@ This is the core dispatch function that sends responses to buffers."
 (defvar-local ecc-buffer-auto-response-y/y/n "2"
   "Buffer-local Y/Y/N response (compatibility variable).")
 
-(defvar-local ecc-buffer-auto-response-waiting "/auto"
+(defvar-local ecc-buffer-auto-response-waiting "/user:auto"
   "Buffer-local waiting response (compatibility variable).")
 
 (defvar-local ecc-buffer-auto-response-initial-waiting "/user:understand-guidelines"

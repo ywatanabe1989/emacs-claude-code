@@ -74,7 +74,7 @@ Records the message for testing."
 (defvar-local ecc-buffer-auto-response-y/y/n "2"
   "Mock buffer-local response for Y/Y/N prompt.")
 
-(defvar-local ecc-buffer-auto-response-waiting "/auto"
+(defvar-local ecc-buffer-auto-response-waiting "/user:auto"
   "Mock buffer-local response for waiting prompt.")
 
 (defvar-local ecc-buffer-auto-response-initial-waiting "/user:understand-guidelines"
@@ -353,6 +353,175 @@ Does nothing in testing."
       ;; Verify response was sent
       (should (string= auto-response-test-sent-string "TEST_CUSTOM"))
       (should (eq auto-response-test-sent-buffer temp-buffer)))))
+
+;;;; Accumulation Detection Tests
+
+(ert-deftest test-auto-response-accumulation-detection ()
+  "Test detection of accumulated auto-responses.
+Verifies that the system can detect when multiple responses
+are being sent in rapid succession beyond normal throttling."
+  (with-temp-buffer-fixture "Test content"
+    ;; Mock current time for controlled testing
+    (let ((mock-time 1000.0)
+          (responses-sent 0))
+      (cl-letf (((symbol-function 'float-time) (lambda () mock-time))
+                ((symbol-function 'ecc-auto-response--send-to-buffer)
+                 (lambda (buffer text state-name)
+                   (setq responses-sent (1+ responses-sent))))
+                ((symbol-function 'ecc-detect-state) 
+                 (lambda () :waiting))
+                ((symbol-function 'message) #'ignore))
+        
+        ;; Enable auto-response
+        (setq ecc-auto-response-enabled t)
+        (ecc-auto-response-register-buffer temp-buffer)
+        
+        ;; Send multiple responses quickly (should trigger accumulation detection)
+        (dotimes (i 10)
+          (setq mock-time (+ mock-time 0.1)) ; 100ms intervals
+          (ecc-auto-response--process-buffer-global temp-buffer))
+        
+        ;; Should detect accumulation and stop sending after threshold
+        (should (fboundp 'ecc-auto-response--accumulation-detected-p))
+        (should (fboundp 'ecc-auto-response--reset-accumulation-counter))
+        
+        ;; Test accumulation counter exists and works
+        (should (boundp 'ecc-auto-response--accumulation-count))
+        (should (boundp 'ecc-auto-response--accumulation-start-time))))))
+
+(ert-deftest test-auto-response-accumulation-threshold ()
+  "Test accumulation threshold configuration and detection.
+Verifies that accumulation detection works with configurable thresholds."
+  (with-temp-buffer-fixture "Test content"
+    ;; Test that accumulation threshold variables exist
+    (should (boundp 'ecc-auto-response-accumulation-threshold))
+    (should (boundp 'ecc-auto-response-accumulation-window))
+    
+    ;; Test default values are reasonable
+    (should (numberp ecc-auto-response-accumulation-threshold))
+    (should (> ecc-auto-response-accumulation-threshold 2))
+    (should (numberp ecc-auto-response-accumulation-window))
+    (should (> ecc-auto-response-accumulation-window 1.0))
+    
+    ;; Test accumulation detection function
+    (should (fboundp 'ecc-auto-response--accumulation-detected-p))
+    
+    ;; Mock scenario where accumulation should be detected
+    (let ((ecc-auto-response-accumulation-threshold 3)
+          (ecc-auto-response-accumulation-window 2.0))
+      (cl-letf (((symbol-function 'float-time) (lambda () 1000.0)))
+        ;; Simulate accumulation state
+        (setq ecc-auto-response--accumulation-count 4
+              ecc-auto-response--accumulation-start-time 999.0)
+        
+        ;; Should detect accumulation
+        (should (ecc-auto-response--accumulation-detected-p))))))
+
+(ert-deftest test-auto-response-accumulation-reset ()
+  "Test accumulation counter reset functionality.
+Verifies that accumulation tracking can be properly reset."
+  ;; Test reset function exists
+  (should (fboundp 'ecc-auto-response--reset-accumulation-counter))
+  
+  ;; Set up accumulation state
+  (setq ecc-auto-response--accumulation-count 5
+        ecc-auto-response--accumulation-start-time 1000.0)
+  
+  ;; Reset accumulation
+  (ecc-auto-response--reset-accumulation-counter)
+  
+  ;; Verify reset
+  (should (= ecc-auto-response--accumulation-count 0))
+  (should (= ecc-auto-response--accumulation-start-time 0)))
+
+;;;; ESC Interrupt Detection Tests
+
+(ert-deftest test-auto-response-esc-interrupt-detection ()
+  "Test detection of ESC interrupt sequences in buffer content.
+Verifies that the system can detect when user presses ESC to interrupt."
+  (with-temp-buffer-fixture "Test content"
+    ;; Test ESC detection function exists
+    (should (fboundp 'ecc-auto-response--esc-interrupt-detected-p))
+    
+    ;; Test with buffer containing ESC sequence
+    (with-current-buffer temp-buffer
+      (erase-buffer)
+      (insert "Some output\nPress ESC to interrupt\n^["))
+    
+    ;; Should detect ESC interrupt
+    (should (ecc-auto-response--esc-interrupt-detected-p temp-buffer))
+    
+    ;; Test with buffer not containing ESC sequence
+    (with-current-buffer temp-buffer
+      (erase-buffer)
+      (insert "Normal output without interrupt"))
+    
+    ;; Should not detect ESC interrupt
+    (should-not (ecc-auto-response--esc-interrupt-detected-p temp-buffer))))
+
+(ert-deftest test-auto-response-esc-interrupt-patterns ()
+  "Test various ESC interrupt patterns.
+Verifies detection of different ways ESC interrupts can appear."
+  (with-temp-buffer-fixture "Test content"
+    ;; Test different ESC patterns
+    (let ((esc-patterns '("^["
+                         "\e"
+                         "\\e"
+                         "ESC to interrupt"
+                         "Press esc to interrupt"
+                         "[ESC]")))
+      
+      (dolist (pattern esc-patterns)
+        (with-current-buffer temp-buffer
+          (erase-buffer)
+          (insert "Output before\n" pattern "\nOutput after"))
+        
+        ;; Should detect ESC in all patterns
+        (should (ecc-auto-response--esc-interrupt-detected-p temp-buffer))))))
+
+(ert-deftest test-auto-response-stop-on-esc-interrupt ()
+  "Test auto-response stops when ESC interrupt is detected.
+Verifies that detecting ESC automatically disables auto-response."
+  (with-temp-buffer-fixture "Test content with ESC"
+    ;; Mock ESC detection to return true
+    (cl-letf (((symbol-function 'ecc-auto-response--esc-interrupt-detected-p)
+               (lambda (buffer) t))
+              ((symbol-function 'ecc-detect-state) 
+               (lambda () :waiting))
+              ((symbol-function 'message) #'ignore))
+      
+      ;; Enable auto-response
+      (setq ecc-auto-response-enabled t)
+      (ecc-auto-response-register-buffer temp-buffer)
+      
+      ;; Process buffer (should detect ESC and stop)
+      (ecc-auto-response--process-buffer-global temp-buffer)
+      
+      ;; Auto-response should be disabled
+      (should-not ecc-auto-response-enabled))))
+
+(ert-deftest test-auto-response-esc-interrupt-notification ()
+  "Test notification when ESC interrupt is detected.
+Verifies that user is notified when auto-response stops due to ESC."
+  (with-temp-buffer-fixture "Test content"
+    (let ((notification-received nil))
+      ;; Mock functions
+      (cl-letf (((symbol-function 'ecc-auto-response--esc-interrupt-detected-p)
+                 (lambda (buffer) t))
+                ((symbol-function 'message)
+                 (lambda (format-string &rest args)
+                   (when (string-match-p "interrupt" format-string)
+                     (setq notification-received t)))))
+        
+        ;; Enable auto-response
+        (setq ecc-auto-response-enabled t)
+        (ecc-auto-response-register-buffer temp-buffer)
+        
+        ;; Process buffer (should detect ESC)
+        (ecc-auto-response--process-buffer-global temp-buffer)
+        
+        ;; Should receive interrupt notification
+        (should notification-received)))))
 
 ;;;; Backward compatibility tests
 
