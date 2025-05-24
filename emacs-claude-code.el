@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-23 00:39:37>
+;;; Timestamp: <2025-05-25 01:27:37>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/emacs-claude-code.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -41,51 +41,38 @@
       (when (file-directory-p tests-dir)
         (add-dir-recursively tests-dir)))))
 
-;; Initialize load path
+;; Initialize load pathe
 (--ecc-add-all-to-loadpath)
 
 ;; Core functionality
-;; Core variables
 (require 'ecc-variables)
-
-;; Debug utilities
-(condition-case nil
-    (require 'ecc-debug-utils)
-  (error nil))
-
-;; State detection
-(condition-case nil
-    (require 'ecc-state-detection)
-  (error nil))
+(require 'ecc-debug-utils)
+(require 'ecc-state-detection)
 
 ;; VTerm integration
-(condition-case nil
-    (progn
-      (require 'vterm)
-      (require 'ecc-vterm-mode)
-      (require 'ecc-vterm-yank-as-file)
-      ;; Load Claude terminal mode
-      (require 'ecc-term-claude-mode)
-      (require 'ecc-term-visual-aid)
-      (require 'ecc-vterm-grayscale))
-  (error
-   (message
-    "Claude vterm mode could not be loaded (vterm may not be installed)")))
+(require 'vterm)
+(require 'ecc-vterm-mode)
+(require 'ecc-vterm-yank-as-file)
+(require 'ecc-vterm-grayscale)
+
+;; Terminal Claude mode
+(require 'ecc-term-claude-mode)
+(require 'ecc-term-visual-aid)
 
 ;; Auto-response functionality
 (require 'ecc-auto-response)
 (require 'ecc-auto-notify)
-(condition-case nil
-    (require 'ecc-auto-response-fix)
-  (error nil))
 (require 'ecc-interaction-tracker)
 (require 'ecc-interaction-limiter)
+
+;; UI enhancements
 (require 'ecc-color-themes)
 (require 'ecc-eye-friendly)
-
 (require 'ecc-convenience-commands)
 ;; Enable minor mode by default
-(ecc-claude-mode 1)
+(ecc-mode 1)
+
+;;; emacs-claude-code.el ends here)
 
 
 (provide 'emacs-claude-code)

@@ -89,6 +89,18 @@ and continuation prompts without manual intervention."
   :type 'string
   :group 'ecc-term-claude)
 
+(defcustom ecc-term-claude-auto-mode-modeline-color "#4a5d23"
+  "Background color for modeline when auto-mode is enabled.
+This provides visual feedback that auto-mode is active."
+  :type 'color
+  :group 'ecc-term-claude)
+
+(defcustom ecc-term-claude-auto-mode-modeline-box-color "#7fa339"
+  "Border color for modeline when auto-mode is enabled.
+This creates a highlighted border around the modeline."
+  :type 'color
+  :group 'ecc-term-claude)
+
 (defcustom ecc-term-claude-show-state-in-mode-line t
   "Whether to show Claude state in the mode line.
 When enabled, the current state (Y/N, Waiting, etc.) is shown
@@ -131,13 +143,17 @@ status even when the buffer is not visible."
 Each function should take no arguments and will be run
 whenever vterm produces new output.")
 
-(defvar ecc-term-claude--state-timer nil
+(defvar-local ecc-term-claude--state-timer nil
   "Timer for updating the Claude state.
 This is used to periodically check for Claude prompts.")
 
-(defvar ecc-term-claude--last-state nil
+(defvar-local ecc-term-claude--last-state nil
   "Last detected Claude state for the buffer.
 Used to track state changes for updates.")
+
+(defvar-local ecc-term-claude--auto-mode-active nil
+  "Buffer-local indicator that auto-mode is active.
+Used to track face remapping state.")
 
 (defvar ecc-term-claude--registered-buffers (make-hash-table :test 'eq)
   "Hash table of registered Claude vterm buffers.")
@@ -330,10 +346,17 @@ Key bindings:
 
 (defun ecc-term-claude--setup-mode-line ()
   "Set up mode line indicator for Claude state."
-  (ecc-term-claude--debug "Setting up mode line")
+  (ecc-term-claude--debug "Setting up mode line (show-state: %s, auto-mode: %s)"
+                         ecc-term-claude-show-state-in-mode-line
+                         ecc-term-claude-auto-mode)
   (when ecc-term-claude-show-state-in-mode-line
+    (ecc-term-claude--debug "Setting mode-line-process for state indicator")
     (setq mode-line-process
-          '(:eval (ecc-term-claude--mode-line-state-indicator)))))
+          '(:eval (ecc-term-claude--mode-line-state-indicator)))
+    (ecc-term-claude--debug "Mode-line-process set: %s" mode-line-process))
+  ;; Force initial update
+  (ecc-term-claude--debug "Forcing initial mode-line update")
+  (force-mode-line-update))
 
 (defun ecc-term-claude--setup-state-timer ()
   "Set up the timer for checking Claude state."
@@ -342,9 +365,14 @@ Key bindings:
     (cancel-timer ecc-term-claude--state-timer)
     (ecc-term-claude--debug "Cancelled existing state timer"))
   
-  (setq ecc-term-claude--state-timer
-        (run-with-timer 0 ecc-term-claude-state-update-interval
-                       'ecc-term-claude-check-state))
+  ;; Store current buffer for timer
+  (let ((buffer (current-buffer)))
+    (setq ecc-term-claude--state-timer
+          (run-with-timer 0 ecc-term-claude-state-update-interval
+                         (lambda ()
+                           (when (buffer-live-p buffer)
+                             (with-current-buffer buffer
+                               (ecc-term-claude-check-state)))))))
   (ecc-term-claude--debug "State timer initialized with interval %s seconds" 
                           ecc-term-claude-state-update-interval))
 
@@ -383,14 +411,27 @@ Key bindings:
 
 (defun ecc-term-claude--mode-line-state-indicator ()
   "Return mode line indicator for current Claude state."
-  (let ((state (ecc-detect-state)))
+  (let ((state (ecc-detect-state))
+        (auto-indicator (if ecc-term-claude-auto-mode
+                           (propertize " ◉ AUTO-MODE ON " 
+                                     'face '(:background "#7fa339" 
+                                            :foreground "#ffffff" 
+                                            :weight bold
+                                            :box (:line-width 1 :color "#4a5d23")))
+                         "")))
+    (ecc-term-claude--debug "Mode-line indicator - Auto-mode: %s, State: %s" 
+                           (if ecc-term-claude-auto-mode "ON" "OFF") state)
     (ecc-term-claude--update-frame-title state)
-    (cond
-     ((eq state :waiting) " [Waiting]")
-     ((eq state :y/n) " [Y/N]")
-     ((eq state :y/y/n) " [Y/Y/N]")
-     ((eq state :initial-waiting) " [Init]")
-     (t ""))))
+    (let ((result (concat
+                   auto-indicator
+                   (cond
+                    ((eq state :waiting) " [Waiting]")
+                    ((eq state :y/n) " [Y/N]")
+                    ((eq state :y/y/n) " [Y/Y/N]")
+                    ((eq state :initial-waiting) " [Init]")
+                    (t "")))))
+      (ecc-term-claude--debug "Mode-line indicator returning: %s" result)
+      result)))
 
 (defun ecc-term-claude--update-frame-title (state)
   "Update frame title with STATE if enabled."
@@ -420,6 +461,10 @@ This is called periodically by the state timer."
         (ecc-term-claude--debug "State changed from %s to %s" ecc-term-claude--last-state state)
         (setq ecc-term-claude--last-state state))
       
+      ;; Debug mode-line update
+      (ecc-term-claude--debug "Updating mode-line for buffer %s (auto-mode: %s)" 
+                             (buffer-name) 
+                             (if ecc-term-claude-auto-mode "ON" "OFF"))
       (force-mode-line-update)
       state)))
 
@@ -450,21 +495,88 @@ This is called periodically by the state timer."
 (defun ecc-term-claude-auto-mode-toggle ()
   "Toggle automatic response to Claude prompts."
   (interactive)
+  
+  ;; Ensure we're in ecc-term-claude-mode when enabling auto-mode
+  (when (and (not ecc-term-claude-auto-mode)  ; We're about to enable auto-mode
+             (eq major-mode 'vterm-mode)       ; We're in vterm-mode
+             (not (eq major-mode 'ecc-term-claude-mode))) ; But not in claude mode
+    (ecc-term-claude-mode))  ; Switch to claude mode
+  
   (setq ecc-term-claude-auto-mode (not ecc-term-claude-auto-mode))
-  (ecc-term-claude--debug "Auto-mode %s" (if ecc-term-claude-auto-mode "enabled" "disabled"))
+  (ecc-term-claude--debug "Auto-mode toggled to: %s" (if ecc-term-claude-auto-mode "ON" "OFF"))
   (message "Claude auto-mode %s"
            (if ecc-term-claude-auto-mode "enabled" "disabled"))
+  
+  ;; Force mode-line update to show auto-mode indicator
+  (ecc-term-claude--debug "Forcing mode-line update")
+  (force-mode-line-update)
+  (ecc-term-claude--debug "Calling redisplay to ensure visual update")
+  (redisplay t)
+  
+  ;; Ensure mode-line-process is set if not already
+  (when (and ecc-term-claude-show-state-in-mode-line
+             (not mode-line-process))
+    (ecc-term-claude--debug "Setting mode-line-process for state indicator")
+    (setq mode-line-process
+          '(:eval (ecc-term-claude--mode-line-state-indicator))))
+  
+  ;; Update mode name to reflect auto-mode state
+  (let ((new-mode-name (if ecc-term-claude-auto-mode
+                           (propertize "Claude-VTerm[AUTO]" 'face 'bold)
+                         "Claude-VTerm")))
+    (ecc-term-claude--debug "Updating mode-name from '%s' to '%s'" mode-name new-mode-name)
+    (setq mode-name new-mode-name))
+  
+  ;; Update buffer name to reflect auto-mode state
+  (when (string-match "\\*CLAUDE.*\\*" (buffer-name))
+    (let ((base-name (replace-regexp-in-string " \\[AUTO\\]" "" (buffer-name))))
+      (if ecc-term-claude-auto-mode
+          (rename-buffer (concat base-name " [AUTO]") t)
+        (rename-buffer base-name t))))
+  
+  ;; Update modeline color for visual feedback
+  (if ecc-term-claude-auto-mode
+      (progn
+        ;; Use face-remap-add-relative which is more reliable
+        (face-remap-add-relative 'mode-line
+                                 :background ecc-term-claude-auto-mode-modeline-color
+                                 :foreground "#ffffff"
+                                 :box `(:line-width 2 :color ,ecc-term-claude-auto-mode-modeline-box-color))
+        (face-remap-add-relative 'mode-line-inactive
+                                 :background "#3a4d13"
+                                 :foreground "#cccccc"
+                                 :box '(:line-width 1 :color "#2a3d03"))
+        ;; Also add a more visible indicator in mode-line-buffer-id
+        (face-remap-add-relative 'mode-line-buffer-id
+                                 :foreground "#7fa339"
+                                 :weight 'bold)
+        ;; Track state
+        (setq-local ecc-term-claude--auto-mode-active t))
+    ;; Reset face remappings when auto-mode is off
+    (face-remap-reset-base 'mode-line)
+    (face-remap-reset-base 'mode-line-inactive)
+    (face-remap-reset-base 'mode-line-buffer-id)
+    (setq-local ecc-term-claude--auto-mode-active nil))
+  
+  ;; Force modeline update
+  (force-mode-line-update)
   
   ;; Set up hooks for auto-responses
   (if ecc-term-claude-auto-mode
       (progn
         (ecc-term-claude--debug "Adding auto-response hook")
         (add-to-list 'ecc-term-claude--update-functions
-                     'ecc-term-claude--auto-send-respond))
+                     'ecc-term-claude--auto-send-respond)
+        ;; Ensure buffer is registered with auto-response system
+        (ecc-auto-response-register-buffer (current-buffer))
+        ;; Start buffer-local auto-response
+        (ecc-auto-response-buffer-start (current-buffer)))
     (ecc-term-claude--debug "Removing auto-response hook")
     (setq ecc-term-claude--update-functions
           (remove 'ecc-term-claude--auto-send-respond
-                  ecc-term-claude--update-functions))))
+                  ecc-term-claude--update-functions))
+    ;; Stop buffer-local auto-response
+    (ecc-auto-response-buffer-stop (current-buffer))))
 
 (defun ecc-term-claude--auto-send-respond ()
   "Automatically respond to Claude prompts in vterm mode."

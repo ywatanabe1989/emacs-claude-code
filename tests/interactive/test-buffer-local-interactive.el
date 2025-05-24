@@ -167,7 +167,7 @@ STATE should be one of: y/n, y/y/n, waiting, initial-waiting, none."
             ((string= state "waiting")
              "Claude content with continue> prompt")
             ((string= state "initial-waiting")
-             "Claude initial content with │ > Try  prompt")
+             "Claude initial content with │ > Try  prompt")
             ((string= state "none")
              "Regular Claude content without any prompt")
             (t "Unknown state"))))

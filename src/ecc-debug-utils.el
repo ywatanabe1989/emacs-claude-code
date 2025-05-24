@@ -138,7 +138,9 @@ FORMAT-STRING and ARGS are passed to `format'."
          (full-format (concat timestamp prefix category-str buffer-str format-string)))
     ;; Display in messages buffer
     (let ((msg (apply #'format full-format args)))
-      (message "%s" msg)
+      ;; Display message without echoing to minibuffer
+      (let ((inhibit-message t))
+        (message "%s" msg))
       ;; Log to debug buffer if enabled
       (when ecc-debug-log-buffer-name
         (let ((log-buffer (get-buffer-create ecc-debug-log-buffer-name)))
@@ -363,6 +365,6 @@ FORMAT-STRING and ARGS are passed to `format'."
 ;; Provide both the consolidated name (for new code) and the original name (for backward compatibility)
 ;; Provide both the consolidated name and the original name for backward compatibility
 (provide 'ecc-debug-utils)
-(provide 'ecc-debug-utils)
+
 
 ;;; ecc-debug-utils.el ends here

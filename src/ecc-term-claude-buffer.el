@@ -11,8 +11,23 @@
 
 (require 'ecc-variables)
 (require 'ecc-term-claude-state)
+(require 'ecc-debug-utils)
 
 ;;; Code:
+
+;;;; Debug support
+
+(defvar-local ecc-term-claude-buffer-debug-enabled nil
+  "Whether debug messages are enabled for Claude buffer management.")
+
+(defun ecc-term-claude-buffer-debug (format-string &rest args)
+  "Send debug message for buffer management operations.
+FORMAT-STRING and ARGS are passed to `format'."
+  (when ecc-term-claude-buffer-debug-enabled
+    (let ((inhibit-message t))  ; Only to *Messages*, not minibuffer
+      (message "[ECC-BUFFER DEBUG %s] %s" 
+               (buffer-name) 
+               (apply #'format format-string args)))))
 
 ;;;; Buffer registration and tracking
 
@@ -36,14 +51,18 @@ Errors:
     (unless (buffer-live-p buf)
       (user-error "Buffer is not alive"))
     
+    (ecc-term-claude-buffer-debug "Registering buffer: %s" (buffer-name buf))
+    
     ;; Register the buffer
     (unless (assoc buf ecc-buffer-registered-buffers-alist)
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
+      (ecc-term-claude-buffer-debug "Buffer registered in alist: %s" (buffer-name buf))
       (when (called-interactively-p 'any)
         (message "Buffer '%s' registered as Claude buffer" (buffer-name buf))))
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)
+    (ecc-term-claude-buffer-debug "Set as current Claude buffer: %s" (buffer-name buf))
     buf))
 
 ;;;###autoload

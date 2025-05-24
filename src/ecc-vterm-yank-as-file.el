@@ -64,7 +64,7 @@ If no specific type is detected, defaults to "txt"."
     (dolist (entry ecc-vterm-yank-extension-alist)
       (when (string-match-p (cdr entry) content)
         (throw 'found (car entry))))
-    "txt"))  ; Default to txt if no matches
+    "txt"))
 
 (defun ecc-vterm-generate-file-from-region (start end filename)
   "Generate a file named FILENAME from the region between START and END.
@@ -78,7 +78,7 @@ based on content type and current timestamp.
 
 When the file already exists, prompts for confirmation before overwriting.
 
-Returns the full path to the created file.
+Returns the full path to the created file."
   (let* ((content (buffer-substring-no-properties start end))
          (file-type (ecc-vterm-detect-file-type content))
          (dir (or ecc-vterm-yank-default-dir default-directory))

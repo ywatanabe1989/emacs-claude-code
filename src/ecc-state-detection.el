@@ -14,6 +14,10 @@
 ;;; - Buffer-wide, region-based, and line-based detection options
 ;;; - Notification integration for detected states
 ;;;
+;;; IMPORTANT: Claude's prompt patterns use non-breaking spaces (character 160, \u00A0)
+;;; in specific locations. These must be preserved exactly for pattern matching to work.
+;;; See ecc-variables.el for the exact patterns.
+;;;
 ;;; This module provides a comprehensive interface for all state detection needs.
 
 (require 'ecc-variables)
@@ -41,11 +45,12 @@ This is the main function that should be used for state detection.
 It automatically uses the best available detection method, prioritizing
 line-based detection for accuracy when available."
   (with-current-buffer (or buffer (current-buffer))
-    (or
-     ;; First try line-based detection for better accuracy
-     (ecc-detect-prompt-in-last-lines ecc-state-detection-line-count)
-     ;; Fall back to basic detection if line detection finds nothing
-     (ecc-detect-basic-state))))
+    (message "[DEBUG] ecc-detect-state called for buffer: %s" (buffer-name))
+    (let ((line-result (ecc-detect-prompt-in-last-lines ecc-state-detection-line-count))
+          (basic-result (ecc-detect-basic-state)))
+      (message "[DEBUG] Line-based detection result: %s" line-result)
+      (message "[DEBUG] Basic detection result: %s" basic-result)
+      (or line-result basic-result))))
 
 ;;;###autoload
 (defun ecc-detect-basic-state ()
@@ -87,41 +92,62 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
 (defun ecc-analyze-buffer-text-for-state (buffer-text)
   "Analyze BUFFER-TEXT to detect Claude prompt state.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
-  (cond
-   ;; Check for y/y/n prompts using customized pattern
-   ((and (boundp 'ecc-state-prompt-y/y/n)
-         ecc-state-prompt-y/y/n
-         (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
-    :y/y/n)
-   
-   ;; Check for y/n prompts using customized pattern
-   ((and (boundp 'ecc-state-prompt-y/n)
-         ecc-state-prompt-y/n
-         (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
-    :y/n)
-   
-   ;; Check for waiting prompts using customized patterns
-   ((and (boundp 'ecc-state-prompt-waiting)
-         ecc-state-prompt-waiting
-         (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
-    :waiting)
-   
-   ;; Check for initial prompts
-   ((and (boundp 'ecc-state-prompt-initial-waiting)
-         ecc-state-prompt-initial-waiting
-         (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
-    :initial-waiting)
-   
-   ;; If no custom patterns match, try alternative initial waiting patterns
-   ((ecc-detect-alternative-initial-waiting buffer-text)
-    :initial-waiting)
-   
-   ;; Fallback to common patterns
-   ((string-match-p "\\[Y/y/n\\]" buffer-text) :y/y/n)
-   ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) :y/n)
-   ((string-match-p "continue>\\|Continue>" buffer-text) :waiting)
-   
-   (t nil)))
+  (message "[DEBUG] ecc-analyze-buffer-text-for-state called")
+  (message "[DEBUG] Buffer text length: %s" (length buffer-text))
+  (when (< (length buffer-text) 200)
+    (message "[DEBUG] Buffer text: %s" buffer-text))
+  
+  (let ((result
+         (cond
+          ;; Check for y/y/n prompts using customized pattern
+          ((and (boundp 'ecc-state-prompt-y/y/n)
+                ecc-state-prompt-y/y/n
+                (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
+           (message "[DEBUG] Matched Y/Y/N pattern: %s" ecc-state-prompt-y/y/n)
+           :y/y/n)
+          
+          ;; Check for y/n prompts using customized pattern
+          ((and (boundp 'ecc-state-prompt-y/n)
+                ecc-state-prompt-y/n
+                (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
+           (message "[DEBUG] Matched Y/N pattern: %s" ecc-state-prompt-y/n)
+           :y/n)
+          
+          ;; Check for waiting prompts using customized patterns
+          ((and (boundp 'ecc-state-prompt-waiting)
+                ecc-state-prompt-waiting
+                (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
+           (message "[DEBUG] Matched waiting pattern: %s" ecc-state-prompt-waiting)
+           :waiting)
+          
+          ;; Check for initial prompts
+          ((and (boundp 'ecc-state-prompt-initial-waiting)
+                ecc-state-prompt-initial-waiting
+                (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
+           (message "[DEBUG] Matched initial waiting pattern: %s" ecc-state-prompt-initial-waiting)
+           :initial-waiting)
+          
+          ;; If no custom patterns match, try alternative initial waiting patterns
+          ((ecc-detect-alternative-initial-waiting buffer-text)
+           (message "[DEBUG] Matched alternative initial waiting pattern")
+           :initial-waiting)
+          
+          ;; Fallback to common patterns
+          ((string-match-p "\\[Y/y/n\\]" buffer-text) 
+           (message "[DEBUG] Matched fallback Y/Y/N pattern")
+           :y/y/n)
+          ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) 
+           (message "[DEBUG] Matched fallback Y/N pattern")
+           :y/n)
+          ((string-match-p "continue>\\|Continue>" buffer-text) 
+           (message "[DEBUG] Matched fallback continue pattern")
+           :waiting)
+          
+          (t 
+           (message "[DEBUG] No pattern matched")
+           nil))))
+    (message "[DEBUG] Final detection result: %s" result)
+    result))
 
 (defun ecc-detect-alternative-initial-waiting (buffer-text)
   "Check if BUFFER-TEXT contains any alternative initial waiting patterns.
@@ -161,8 +187,9 @@ Returns the detected state if a prompt is found, nil otherwise."
         (when (and state
                   (boundp 'ecc-auto-notify-on-claude-prompt)
                   ecc-auto-notify-on-claude-prompt
-                  (fboundp 'ecc-auto-notify-check-state))
-          (ecc-auto-notify-check-state state))
+                  (fboundp 'ecc-notification-check-state))
+          ;; Use the notification system to ring bell and other alerts
+          (ecc-notification-check-state state))
         state))))
 
 ;;;; Debugging helpers

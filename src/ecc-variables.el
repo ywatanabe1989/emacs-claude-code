@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-24 20:54:01>
+;;; Timestamp: <2025-05-25 00:27:37>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -74,7 +74,7 @@
 (defvar ecc-buffer-current-buffer nil
   "Current active Claude buffer.")
 
-(defvar ecc-claude-buffers nil
+(defvar ecc-buffers nil
   "List of all Claude vterm buffers (both dedicated and converted).")
 
 ;; Buffer-local auto-response settings
@@ -156,14 +156,14 @@ thorough detection and performance."
 (defcustom ecc-state-prompt-initial-waiting
   "│ > Try "
   "Pattern that matches the waiting prompt shown in Claude interface.
-` ` is the correct expression so do not change to space."
+` ` is not Regular space (U+0020, decimal 32) but Non-breaking space (U+00A0, decimal 160)."
   :type 'string
   :group 'ecc-state-detection)
 
 (defcustom ecc-state-prompt-waiting
   "│ >                            "
   "Pattern that matches the waiting prompt shown in Claude interface.
-` ` is the correct expression so do not change to space."
+` ` is not Regular space (U+0020, decimal 32) but Non-breaking space (U+00A0, decimal 160)."
   :type 'string
   :group 'ecc-state-detection)
 

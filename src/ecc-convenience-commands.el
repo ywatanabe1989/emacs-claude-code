@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-23 00:39:21>
+;;; Timestamp: <2025-05-24 21:56:50>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-convenience-commands.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -8,7 +8,7 @@
 
 ;; Define convenience commands
 
-(defun ecc-claude-vterm ()
+(defun ecc-vterm ()
   "Start a new Claude vterm session."
   (interactive)
   (cond
@@ -25,7 +25,7 @@
    (t
     (message "Claude vterm mode not available"))))
 
-(defun ecc-claude-optimize-vterm ()
+(defun ecc-optimize-vterm ()
   "Optimize the current vterm buffer for Claude."
   (interactive)
   (if (fboundp 'ecc-vterm-mode)
@@ -36,7 +36,7 @@
         (message "Vterm buffer optimized for Claude"))
     (message "ecc-vterm-mode not available")))
 
-(defun ecc-claude-auto-respond ()
+(defun ecc-auto-respond ()
   "Enable auto-response for Claude in the current buffer."
   (interactive)
   (if (fboundp 'ecc-start-auto-response)
@@ -46,7 +46,7 @@
         (message "Auto-response enabled for this buffer"))
     (message "Auto-response functionality not available")))
 
-(defun ecc-claude-quick-auto-response ()
+(defun ecc-quick-auto-response ()
   "Quickly enable auto-response with the '/user:auto' continue response.
 This is a convenience function that enables auto-response with
 default settings but using '/user:auto' for the continue prompt."
@@ -55,10 +55,11 @@ default settings but using '/user:auto' for the continue prompt."
       (progn
         (ecc-register-buffer)
         (ecc-start-auto-response "1" "2" "/user:auto")
-        (message "Quick auto-response enabled with /user:auto continue"))
+        (message
+         "Quick auto-response enabled with /user:auto continue"))
     (message "Auto-response functionality not available")))
 
-(defun ecc-claude-visual-aid-toggle ()
+(defun ecc-visual-aid-toggle ()
   "Toggle visual aids for Claude interaction."
   (interactive)
   (if (fboundp 'ecc-term-visual-aid-toggle)
@@ -79,7 +80,7 @@ default settings but using '/user:auto' for the continue prompt."
       (ecc-auto-notify-toggle-bell)
     (message "Notification bell functionality not available")))
 
-(defun ecc-claude-interaction-stats ()
+(defun ecc-interaction-stats ()
   "Display Claude interaction statistics."
   (interactive)
   (if (fboundp 'ecc-display-interaction-stats)
@@ -131,7 +132,7 @@ default settings but using '/user:auto' for the continue prompt."
 ;; Disable auto-follow by default to prevent scrolling issues
 (setq ecc-vterm-always-follow-bottom nil)
 
-(defun ecc-claude-stop-auto ()
+(defun ecc-stop-auto ()
   "Immediately stop auto-response and show a clear notification."
   (interactive)
   (if (fboundp 'ecc-stop-auto-response)
@@ -143,7 +144,7 @@ default settings but using '/user:auto' for the continue prompt."
             (display-message-or-buffer msg "*Claude Auto Control*"))))
     (message "Auto-response functionality not available")))
 
-(defun ecc-claude-help ()
+(defun ecc-help ()
   "Display help about Claude mode commands and keybindings."
   (interactive)
   (with-help-window "*Claude Help*"
@@ -154,9 +155,9 @@ default settings but using '/user:auto' for the continue prompt."
 
     ;; Basic operations
     (princ
-     "C-c c v      ecc-claude-vterm        Start a new Claude vterm session\n")
+     "C-c c v      ecc-vterm               Start a new Claude vterm session\n")
     (princ
-     "C-c c o      ecc-claude-optimize     Optimize current vterm for Claude\n")
+     "C-c c o      ecc-optimize-vterm      Optimize current vterm for Claude\n")
 
     ;; Auto-response
     (princ
@@ -164,7 +165,7 @@ default settings but using '/user:auto' for the continue prompt."
     (princ
      "C-c c q      ecc-quick-auto          Quick enable auto-response with /user:auto\n")
     (princ
-     "C-c c s      ecc-claude-stop-auto    Emergency stop auto-response\n")
+     "C-c c s      ecc-stop-auto-response  Emergency stop auto-response\n")
 
     ;; Visual aids
     (princ "C-c c t      ecc-visual-aid-toggle   Toggle visual aids\n")
@@ -192,7 +193,7 @@ default settings but using '/user:auto' for the continue prompt."
      "C-c c c      ecc-add-periodic-cmd    Add a new periodic command\n")
 
     ;; Help
-    (princ "C-c c h      ecc-claude-help         Show this help\n\n")
+    (princ "C-c c h      ecc-help                Show this help\n\n")
 
     ;; Auto-Response System
     (princ "Auto-Response System\n")
@@ -286,45 +287,52 @@ default settings but using '/user:auto' for the continue prompt."
 
 ;; Define a minor mode with dedicated keymap instead of using global keybindings
 
-(define-minor-mode ecc-claude-mode
+(defvar ecc-mode-map
+  (let ((map (make-sparse-keymap)))
+    ;; Basic operations
+    (define-key map (kbd "C-c c v") 'ecc-vterm)
+    (define-key map (kbd "C-c c o") 'ecc-optimize-vterm)
+
+    ;; Auto-response
+    (define-key map (kbd "C-c c a")
+                'ecc-auto-response-buffer-toggle)
+    (define-key map (kbd "C-l")
+                'ecc-auto-response-buffer-toggle)
+    (define-key map (kbd "C-c c q")
+                'ecc-quick-auto-response)
+    (define-key map (kbd "C-c c s") 'ecc-stop-auto)
+
+    ;; Visual aids
+    (define-key map (kbd "C-c c t")
+                'ecc-visual-aid-toggle)
+    (define-key map (kbd "C-c c m") 'ecc-toggle-colors)
+    (define-key map (kbd "C-c c g") 'ecc-toggle-grayscale)
+    (define-key map (kbd "C-c c e") 'ecc-toggle-eye-friendly)
+    (define-key map (kbd "C-c c r") 'ecc-adjust-scroll-speed)
+
+    ;; Notifications
+    (define-key map (kbd "C-c c n") 'ecc-notify-toggle)
+    (define-key map (kbd "C-c c b") 'ecc-bell-toggle)
+
+    ;; Interaction tracking
+    (define-key map (kbd "C-c c i")
+                'ecc-interaction-stats)
+
+    ;; Periodic commands
+    (define-key map (kbd "C-c c p") 'ecc-toggle-periodic-cmds)
+    (define-key map (kbd "C-c c c") 'ecc-add-periodic-cmd)
+
+    ;; Help
+    (define-key map (kbd "C-c c h") 'ecc-help)
+    map)
+  "Keymap for ecc-mode.")
+
+(define-minor-mode ecc-mode
   "Minor mode for emacs-claude-code global features.
 When enabled, provides keybindings for Claude interaction commands."
   :lighter " Claude"
   :global t
-  :keymap (let ((map (make-sparse-keymap)))
-            ;; Basic operations
-            (define-key map (kbd "C-c c v") 'ecc-claude-vterm)
-            (define-key map (kbd "C-c c o") 'ecc-claude-optimize-vterm)
-
-            ;; Auto-response
-            (define-key map (kbd "C-c c a") 'ecc-auto-response-toggle)
-            (define-key map (kbd "C-c c q")
-                        'ecc-claude-quick-auto-response)
-            (define-key map (kbd "C-c c s") 'ecc-claude-stop-auto)
-
-            ;; Visual aids
-            (define-key map (kbd "C-c c t")
-                        'ecc-claude-visual-aid-toggle)
-            (define-key map (kbd "C-c c m") 'ecc-toggle-colors)
-            (define-key map (kbd "C-c c g") 'ecc-toggle-grayscale)
-            (define-key map (kbd "C-c c e") 'ecc-toggle-eye-friendly)
-            (define-key map (kbd "C-c c r") 'ecc-adjust-scroll-speed)
-
-            ;; Notifications
-            (define-key map (kbd "C-c c n") 'ecc-notify-toggle)
-            (define-key map (kbd "C-c c b") 'ecc-bell-toggle)
-
-            ;; Interaction tracking
-            (define-key map (kbd "C-c c i")
-                        'ecc-claude-interaction-stats)
-
-            ;; Periodic commands
-            (define-key map (kbd "C-c c p") 'ecc-toggle-periodic-cmds)
-            (define-key map (kbd "C-c c c") 'ecc-add-periodic-cmd)
-
-            ;; Help
-            (define-key map (kbd "C-c c h") 'ecc-claude-help)
-            map))
+  :keymap ecc-mode-map)
 
 
 (provide 'ecc-convenience-commands)

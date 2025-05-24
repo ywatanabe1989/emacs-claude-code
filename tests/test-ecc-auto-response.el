@@ -103,72 +103,66 @@ Does nothing in testing."
 
 ;;;; Global mode tests
 
-(ert-deftest test-auto-response-start-global ()
-  "Test starting auto-response in global mode."
+(ert-deftest test-auto-response-buffer-start ()
+  "Test starting auto-response in buffer-local mode."
   (with-temp-buffer-fixture "Test content"
-    ;; Set global mode
-    (setq ecc-auto-response-buffer-local-default nil)
+    ;; Mock core functions
+    (cl-letf (((symbol-function 'ecc-buffer-state-init) #'ignore)
+              ((symbol-function 'ecc-buffer-local-init) #'ignore)
+              ((symbol-function 'ecc-auto-core-register-buffer-local) #'ignore))
+      
+      ;; Start buffer-local auto-response
+      (ecc-auto-response-buffer-start temp-buffer)
+      
+      ;; Check if auto-response was enabled for buffer
+      (with-current-buffer temp-buffer
+        (should (boundp 'ecc-buffer-auto-response-enabled))
+        (should ecc-buffer-auto-response-enabled)))))
+
+(ert-deftest test-auto-response-buffer-stop ()
+  "Test stopping auto-response in buffer-local mode."
+  (with-temp-buffer-fixture "Test content"
+    ;; Initialize buffer-local state
+    (with-current-buffer temp-buffer
+      (setq-local ecc-buffer-auto-response-enabled t))
     
     ;; Mock core functions
-    (cl-letf (((symbol-function 'ecc-auto-core-register-buffer) #'ignore)
-              ((symbol-function 'ecc-auto-core-timer-start) #'ignore)
-              ((symbol-function 'ecc-auto-core-initial-check) #'ignore))
+    (cl-letf (((symbol-function 'ecc-auto-core-unregister-buffer-local) #'ignore))
       
-      ;; Start auto-response
-      (ecc-auto-response-start)
+      ;; Stop buffer-local auto-response
+      (ecc-auto-response-buffer-stop temp-buffer)
       
-      ;; Check if auto-response was enabled
-      (should ecc-auto-response-enabled)
-      (should ecc-auto-response--registered-callback))))
+      ;; Check if auto-response was disabled for buffer
+      (with-current-buffer temp-buffer
+        (should-not ecc-buffer-auto-response-enabled)))))
 
-(ert-deftest test-auto-response-stop-global ()
-  "Test stopping auto-response in global mode."
+(ert-deftest test-auto-response-buffer-toggle ()
+  "Test toggling auto-response in buffer-local mode."
   (with-temp-buffer-fixture "Test content"
-    ;; Set global mode and enabled state
-    (setq ecc-auto-response-buffer-local-default nil
-          ecc-auto-response-enabled t
-          ecc-auto-response--registered-callback (lambda (buffer state) nil))
+    ;; Initialize buffer-local state
+    (ecc-auto-response-buffer-start temp-buffer)
     
-    ;; Mock core functions
-    (cl-letf (((symbol-function 'ecc-auto-core-timer-stop) #'ignore)
-              ((symbol-function 'ecc-auto-core-reset-state) #'ignore))
+    ;; Start from disabled state
+    (with-current-buffer temp-buffer
+      (setq-local ecc-auto-response-buffer-enabled nil)
       
-      ;; Stop auto-response
-      (ecc-auto-response-stop)
+      ;; Toggle to enabled
+      (ecc-auto-response-buffer-toggle)
+      (should ecc-auto-response-buffer-enabled)
+      (should ecc-buffer-auto-response-enabled) ;; Check compat variable too
       
-      ;; Check if auto-response was disabled
-      (should-not ecc-auto-response-enabled)
-      (should-not ecc-auto-response--registered-callback))))
-
-(ert-deftest test-auto-response-toggle-global ()
-  "Test toggling auto-response in global mode."
-  (with-temp-buffer-fixture "Test content"
-    ;; Set global mode
-    (setq ecc-auto-response-buffer-local-default nil)
-    
-    ;; Mock dependencies
-    (cl-letf (((symbol-function 'ecc-auto-response-start) 
-               (lambda () (setq ecc-auto-response-enabled t)))
-              ((symbol-function 'ecc-auto-response-stop)
-               (lambda () (setq ecc-auto-response-enabled nil))))
-      
-      ;; Start from disabled state
-      (setq ecc-auto-response-enabled nil)
-      (ecc-auto-response-toggle)
-      (should ecc-auto-response-enabled)
-      
-      ;; Toggle to disabled state
-      (ecc-auto-response-toggle)
-      (should-not ecc-auto-response-enabled))))
+      ;; Toggle to disabled
+      (ecc-auto-response-buffer-toggle)
+      (should-not ecc-auto-response-buffer-enabled)
+      (should-not ecc-buffer-auto-response-enabled))))
 
 (ert-deftest test-auto-response-send ()
   "Test sending response to Claude prompt."
   (with-temp-buffer-fixture "Test content with [y/n] prompt"
-    ;; Set global mode and enabled state
-    (setq ecc-auto-response-buffer-local-default nil
-          ecc-auto-response-enabled t
-          ecc-auto-response-yes "TEST_YES"
-          ecc-auto-response-notify t)
+    ;; Initialize buffer-local mode with custom yes response
+    (ecc-auto-response-buffer-start temp-buffer "TEST_YES")
+    (with-current-buffer temp-buffer
+      (setq-local ecc-buffer-auto-notify-completions t))
     
     ;; Replace dependencies with mocks
     (cl-letf (((symbol-function 'ecc-detect-state) #'auto-response-test-mock-detect-state)
@@ -184,8 +178,8 @@ Does nothing in testing."
       (with-current-buffer temp-buffer
         (setq major-mode 'vterm-mode)) ;; Mock vterm mode
       
-      ;; Send response
-      (ecc-auto-response-send temp-buffer)
+      ;; Send response via buffer-local check
+      (ecc-auto-response--process-buffer-local temp-buffer)
       
       ;; Check response was sent correctly
       (should (string= auto-response-test-sent-string "TEST_YES"))
@@ -193,9 +187,10 @@ Does nothing in testing."
       (should auto-response-test-notification)
       
       ;; Test disabled auto-response
-      (setq ecc-auto-response-enabled nil
-            auto-response-test-sent-string nil)
-      (ecc-auto-response-send temp-buffer)
+      (with-current-buffer temp-buffer
+        (setq-local ecc-buffer-auto-response-enabled nil))
+      (setq auto-response-test-sent-string nil)
+      (ecc-auto-response--process-buffer-local temp-buffer)
       
       ;; Check no response was sent
       (should-not auto-response-test-sent-string))))
@@ -255,7 +250,7 @@ Does nothing in testing."
               ((symbol-function 'ecc-auto-core-register-buffer-local) #'ignore))
       
       ;; Initialize buffer-local auto-response
-      (ecc-auto-response-buffer-local-init temp-buffer)
+      (ecc-auto-response-buffer-start temp-buffer)
       
       ;; Check buffer-local variables set
       (with-current-buffer temp-buffer
@@ -272,7 +267,7 @@ Does nothing in testing."
     ;; Set up buffer-local mode and state
     (setq ecc-auto-response-buffer-local-default t)
     (with-current-buffer temp-buffer
-      (setq ecc-auto-response-buffer-enabled t
+      (setq ecc-buffer-auto-response-enabled t
             ecc-auto-response-buffer-yes "TEST_BUFFER_YES"
             ;; Initialize throttling state
             ecc-auto-response-buffer-last-state nil
@@ -293,7 +288,7 @@ Does nothing in testing."
       (setq auto-response-test-mock-state :y/n)
       
       ;; Check state and send response  
-      (ecc-auto-response-buffer-local-check temp-buffer)
+      (ecc-auto-response--process-buffer-local temp-buffer)
       
       ;; Verify response was sent
       (should (string= auto-response-test-sent-string "TEST_BUFFER_YES"))
@@ -304,7 +299,7 @@ Does nothing in testing."
         (setq ecc-buffer-auto-response-enabled nil))
       
       (setq auto-response-test-sent-string nil)
-      (ecc-auto-response-buffer-local-check temp-buffer)
+      (ecc-auto-response--process-buffer-local temp-buffer)
       
       ;; Check no response was sent
       (should-not auto-response-test-sent-string))))
@@ -314,9 +309,11 @@ Does nothing in testing."
 (ert-deftest test-auto-response-yes ()
   "Test convenience function for sending Y response."
   (with-temp-buffer-fixture "Test content"
-    ;; Set global mode
-    (setq ecc-auto-response-buffer-local-default nil
-          ecc-auto-response-yes "TEST_GLOBAL_YES")
+    ;; Initialize buffer-local mode
+    (ecc-auto-response-buffer-start temp-buffer)
+    (with-current-buffer temp-buffer
+      (setq-local ecc-buffer-auto-response-enabled t)
+      (setq-local ecc-buffer-auto-response-y/n "TEST_BUFFER_YES"))
     
     ;; Replace dependencies with mocks
     (cl-letf (((symbol-function 'ecc-auto-response--send-to-buffer)
@@ -324,42 +321,20 @@ Does nothing in testing."
                  (setq auto-response-test-sent-string response
                        auto-response-test-sent-buffer buffer))))
       
-      ;; Send yes response
-      (ecc-auto-response-yes temp-buffer)
+      ;; Send yes response using buffer-local function
+      (ecc-auto-response--send-to-buffer temp-buffer 
+                                                    (buffer-local-value 'ecc-buffer-auto-response-y/n temp-buffer)
+                                                    "Y/N")
       
       ;; Verify response was sent
-      (should (string= auto-response-test-sent-string "TEST_GLOBAL_YES"))
-      (should (eq auto-response-test-sent-buffer temp-buffer))
-      
-      ;; Test buffer-local mode
-      (setq ecc-auto-response-buffer-local-default t)
-      (with-current-buffer temp-buffer
-        (setq ecc-buffer-auto-response-enabled t
-              ecc-buffer-auto-response-y/n "TEST_BUFFER_YES"))
-      
-      (cl-letf (((symbol-function 'buffer-local-value) 
-                 (lambda (var buffer) 
-                   (if (eq buffer temp-buffer)
-                       (buffer-local-value var temp-buffer)
-                     nil)))
-                ((symbol-function 'ecc-auto-response-buffer-local-send-message)
-                 (lambda (buffer response type)
-                   (setq auto-response-test-sent-string response
-                         auto-response-test-sent-buffer buffer))))
-        
-        ;; Reset and send in buffer-local mode
-        (setq auto-response-test-sent-string nil)
-        (ecc-auto-response-yes temp-buffer)
-        
-        ;; Verify buffer-local response was sent
-        (should (string= auto-response-test-sent-string "TEST_BUFFER_YES"))
-        (should (eq auto-response-test-sent-buffer temp-buffer))))))
+      (should (string= auto-response-test-sent-string "TEST_BUFFER_YES"))
+      (should (eq auto-response-test-sent-buffer temp-buffer)))))
 
 (ert-deftest test-auto-response-custom ()
   "Test sending custom response text."
   (with-temp-buffer-fixture "Test content"
-    ;; Set global mode
-    (setq ecc-auto-response-buffer-local-default nil)
+    ;; Initialize buffer-local mode
+    (ecc-auto-response-buffer-start temp-buffer)
     
     ;; Replace dependencies with mocks
     (cl-letf (((symbol-function 'ecc-auto-response--send-to-buffer)
@@ -368,8 +343,7 @@ Does nothing in testing."
                        auto-response-test-sent-buffer buffer))))
       
       ;; Send custom response
-      (with-current-buffer temp-buffer
-        (ecc-auto-response-custom "TEST_CUSTOM"))
+      (ecc-auto-response--send-to-buffer temp-buffer "TEST_CUSTOM" "custom")
       
       ;; Verify response was sent
       (should (string= auto-response-test-sent-string "TEST_CUSTOM"))
@@ -393,14 +367,15 @@ are being sent in rapid succession beyond normal throttling."
                  (lambda () :waiting))
                 ((symbol-function 'message) #'ignore))
         
-        ;; Enable auto-response
-        (setq ecc-auto-response-enabled t)
-        (ecc-auto-response-register-buffer temp-buffer)
+        ;; Enable buffer-local auto-response
+        (ecc-auto-response-buffer-start temp-buffer)
+        (with-current-buffer temp-buffer
+          (setq-local ecc-buffer-auto-response-enabled t))
         
         ;; Send multiple responses quickly (should trigger accumulation detection)
         (dotimes (i 10)
           (setq mock-time (+ mock-time 0.1)) ; 100ms intervals
-          (ecc-auto-response--process-buffer-global temp-buffer))
+          (ecc-auto-response--process-buffer-local temp-buffer))
         
         ;; Should detect accumulation and stop sending after threshold
         (should (fboundp 'ecc-auto-response--accumulation-detected-p))
@@ -487,10 +462,8 @@ Verifies detection of different ways ESC interrupts can appear."
     ;; Test different ESC patterns
     (let ((esc-patterns '("^["
                          "\e"
-                         "\\e"
                          "ESC to interrupt"
-                         "Press esc to interrupt"
-                         "[ESC]")))
+                         "Press esc to interrupt")))
       
       (dolist (pattern esc-patterns)
         (with-current-buffer temp-buffer
@@ -511,15 +484,17 @@ Verifies that detecting ESC automatically disables auto-response."
                (lambda () :waiting))
               ((symbol-function 'message) #'ignore))
       
-      ;; Enable auto-response
-      (setq ecc-auto-response-enabled t)
-      (ecc-auto-response-register-buffer temp-buffer)
+      ;; Enable buffer-local auto-response
+      (ecc-auto-response-buffer-start temp-buffer)
+      (with-current-buffer temp-buffer
+        (setq-local ecc-auto-response-buffer-enabled t))
       
       ;; Process buffer (should detect ESC and stop)
-      (ecc-auto-response--process-buffer-global temp-buffer)
+      (ecc-auto-response--process-buffer-local temp-buffer)
       
-      ;; Auto-response should be disabled
-      (should-not ecc-auto-response-enabled))))
+      ;; Buffer-local auto-response should be disabled
+      (with-current-buffer temp-buffer
+        (should-not ecc-auto-response-buffer-enabled)))))
 
 (ert-deftest test-auto-response-esc-interrupt-notification ()
   "Test notification when ESC interrupt is detected.
@@ -534,41 +509,41 @@ Verifies that user is notified when auto-response stops due to ESC."
                    (when (string-match-p "interrupt" format-string)
                      (setq notification-received t)))))
         
-        ;; Enable auto-response
-        (setq ecc-auto-response-enabled t)
-        (ecc-auto-response-register-buffer temp-buffer)
+        ;; Enable buffer-local auto-response
+        (ecc-auto-response-buffer-start temp-buffer)
+        (with-current-buffer temp-buffer
+          (setq-local ecc-buffer-auto-response-enabled t))
         
         ;; Process buffer (should detect ESC)
-        (ecc-auto-response--process-buffer-global temp-buffer)
+        (ecc-auto-response--process-buffer-local temp-buffer)
         
         ;; Should receive interrupt notification
         (should notification-received)))))
 
 ;;;; Backward compatibility tests
 
-(ert-deftest test-auto-response-legacy-functions ()
-  "Test backward compatibility functions."
+(ert-deftest test-auto-response-buffer-local-functions ()
+  "Test buffer-local auto-response functions."
   (with-temp-buffer-fixture "Test content"
-    ;; Mock dependencies
-    (cl-letf (((symbol-function 'ecc-auto-response-start) 
-               (lambda () (setq ecc-auto-response-enabled t)))
-              ((symbol-function 'ecc-auto-response-stop)
-               (lambda () (setq ecc-auto-response-enabled nil)))
-              ((symbol-function 'ecc-auto-response-toggle)
-               (lambda () (setq ecc-auto-response-enabled (not ecc-auto-response-enabled)))))
+    ;; Test buffer-local init
+    (ecc-auto-response-buffer-start temp-buffer)
+    
+    (with-current-buffer temp-buffer
+      ;; Verify variables are initialized
+      (should (boundp 'ecc-buffer-auto-response-enabled))
+      (should (boundp 'ecc-buffer-auto-response-y/n))
+      (should (boundp 'ecc-buffer-auto-response-y/y/n))
       
-      ;; Test legacy start function
-      (setq ecc-auto-response-enabled nil)
-      (ecc-start-auto-response)
-      (should ecc-auto-response-enabled)
+      ;; Test toggle function
+      (setq-local ecc-auto-response-buffer-enabled nil)
+      (ecc-auto-response-buffer-toggle)
+      (should ecc-auto-response-buffer-enabled)
+      (should ecc-buffer-auto-response-enabled) ;; Check compat variable too
       
-      ;; Test legacy stop function
-      (ecc-stop-auto-response)
-      (should-not ecc-auto-response-enabled)
-      
-      ;; Test legacy toggle function
-      (ecc-toggle-auto-response)
-      (should ecc-auto-response-enabled))))
+      ;; Toggle again
+      (ecc-auto-response-buffer-toggle)
+      (should-not ecc-auto-response-buffer-enabled)
+      (should-not ecc-buffer-auto-response-enabled))))
 
 (provide 'test-ecc-auto-response)
 

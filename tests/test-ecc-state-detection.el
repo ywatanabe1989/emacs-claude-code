@@ -46,16 +46,18 @@ Returns the result of BODY."
     (should (eq (ecc-detect-state) :y/y/n))))
 
 (ert-deftest test-state-detection-waiting ()
-  "Test detection of waiting prompt."
+  "Test detection of waiting prompt.
+Note: ecc-state-prompt-waiting uses non-breaking spaces (char 160) after
+the pipe and arrow characters. This is critical for pattern matching."
   (with-test-buffer (concat "Some text before the prompt\n"
-                          "│ >                            \n")
+                          ecc-state-prompt-waiting "\n")
     (should (eq (ecc-detect-state) :waiting))))
 
 (ert-deftest test-state-detection-initial-waiting ()
   "Test detection of initial waiting prompt."
   (with-test-buffer (concat "Some introduction\n"
                           "Claude is ready\n"
-                          "│ > Try \n")
+                          "│ > Try \n")
     (should (eq (ecc-detect-state) :initial-waiting))))
 
 (ert-deftest test-state-detection-no-prompt ()
@@ -177,7 +179,7 @@ Returns the result of BODY."
         (notify-called nil))
     
     ;; Mock the notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-check-state)
+    (cl-letf (((symbol-function 'ecc-notification-check-state)
                (lambda (state) (setq notify-called state))))
       
       ;; Test with a prompt

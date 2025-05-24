@@ -236,14 +236,21 @@ where a single set of configurations applies to all buffers."
 
 ;;;; Debugging Utilities
 
+(defvar-local ecc-auto-response-buffer-debug-enabled nil
+  "Whether debug messages are enabled for auto-response in this buffer.")
+
 (defun ecc-auto-response--debug (format-string &rest args)
   "Log a debug message for auto-response with FORMAT-STRING and ARGS.
-Only displays the message if `ecc-auto-response-debug' is non-nil.
-Uses the consolidated debug utils if available, otherwise falls back."
-  (when ecc-auto-response-debug
-    (if (fboundp 'ecc-debug-message)
-        (apply #'ecc-debug-message (concat "[Auto-Response] " format-string) args)
-      (message "[Auto-Response Debug] %s" (apply #'format format-string args)))))
+Only displays the message if `ecc-auto-response-debug' is non-nil globally
+or `ecc-auto-response-buffer-debug-enabled' is non-nil locally.
+Messages go to *Messages* buffer without minibuffer echo."
+  (when (or ecc-auto-response-debug ecc-auto-response-buffer-debug-enabled)
+    (let ((inhibit-message t))  ; Prevent minibuffer echo
+      (if (fboundp 'ecc-debug-message)
+          (apply #'ecc-debug-message (concat "[Auto-Response] " format-string) args)
+        (message "[ECC-AUTO-RESPONSE DEBUG %s] %s" 
+                 (buffer-name) 
+                 (apply #'format format-string args))))))
 
 ;;;; Accumulation Detection
 
@@ -391,6 +398,7 @@ Example:
   (ecc-auto-response-start)  ;; Start with default responses
   (ecc-auto-response-start \"y\" \"y\" \"/continue\")  ;; Start with custom responses"
   (interactive)
+  (ecc-auto-response--debug "ecc-auto-response-start called")
   (ecc-auto-response--debug "Starting auto-response system")
   
   ;; Update response values if provided
@@ -407,6 +415,7 @@ Example:
   
   ;; Start timer if not already running
   (unless ecc-auto-response--timer
+    (ecc-auto-response--debug "Starting timer with interval: %s" ecc-auto-response-check-interval)
     (setq ecc-auto-response--timer
           (run-with-timer 0 ecc-auto-response-check-interval
                          'ecc-auto-response--process-all-buffers))
@@ -444,10 +453,12 @@ Cancels the timer and disables automatic responses to Claude prompts."
 Enables or disables automatic responses to Claude prompts.
 If not already started, initializes with default settings."
   (interactive)
+  (ecc-auto-response--debug "ecc-auto-response-toggle called. Current state: %s" ecc-auto-response-enabled)
   (if ecc-auto-response-enabled
       (ecc-auto-response-stop)
     ;; When starting, ensure we have a registered buffer
     (progn
+      (ecc-auto-response--debug "Registering current buffer before starting")
       (ecc-auto-response-register-buffer (current-buffer))
       (ecc-auto-response-start))))
 
@@ -467,11 +478,15 @@ Useful to apply new settings or clear state."
   "Register BUFFER for auto-response.
 Registered buffers will be checked for Claude prompts when auto-response is enabled."
   (interactive (list (current-buffer)))
+  (ecc-auto-response--debug "ecc-auto-response-register-buffer called for: %s" 
+           (if (buffer-live-p buffer) (buffer-name buffer) "non-live buffer"))
   (unless (buffer-live-p buffer)
     (ecc-auto-response--debug "Cannot register non-live buffer")
     (user-error "Buffer is not alive"))
   
   (puthash buffer t ecc-auto-response--registered-buffers)
+  (ecc-auto-response--debug "Buffer registered. Total registered buffers: %s" 
+           (hash-table-count ecc-auto-response--registered-buffers))
   (ecc-auto-response--debug "Registered buffer: %s" (buffer-name buffer))
   buffer)
 
@@ -490,12 +505,18 @@ The buffer will no longer be checked for Claude prompts."
 (defun ecc-auto-response--process-all-buffers ()
   "Process all registered buffers for auto-response.
 Checks each buffer for Claude prompts and sends responses if appropriate."
+  (ecc-auto-response--debug "ecc-auto-response--process-all-buffers called")
+  (ecc-auto-response--debug "Auto-response enabled: %s" ecc-auto-response-enabled)
+  (ecc-auto-response--debug "Registered buffers count: %s" (hash-table-count ecc-auto-response--registered-buffers))
+  
   (when ecc-auto-response-enabled
     (ecc-auto-response--debug "Processing all buffers for auto-response")
     
     ;; Loop through registered buffers
     (maphash
      (lambda (buffer _)
+       (ecc-auto-response--debug "Processing buffer: %s" (if (buffer-live-p buffer) (buffer-name buffer) "non-live"))
+       
        ;; Skip if buffer is not live
        (unless (buffer-live-p buffer)
          (ecc-auto-response--debug "Removing non-live buffer from registered list")
@@ -506,6 +527,10 @@ Checks each buffer for Claude prompts and sends responses if appropriate."
        (if ecc-auto-response-default
            ;; Buffer-local mode
            (with-current-buffer buffer
+             (ecc-auto-response--debug "Buffer-local mode check - enabled: %s" 
+                      (or ecc-auto-response-buffer-enabled
+                          (and (boundp 'ecc-buffer-auto-response-enabled)
+                               ecc-buffer-auto-response-enabled)))
              (when (or ecc-auto-response-buffer-enabled 
                       ;; For backward compatibility
                       (and (boundp 'ecc-buffer-auto-response-enabled)
@@ -513,46 +538,57 @@ Checks each buffer for Claude prompts and sends responses if appropriate."
                (ecc-auto-response--process-buffer-local buffer)))
          
          ;; Global mode
+         (ecc-auto-response--debug "Processing buffer in global mode")
          (ecc-auto-response--process-buffer-global buffer)))
      ecc-auto-response--registered-buffers)))
 
 (defun ecc-auto-response--process-buffer-global (buffer)
   "Process BUFFER for auto-response using global settings.
 Checks buffer for Claude prompts and sends responses if appropriate."
-  (with-current-buffer buffer
+  (ecc-auto-response--debug "ecc-auto-response--process-buffer-global called for buffer: %s" (buffer-name buffer))
+  
+  (cl-block ecc-auto-response--process-buffer-global
+    (with-current-buffer buffer
     ;; Check if command is running with ESC interrupt available
     (when (ecc-auto-response--running-state-with-esc-p buffer)
+      (ecc-auto-response--debug "Command running with ESC interrupt, skipping")
       (ecc-auto-response--debug "Command running with ESC interrupt in %s, skipping auto-response" 
                                (buffer-name buffer))
-      (return))
+      (cl-return-from ecc-auto-response--process-buffer-global))
     
     ;; Check for ESC interrupt (command finished with interrupt)
     (when (ecc-auto-response--esc-interrupt-detected-p buffer)
+      (ecc-auto-response--debug "ESC interrupt detected, stopping")
       (ecc-auto-response--debug "ESC interrupt detected in %s, stopping auto-response" 
                                (buffer-name buffer))
       (setq ecc-auto-response-enabled nil)
       (message "Auto-response stopped due to ESC interrupt")
-      (return))
+      (cl-return-from ecc-auto-response--process-buffer-global))
     
     ;; Check for accumulation
     (when (ecc-auto-response--accumulation-detected-p)
+      (ecc-auto-response--debug "Accumulation detected, stopping")
       (ecc-auto-response--debug "Accumulation detected, stopping auto-response")
       (setq ecc-auto-response-enabled nil)
       (message "Auto-response stopped due to accumulation detection")
-      (return))
+      (cl-return-from ecc-auto-response--process-buffer-global))
     
+    (ecc-auto-response--debug "Detecting state...")
     (let ((state (ecc-detect-state)))
+      (ecc-auto-response--debug "Detected state: %s" state)
       (when state
         (ecc-auto-response--debug "Detected state %s in buffer %s" 
                                  state (buffer-name))
         
         ;; Check if throttling needed
-        (unless (ecc-auto-response--throttled-p state)
+        (if (ecc-auto-response--throttled-p state)
+            (ecc-auto-response--debug "Response throttled for state: %s" state)
           ;; Increment accumulation counter
+          (ecc-auto-response--debug "Sending response for state: %s" state)
           (ecc-auto-response--increment-accumulation-counter)
           
           ;; Send response based on state
-          (ecc-auto-response--send-for-state state buffer))))))
+          (ecc-auto-response--send-for-state state buffer)))))))
 
 (defun ecc-auto-response--throttled-p (state)
   "Check if auto-response for STATE should be throttled.
@@ -573,6 +609,7 @@ Returns t if throttled, nil otherwise."
 (defun ecc-auto-response--send-for-state (state buffer)
   "Send appropriate response for STATE in BUFFER.
 Handles different types of Claude prompts with the configured responses."
+  (ecc-auto-response--debug "ecc-auto-response--send-for-state called with state: %s" state)
   (ecc-auto-response--debug "Sending response for state %s in buffer %s"
                            state (buffer-name buffer))
 
@@ -582,50 +619,68 @@ Handles different types of Claude prompts with the configured responses."
   
   ;; Send response based on state
   (with-current-buffer buffer
-    (ecc-auto-notify-prompt (format "%s" state))
+    (when (fboundp 'ecc-auto-notify-prompt)
+      (ecc-auto-notify-prompt (format "%s" state)))
     (cond
      ((eq state :y/y/n)
+      (ecc-auto-response--debug "Sending Y/Y/N response: %s" ecc-auto-response-yes-plus)
       (ecc-auto-response--send-to-buffer 
        buffer ecc-auto-response-yes-plus "Y/Y/N"))
      
      ((eq state :y/n)
+      (ecc-auto-response--debug "Sending Y/N response: %s" ecc-auto-response-yes)
       (ecc-auto-response--send-to-buffer 
        buffer ecc-auto-response-yes "Y/N"))
      
      ((eq state :initial-waiting)
+      (ecc-auto-response--debug "Sending Initial-Waiting response: %s" ecc-auto-response-initial-waiting)
       (ecc-auto-response--send-to-buffer 
        buffer ecc-auto-response-initial-waiting "Initial-Waiting"))
      
      ((eq state :waiting)
+      (ecc-auto-response--debug "Sending Continue response: %s" ecc-auto-response-continue)
       (ecc-auto-response--send-to-buffer 
        buffer ecc-auto-response-continue "Continue"))
      
      (t ;; Unrecognized state
+      (ecc-auto-response--debug "Unknown state: %s" state)
       (ecc-auto-response--debug "Unknown state %s, not sending response" state)
       nil))))
 
 (defun ecc-auto-response--send-to-buffer (buffer text state-name)
   "Send TEXT to BUFFER and notify with STATE-NAME.
 Handles sending the text through the appropriate buffer mode (vterm, comint, etc.)."
+  (ecc-auto-response--debug "ecc-auto-response--send-to-buffer called")
+  (ecc-auto-response--debug "  Buffer: %s" (buffer-name buffer))
+  (ecc-auto-response--debug "  Text: %s" text)
+  (ecc-auto-response--debug "  State: %s" state-name)
+  
   (ecc-auto-response--debug "Sending '%s' to buffer %s for %s state"
                            text (buffer-name buffer) state-name)
   
   (with-current-buffer buffer
+    (ecc-auto-response--debug "Buffer mode: %s" major-mode)
     ;; Send text based on buffer mode
     (cond
      ;; VTerm mode
      ((derived-mode-p 'vterm-mode)
-      (vterm-send-string text)
-      (vterm-send-return))
+      (ecc-auto-response--debug "Using vterm-send-string")
+      (if (fboundp 'vterm-send-string)
+          (progn
+            (vterm-send-string text)
+            (vterm-send-return))
+        (ecc-auto-response--debug "vterm-send-string not available")))
      
      ;; Comint mode
      ((derived-mode-p 'comint-mode)
+      (ecc-auto-response--debug "Using comint-send-input")
       (goto-char (point-max))
       (insert text)
       (comint-send-input))
      
      ;; Default - insert and newline
      (t
+      (ecc-auto-response--debug "Using default insert method")
       (goto-char (point-max))
       (insert text "\n"))))
   
@@ -673,6 +728,11 @@ Arguments:
       ;; Reset buffer-local response tracking
       (setq-local ecc-auto-response-buffer-last-state nil)
       (setq-local ecc-auto-response-buffer-last-response-time 0))
+    
+    ;; Enable global auto-response system if not already enabled
+    (unless ecc-auto-response-enabled
+      (setq ecc-auto-response-enabled t)
+      (ecc-auto-response--debug "Enabled global auto-response system"))
     
     ;; Start global timer if not already running
     (unless ecc-auto-response--timer
