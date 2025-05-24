@@ -67,14 +67,20 @@
 
 ;;; Tests for mode definition and customization
 
-(ert-deftest test-ecc-term-claude-mode-consolidated-definition ()
-  "Test that the Claude term mode is properly defined."
-  ;; Verify it derives from vterm-mode
-  (should (get 'ecc-term-claude-mode 'derived-mode-parent))
-  (should (eq (get 'ecc-term-claude-mode 'derived-mode-parent) 'vterm-mode))
-  
-  ;; Verify mode map
-  (should (boundp 'ecc-term-claude-mode-map))
+(ert-deftest test-ecc-term-claude-mode-has-derived-mode-parent ()
+  "Test that Claude term mode has a derived-mode-parent property."
+  (should (get 'ecc-term-claude-mode 'derived-mode-parent)))
+
+(ert-deftest test-ecc-term-claude-mode-derives-from-vterm-mode ()
+  "Test that Claude term mode derives from vterm-mode."
+  (should (eq (get 'ecc-term-claude-mode 'derived-mode-parent) 'vterm-mode)))
+
+(ert-deftest test-ecc-term-claude-mode-map-is-bound ()
+  "Test that ecc-term-claude-mode-map variable is bound."
+  (should (boundp 'ecc-term-claude-mode-map)))
+
+(ert-deftest test-ecc-term-claude-mode-map-is-keymap ()
+  "Test that ecc-term-claude-mode-map is a keymap."
   (should (keymapp ecc-term-claude-mode-map)))
 
 (ert-deftest test-ecc-term-claude-mode-consolidated-customization ()
@@ -198,25 +204,32 @@
 
 ;;; Tests for state detection and mode line
 
-(ert-deftest test-ecc-term-claude-consolidated-mode-line-state ()
-  "Test state detection and mode line integration."
-  ;; Test different states
+(ert-deftest test-mode-line-state-indicator-shows-waiting-state ()
+  "Test that mode line shows [Waiting] for :waiting state."
   (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :waiting))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
-    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Waiting]")))
-  
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Waiting]"))))
+
+(ert-deftest test-mode-line-state-indicator-shows-y-n-state ()
+  "Test that mode line shows [Y/N] for :y/n state."
   (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
-    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/N]")))
-  
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/N]"))))
+
+(ert-deftest test-mode-line-state-indicator-shows-y-y-n-state ()
+  "Test that mode line shows [Y/Y/N] for :y/y/n state."
   (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/y/n))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
-    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/Y/N]")))
-  
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/Y/N]"))))
+
+(ert-deftest test-mode-line-state-indicator-shows-initial-waiting-state ()
+  "Test that mode line shows [Init] for :initial-waiting state."
   (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
-    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Init]")))
-  
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Init]"))))
+
+(ert-deftest test-mode-line-state-indicator-shows-empty-for-nil-state ()
+  "Test that mode line shows empty string for nil state."
   (cl-letf (((symbol-function 'ecc-detect-state) (lambda () nil))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) ""))))
@@ -250,39 +263,53 @@
 
 ;;; Tests for auto-response functions
 
-(ert-deftest test-ecc-term-claude-consolidated-auto-respond ()
-  "Test auto-response functions."
-  ;; Mock functions
+(ert-deftest test-auto-send-respond-handles-y-n-state ()
+  "Test that auto-send-respond works for :y/n state."
   (cl-letf (((symbol-function 'vterm-send-string) (lambda (string) string))
             ((symbol-function 'vterm-send-return) (lambda () t))
             ((symbol-function 'message) (lambda (&rest _) t)))
-    
-    ;; Test auto-response behavior
     (let ((ecc-term-claude-auto-mode t))
-      ;; Test with different states
       (put 'ecc-test-state 'current-state :y/n)
-      (should (ecc-term-claude--auto-send-respond))
-      
+      (should (ecc-term-claude--auto-send-respond)))))
+
+(ert-deftest test-auto-send-respond-handles-y-y-n-state ()
+  "Test that auto-send-respond works for :y/y/n state."
+  (cl-letf (((symbol-function 'vterm-send-string) (lambda (string) string))
+            ((symbol-function 'vterm-send-return) (lambda () t))
+            ((symbol-function 'message) (lambda (&rest _) t)))
+    (let ((ecc-term-claude-auto-mode t))
       (put 'ecc-test-state 'current-state :y/y/n)
-      (should (ecc-term-claude--auto-send-respond))
-      
+      (should (ecc-term-claude--auto-send-respond)))))
+
+(ert-deftest test-auto-send-respond-handles-waiting-state ()
+  "Test that auto-send-respond works for :waiting state."
+  (cl-letf (((symbol-function 'vterm-send-string) (lambda (string) string))
+            ((symbol-function 'vterm-send-return) (lambda () t))
+            ((symbol-function 'message) (lambda (&rest _) t)))
+    (let ((ecc-term-claude-auto-mode t))
       (put 'ecc-test-state 'current-state :waiting)
-      (should (ecc-term-claude--auto-send-respond))
-      
+      (should (ecc-term-claude--auto-send-respond)))))
+
+(ert-deftest test-auto-send-respond-handles-initial-waiting-state ()
+  "Test that auto-send-respond works for :initial-waiting state."
+  (cl-letf (((symbol-function 'vterm-send-string) (lambda (string) string))
+            ((symbol-function 'vterm-send-return) (lambda () t))
+            ((symbol-function 'message) (lambda (&rest _) t)))
+    (let ((ecc-term-claude-auto-mode t))
       (put 'ecc-test-state 'current-state :initial-waiting)
       (should (ecc-term-claude--auto-send-respond)))))
 
 ;;; Tests for follow-bottom functionality
 
-(ert-deftest test-ecc-term-claude-consolidated-follow-bottom ()
-  "Test follow-bottom functionality."
-  ;; Test toggle function
+(ert-deftest test-follow-bottom-toggle-turns-on-when-off ()
+  "Test that follow-bottom toggle turns on when currently off."
   (let ((ecc-vterm-always-follow-bottom nil))
-    ;; Toggle on
     (ecc-term-claude-toggle-follow-bottom)
-    (should ecc-vterm-always-follow-bottom)
-    
-    ;; Toggle off
+    (should ecc-vterm-always-follow-bottom)))
+
+(ert-deftest test-follow-bottom-toggle-turns-off-when-on ()
+  "Test that follow-bottom toggle turns off when currently on."
+  (let ((ecc-vterm-always-follow-bottom t))
     (ecc-term-claude-toggle-follow-bottom)
     (should-not ecc-vterm-always-follow-bottom)))
 
