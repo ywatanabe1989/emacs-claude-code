@@ -631,7 +631,7 @@ Handles sending the text through the appropriate buffer mode (vterm, comint, etc
   
   ;; Show notification if enabled
   (when ecc-auto-response-notify
-    (message "Auto-response to %s: %s" state-name text)))
+    (message "[%s] Auto-response to %s: %s" (buffer-name buffer) state-name text)))
 
 ;;;; Core Functions - Buffer-Local Mode
 

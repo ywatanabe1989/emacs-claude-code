@@ -220,8 +220,29 @@ Does nothing in testing."
       (should (string= auto-response-test-sent-string "TEST_RESP"))
       (should (eq auto-response-test-sent-buffer temp-buffer))
       
-      ;; Test notification
-      (should (string-match-p "TEST_TYPE" auto-response-test-notification)))))
+      ;; Test notification includes buffer name
+      (should (string-match-p "TEST_TYPE" auto-response-test-notification))
+      (should (string-match-p (buffer-name temp-buffer) auto-response-test-notification)))))
+
+(ert-deftest test-auto-response-buffer-name-in-notification ()
+  "Test that auto-response notifications include buffer name."
+  (with-temp-buffer-fixture "Test content"
+    ;; Set up a recognizable buffer name
+    (let ((test-buffer-name "*test-auto-response-buffer*"))
+      (with-current-buffer temp-buffer
+        (rename-buffer test-buffer-name))
+      
+      ;; Mock notification capture
+      (cl-letf (((symbol-function 'message) 
+                 (lambda (format-string &rest args)
+                   (setq auto-response-test-notification (apply #'format format-string args)))))
+        
+        ;; Test notification includes buffer name
+        (ecc-auto-response--send-to-buffer temp-buffer "test-response" "test-state")
+        
+        ;; Check buffer name is in notification
+        (should (string-match-p (regexp-quote test-buffer-name) auto-response-test-notification))
+        (should (string-match-p "\\[.*\\]" auto-response-test-notification))))))
 
 ;;;; Buffer-local mode tests
 
