@@ -112,7 +112,7 @@
 
 ;;; Tests for auto-mode functionality
 
-(ert-deftest test-ecc-term-claude-consolidated-auto-mode ()
+(ert-deftest test-ecc-term-claude-consolidated-auto-mode-vterm ()
   "Test that auto-mode toggle works correctly."
   ;; Test initial state
   (should-not ecc-term-claude-auto-mode)
@@ -127,7 +127,7 @@
 
 ;;; Tests for buffer setup
 
-(ert-deftest test-ecc-term-claude-consolidated-setup-buffer ()
+(ert-deftest test-ecc-term-claude-consolidated-setup-buffer-vterm ()
   "Test that buffer setup functions work correctly."
   ;; Mock functions to prevent side effects
   (cl-letf (((symbol-function 'ecc-term-claude--setup-display-options) (lambda () t))
@@ -143,7 +143,7 @@
                     (progn (ecc-term-claude--setup-buffer) nil) 
                   (error err)))))
 
-(ert-deftest test-ecc-term-claude-consolidated-register-buffer ()
+(ert-deftest test-ecc-term-claude-consolidated-register-buffer-vterm ()
   "Test buffer registration functionality."
   ;; Mock auto-response function
   (cl-letf (((symbol-function 'ecc-auto-response-register-buffer) (lambda (buffer) buffer)))
@@ -214,7 +214,7 @@
 
 ;;; Tests for backward compatibility
 
-(ert-deftest test-ecc-term-claude-consolidated-backward-compatibility ()
+(ert-deftest test-ecc-term-claude-consolidated-backward-compatibility-vterm ()
   "Test backward compatibility with previous functions and variables."
   ;; Test function aliases
   (should (fboundp 'ecc-register-buffer))
@@ -232,7 +232,7 @@
 
 ;;; Tests for main user commands
 
-(ert-deftest test-ecc-term-claude-consolidated-user-commands ()
+(ert-deftest test-ecc-term-claude-consolidated-user-commands-vterm ()
   "Test the main user-facing commands."
   ;; Mock functions to prevent side effects
   (cl-letf (((symbol-function 'ecc-term-claude--setup-existing-buffer) 

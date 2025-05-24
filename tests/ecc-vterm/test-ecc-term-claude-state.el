@@ -59,7 +59,7 @@ Automatically cleans up buffer after execution."
   (should (equal (ecc-term-claude-state-name :unknown) ":unknown"))
   (should (equal (ecc-term-claude-state-name nil) "nil")))
 
-(ert-deftest test-ecc-term-claude-state-symbols ()
+(ert-deftest test-ecc-term-claude-state-symbols-vterm ()
   "Test getting the list of valid state symbols."
   (let ((symbols (ecc-term-claude-state-symbols)))
     (should (member :y/n symbols))
@@ -165,7 +165,7 @@ Automatically cleans up buffer after execution."
 
 ;;;; Integration Tests
 
-(ert-deftest test-ecc-term-claude-get-state ()
+(ert-deftest test-ecc-term-claude-get-state-vterm ()
   "Test the high-level state getter function."
   (let ((result nil))
     ;; Mock the internal detect function to return a known state

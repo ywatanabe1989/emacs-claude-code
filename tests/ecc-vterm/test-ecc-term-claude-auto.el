@@ -60,7 +60,7 @@ Automatically cleans up buffer after execution."
 
 ;;;; Auto-Send Tests
 
-(ert-deftest test-ecc-term-claude-auto-send-y-n ()
+(ert-deftest test-ecc-term-claude-auto-send-y-n-vterm ()
   "Test auto-sending for Y/N prompts."
   (let* ((sent-string nil)
          (sent-return nil)
@@ -91,7 +91,7 @@ Automatically cleans up buffer after execution."
     (fset 'vterm-send-string vterm-send-string-orig)
     (fset 'vterm-send-return vterm-send-return-orig)))
 
-(ert-deftest test-ecc-term-claude-auto-send-y-y-n ()
+(ert-deftest test-ecc-term-claude-auto-send-y-y-n-vterm ()
   "Test auto-sending for Y/Y/N prompts."
   (let* ((sent-string nil)
          (sent-return nil)
@@ -114,7 +114,7 @@ Automatically cleans up buffer after execution."
     (fset 'vterm-send-string vterm-send-string-orig)
     (fset 'vterm-send-return vterm-send-return-orig)))
 
-(ert-deftest test-ecc-term-claude-auto-send-waiting ()
+(ert-deftest test-ecc-term-claude-auto-send-waiting-vterm ()
   "Test auto-sending for waiting prompts."
   (let* ((sent-string nil)
          (sent-return nil)
@@ -138,14 +138,14 @@ Automatically cleans up buffer after execution."
     (fset 'vterm-send-string vterm-send-string-orig)
     (fset 'vterm-send-return vterm-send-return-orig)))
 
-(ert-deftest test-ecc-term-claude-auto-send-invalid-state ()
+(ert-deftest test-ecc-term-claude-auto-send-invalid-state-vterm ()
   "Test auto-sending with an invalid state."
   ;; Should raise an error for invalid states
   (should-error (ecc-term-claude-auto-send :invalid-state) :type 'error))
 
 ;;;; Auto-Mode Tests
 
-(ert-deftest test-ecc-term-claude-toggle-auto-mode ()
+(ert-deftest test-ecc-term-claude-toggle-auto-mode-vterm ()
   "Test toggling the auto-mode."
   ;; Ensure the mode is initially off
   (let ((ecc-term-claude-auto-mode nil)
@@ -161,7 +161,7 @@ Automatically cleans up buffer after execution."
     (should-not ecc-term-claude-auto-mode)
     (should-not (member 'ecc-term-claude-auto-send-accept ecc-term-claude-update-functions))))
 
-(ert-deftest test-ecc-term-claude-auto-send-accept ()
+(ert-deftest test-ecc-term-claude-auto-send-accept-vterm ()
   "Test the auto-send-accept function."
   (let* ((ecc-term-claude-auto-mode t)
          (auto-response-called nil)

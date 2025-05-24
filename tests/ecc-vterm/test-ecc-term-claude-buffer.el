@@ -39,7 +39,7 @@
 
 ;;;; Buffer Registration Tests
 
-(ert-deftest test-ecc-term-claude-register-buffer ()
+(ert-deftest test-ecc-term-claude-register-buffer-vterm ()
   "Test buffer registration functionality."
   (ecc-buffer-with-cleanup
    (lambda ()
@@ -69,7 +69,7 @@
          ;; Clean up
          (kill-buffer test-buf))))))
 
-(ert-deftest test-ecc-term-claude-unregister-buffer ()
+(ert-deftest test-ecc-term-claude-unregister-buffer-vterm ()
   "Test buffer unregistration functionality."
   (ecc-buffer-with-cleanup
    (lambda ()
@@ -125,7 +125,7 @@
          (when (buffer-live-p test-buf1) (kill-buffer test-buf1))
          (when (buffer-live-p test-buf2) (kill-buffer test-buf2)))))))
 
-(ert-deftest test-ecc-term-claude-get-current-buffer ()
+(ert-deftest test-ecc-term-claude-get-current-buffer-vterm ()
   "Test getting the current Claude buffer."
   (ecc-buffer-with-cleanup
    (lambda ()
@@ -156,7 +156,7 @@
          (when (buffer-live-p test-buf1) (kill-buffer test-buf1))
          (when (buffer-live-p test-buf2) (kill-buffer test-buf2)))))))
 
-(ert-deftest test-ecc-term-claude-set-current-buffer ()
+(ert-deftest test-ecc-term-claude-set-current-buffer-vterm ()
   "Test setting the current Claude buffer."
   (ecc-buffer-with-cleanup
    (lambda ()

@@ -80,7 +80,7 @@ Automatically cleans up buffer after execution."
 
 ;;;; Buffer Registration Tests
 
-(ert-deftest test-ecc-term-claude-register-buffer ()
+(ert-deftest test-ecc-term-claude-register-buffer-setup-vterm ()
   "Test buffer registration functionality."
   (let ((orig-buffers ecc-buffer-registered-buffers-alist)
         (orig-current-buffer ecc-buffer-current-buffer))
@@ -115,7 +115,7 @@ Automatically cleans up buffer after execution."
 
 ;;;; Setup Functions Tests
 
-(ert-deftest test-ecc-term-claude-setup-common ()
+(ert-deftest test-ecc-term-claude-setup-common-vterm ()
   "Test common setup functionality."
   ;; Track function calls
   (let ((register-called nil)
@@ -234,7 +234,7 @@ Automatically cleans up buffer after execution."
      (should (eq (lookup-key (current-local-map) (kbd "C-c C-a"))
                 'ecc-term-claude-toggle-auto-mode)))))
 
-(ert-deftest test-ecc-term-claude-cleanup-buffer ()
+(ert-deftest test-ecc-term-claude-cleanup-buffer-vterm ()
   "Test buffer cleanup functionality."
   (let ((ecc-buffer-registered-buffers-alist nil)
         (ecc-term-claude-state-timer (run-with-idle-timer 1000 nil #'ignore)))
