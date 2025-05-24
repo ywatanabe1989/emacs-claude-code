@@ -31,7 +31,7 @@
   (with-current-buffer ecc-test-buffer-a
     (erase-buffer)
     (insert "Some content here\n")
-    (insert "│ > Try \n"))  ;; initial-waiting pattern
+    (insert "│ > Try \n"))  ;; initial-waiting pattern
   
   (with-current-buffer ecc-test-buffer-b
     (erase-buffer)

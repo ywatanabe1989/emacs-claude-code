@@ -143,7 +143,7 @@
 │ 
 │ Legal disclaimer: output may be inaccurate, especially with proper names, domain knowledge, calculations, and in non-English languages. Limit is 5 messages per conversation and character count up to 100,000 per organization. Anthropic does not collect your data or use your inputs or outputs to train Claude. If you notice inappropriate or unsafe outputs, please report them to us.
 │ 
-│ > Try 'Explain zero-shot learning to me'
+│ > Try 'Explain zero-shot learning to me'
 │ "
   "Snapshot of an initial waiting prompt.")
 
