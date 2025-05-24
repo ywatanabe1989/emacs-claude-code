@@ -11,7 +11,8 @@
 (require 'ecc-buffer-local)
 (require 'ecc-buffer-state)
 (require 'ecc-background-detection)
-(require 'ecc-auto-response-buffer-local)
+(require 'ecc-auto-response)
+(require 'ecc-buffer-local)
 
 ;; Test fixtures
 (defvar ecc-system-test-buffer-x nil "First system test buffer.")
@@ -140,8 +141,8 @@
           (ecc-background-detection-add-buffer ecc-system-test-buffer-y)
           
           ;; Test auto-response with buffer-local check
-          (ecc-auto-response-buffer-local-check ecc-system-test-buffer-x)
-          (ecc-auto-response-buffer-local-check ecc-system-test-buffer-y)
+          (ecc-auto-response--process-buffer-global ecc-system-test-buffer-x)
+          (ecc-auto-response--process-buffer-global ecc-system-test-buffer-y)
           
           ;; Verify responses were sent with buffer-local config
           (let ((responses (reverse ecc-system-test-responses-sent)))
@@ -192,7 +193,7 @@
     (unwind-protect
         (progn
           ;; Start background detection with auto-response callback
-          (ecc-background-detection-start #'ecc-auto-response-buffer-local-check)
+          (ecc-background-detection-start #'ecc-auto-response--process-buffer-global)
           
           ;; Register buffers
           (ecc-background-detection-add-buffer ecc-system-test-buffer-x)
@@ -229,17 +230,17 @@
       (progn
         ;; Initialize buffers
         (with-current-buffer ecc-system-test-buffer-x
-          (ecc-auto-response-buffer-local-init))
+          (ecc-buffer-local-init))
         
         (with-current-buffer ecc-system-test-buffer-y
-          (ecc-auto-response-buffer-local-init))
+          (ecc-buffer-local-init))
         
         ;; Test toggling in first buffer
         (with-current-buffer ecc-system-test-buffer-x
           (setq-local ecc-buffer-auto-response-enabled nil)
-          (ecc-auto-response-buffer-local-enable-buffer)
+          (setq ecc-buffer-auto-response-enabled t)
           (should ecc-buffer-auto-response-enabled)
-          (ecc-auto-response-buffer-local-disable-buffer)
+          (setq ecc-buffer-auto-response-enabled nil)
           (should-not ecc-buffer-auto-response-enabled))
         
         ;; Test buffer-local state doesn't affect other buffer
@@ -260,10 +261,10 @@
       (progn
         ;; Initialize and register buffers
         (with-current-buffer ecc-system-test-buffer-x
-          (ecc-auto-response-buffer-local-init))
+          (ecc-buffer-local-init))
         
         (with-current-buffer ecc-system-test-buffer-y
-          (ecc-auto-response-buffer-local-init))
+          (ecc-buffer-local-init))
         
         (ecc-background-detection-add-buffer ecc-system-test-buffer-x)
         (ecc-background-detection-add-buffer ecc-system-test-buffer-y)

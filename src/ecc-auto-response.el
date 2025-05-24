@@ -724,6 +724,7 @@ Arguments:
       (setq-local ecc-buffer-auto-response-y/y/n ecc-auto-response-buffer-yes-plus)
       (setq-local ecc-buffer-auto-response-waiting ecc-auto-response-buffer-continue)
       (setq-local ecc-buffer-auto-response-initial-waiting ecc-auto-response-buffer-initial-waiting)
+      (setq-local ecc-buffer-auto-notify-completions ecc-auto-response-notify)
       
       ;; Reset buffer-local response tracking
       (setq-local ecc-auto-response-buffer-last-state nil)

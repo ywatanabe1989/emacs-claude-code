@@ -466,7 +466,7 @@ if ! $VERBOSE && ! $DEBUG; then
 fi
 
 echo_info "Logged to: $LOG_PATH"
-echo_info "Please read `./docs/to_claude/guidelines/guidelines-programming-Elisp-Rules.md as well`"
+echo_info "Please read ./docs/to_claude/guidelines/guidelines-programming-Elisp-Rules.md as well"
 exit $TEST_EXIT_CODE
 
 # EOF
