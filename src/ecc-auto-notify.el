@@ -230,13 +230,15 @@ Returns:
     t))
 
 ;;;###autoload
-(defun ecc-auto-notify-prompt (type)
+(defun ecc-auto-notify-prompt (type &optional buffer)
   "Notify the user about a Claude prompt of TYPE.
 This function handles the actual notification using the configured
 methods (bell, mode line flash, etc.).
 
 Arguments:
-  TYPE: A symbol representing the prompt type, such as :waiting, :y/n, etc."
+  TYPE: A symbol representing the prompt type, such as :waiting, :y/n, etc.
+  BUFFER: Optional buffer where the prompt was detected. If provided,
+          the buffer name will be included in the notification message."
   (let ((type-name (pcase type
                      (:initial-waiting "initial waiting for input")
                      (:waiting "waiting for input")
@@ -251,8 +253,11 @@ Arguments:
     (when ecc-auto-notify-flash
       (ecc-auto-notify-flash-mode-line))
     
-    ;; Display message
-    (message "Claude prompt detected: %s" type-name)
+    ;; Display message with optional buffer name
+    (if buffer
+        (message "[%s] Claude prompt detected: %s" 
+                 (buffer-name buffer) type-name)
+      (message "Claude prompt detected: %s" type-name))
     
     ;; Log notification
     (ecc-auto-notify--log "Notification sent for state %s" type)))

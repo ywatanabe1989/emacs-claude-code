@@ -230,16 +230,22 @@ Handles different system configurations to ensure bell is audible."
                       (lambda ()
                         (invert-face 'mode-line)))))
 
-(defun ecc-notification-display-message (state)
-  "Display a message about STATE in the echo area."
-  (message "Claude prompt detected: %s" 
-           (ecc-notification--state-description state)))
+(defun ecc-notification-display-message (state &optional buffer)
+  "Display a message about STATE in the echo area.
+If BUFFER is provided, include the buffer name in the message."
+  (if buffer
+      (message "[%s] Claude prompt detected: %s" 
+               (buffer-name buffer)
+               (ecc-notification--state-description state))
+    (message "Claude prompt detected: %s" 
+             (ecc-notification--state-description state))))
 
 ;; Core notification functions
 
 ;;;###autoload
-(defun ecc-notification-dispatch (state)
+(defun ecc-notification-dispatch (state &optional buffer)
   "Notify the user about a Claude STATE using configured methods.
+If BUFFER is provided, include the buffer name in message notifications.
 Returns non-nil if notification was performed."
   (when (ecc-notification--should-notify-p state)
     ;; Apply each enabled notification method
@@ -250,7 +256,7 @@ Returns non-nil if notification was performed."
       (ecc-notification-flash-mode-line))
     
     (when (memq 'message ecc-notification-methods)
-      (ecc-notification-display-message state))
+      (ecc-notification-display-message state buffer))
     
     ;; Update tracking state
     (ecc-notification--update-state state)

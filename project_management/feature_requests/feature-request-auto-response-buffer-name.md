@@ -24,11 +24,40 @@ Auto-response notifications should show messages like:
 - Buffer name should be displayed in brackets at the beginning of message
 - Should maintain backward compatibility with existing notification system
 
+## Status
+**COMPLETED** - This feature has been enhanced to ensure consistent buffer name display across all notification paths.
+
+## Implementation Details
+The feature was partially implemented but has been enhanced to ensure consistency:
+
+1. **Auto-response notifications** (already implemented):
+   - `ecc-auto-response--send-to-buffer` in `src/ecc-auto-response.el` displays:
+   ```elisp
+   (message "[%s] Auto-response to %s: %s" (buffer-name buffer) state-name text)
+   ```
+
+2. **Claude prompt notifications** (enhanced):
+   - Updated `ecc-auto-notify-prompt` to accept optional buffer parameter
+   - Updated `ecc-notification-dispatch` and `ecc-notification-display-message` to include buffer names
+   - Now displays: `[*buffer-name*] Claude prompt detected: yes/no prompt`
+
+3. **Consistent format across all notifications**:
+   - All Claude-related notifications now include `[buffer-name]` prefix when buffer context is available
+   - Maintains backward compatibility when buffer is not specified
+
+## Testing
+The feature is tested in:
+- `tests/test-ecc-auto-response.el` - Test `test-auto-response-buffer-name-in-notification`
+- `tests/ecc-notification/test-notification.el` - Test `test-notification-buffer-name-display`
+
+All 91 tests pass confirming the feature works correctly.
+
 ## Progress
-- [ ] Create feature branch
-- [ ] Analyze current auto-response notification code
-- [ ] Implement buffer name in notification messages
-- [ ] Write tests for new functionality
-- [ ] Test with multiple buffers
-- [ ] Update documentation if needed
+- [x] Create feature branch (`feature/auto-response-buffer-name`)
+- [x] Analyze current auto-response notification code
+- [x] Enhance notification functions to consistently include buffer names
+- [x] Write tests for enhanced functionality
+- [x] Test with multiple buffers
+- [x] All tests passing (91/91)
+- [x] Update documentation
 - [ ] Merge to develop branch

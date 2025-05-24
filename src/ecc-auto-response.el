@@ -620,7 +620,7 @@ Handles different types of Claude prompts with the configured responses."
   ;; Send response based on state
   (with-current-buffer buffer
     (when (fboundp 'ecc-auto-notify-prompt)
-      (ecc-auto-notify-prompt (format "%s" state)))
+      (ecc-auto-notify-prompt state buffer))
     (cond
      ((eq state :y/y/n)
       (ecc-auto-response--debug "Sending Y/Y/N response: %s" ecc-auto-response-yes-plus)

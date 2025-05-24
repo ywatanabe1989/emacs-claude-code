@@ -72,7 +72,7 @@
               ((symbol-function 'ecc-notification-flash-mode-line)
                (lambda () (setq flash-called t)))
               ((symbol-function 'ecc-notification-display-message)
-               (lambda (state) (setq message-called t))))
+               (lambda (state &optional buffer) (setq message-called t))))
       
       ;; Test notification dispatch
       (should (ecc-notification-dispatch :y/n))
@@ -123,6 +123,42 @@
     (should-not ecc-notification-enabled)
     (ecc-auto-notify-toggle)
     (should ecc-notification-enabled)))
+
+;; Test buffer name in notifications
+(ert-deftest test-notification-buffer-name-display ()
+  "Test that notifications include buffer name when buffer is provided."
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-methods '(message))
+        (ecc-notification-states '(:y/n))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil)
+        (test-buffer-name "*test-notification-buffer*")
+        (captured-message nil))
+    
+    ;; Create a test buffer
+    (with-temp-buffer
+      (rename-buffer test-buffer-name)
+      
+      ;; Mock message function to capture output
+      (cl-letf (((symbol-function 'message)
+                 (lambda (format-string &rest args)
+                   (setq captured-message (apply #'format format-string args)))))
+        
+        ;; Test with buffer parameter
+        (ecc-notification-dispatch :y/n (current-buffer))
+        (should captured-message)
+        (should (string-match-p (regexp-quote test-buffer-name) captured-message))
+        (should (string-match-p "\\[.*\\]" captured-message))
+        
+        ;; Reset for next test
+        (setq captured-message nil)
+        (setq ecc-notification--last-state nil)
+        (setq ecc-notification--last-time 0)
+        
+        ;; Test without buffer parameter
+        (ecc-notification-dispatch :y/n)
+        (should captured-message)
+        (should-not (string-match-p "\\[.*\\]" captured-message))))))
 
 (provide 'test-notification)
 
