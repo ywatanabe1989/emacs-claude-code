@@ -60,4 +60,4 @@ All 91 tests pass confirming the feature works correctly.
 - [x] Test with multiple buffers
 - [x] All tests passing (91/91)
 - [x] Update documentation
-- [ ] Merge to develop branch
+- [x] Merge to develop branch
