@@ -59,7 +59,7 @@ rename_function "ecc-notification-toggle-bell" "ecc-notification-toggle-bell" "S
 rename_function "ecc-notification-check-state" "ecc-notification-check-state" "Standardize notification naming"
 rename_function "ecc-notification-dispatch" "ecc-notification-dispatch" "Already aliased, make consistent"
 rename_function "ecc-notification-ring-bell" "ecc-notification-ring-bell" "Standardize notification naming"
-rename_function "ecc-notification-flash-mode-line" "ecc-notification-flash-mode-line" "Standardize notification naming"
+rename_function "ecc-auto-notify-flash-mode-line" "ecc-auto-notify-flash-mode-line" "Standardize notification naming"
 rename_function "ecc-notification-setup-for-buffer" "ecc-notification-setup-for-buffer" "Standardize notification naming"
 
 # Phase 2: Remove short aliases in favor of descriptive names

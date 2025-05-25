@@ -196,7 +196,7 @@ EOF
   if $SKIP_FAIL; then
     echo_warning "Skipping intentional failing tests..."
     # Use ERT's test selector to exclude tests with "fail" in their name
-    TEST_SELECTOR="'(not (name . \".*fail.*\"))"
+    TEST_SELECTOR="'(satisfies (lambda (test) (not (string-match-p \\\"fail\\\" (symbol-name (ert-test-name test))))))"
   fi
 
   # # Display what selector we're using

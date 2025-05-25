@@ -253,7 +253,7 @@ Arguments:
     
     ;; Flash mode line if enabled
     (when ecc-auto-notify-flash
-      (ecc-notification-flash-mode-line buffer))
+      (ecc-auto-notify-flash-mode-line buffer))
     
     ;; Display message with optional buffer name
     (if buffer
@@ -529,7 +529,7 @@ Arguments:
     
     ;; Flash mode line if enabled for this buffer
     (when ecc-buffer-auto-notify-flash
-      (ecc-notification-flash-mode-line (current-buffer)))
+      (ecc-auto-notify-flash-mode-line (current-buffer)))
     
     ;; Display buffer-specific message
     (ecc-debug-message "Claude prompt in %s: %s" (buffer-name) type-name)

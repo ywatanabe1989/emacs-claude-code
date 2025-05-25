@@ -35,7 +35,7 @@ The system incorrectly targets the current buffer for mode line modifications in
 
 ### Location 1: `ecc-notification.el:222-231`
 ```elisp
-(defun ecc-notification-flash-mode-line ()
+(defun ecc-auto-notify-flash-mode-line ()
   "Flash the mode line to get attention."
   (when ecc-notification--flash-timer
     (cancel-timer ecc-notification--flash-timer))
@@ -49,7 +49,7 @@ The system incorrectly targets the current buffer for mode line modifications in
 
 ### Location 2: `ecc-auto-notify.el:312-323`
 ```elisp
-(defun ecc-notification-flash-mode-line ()
+(defun ecc-auto-notify-flash-mode-line ()
   (invert-face 'mode-line)
   (setq ecc-auto-notify--flash-timer
         (run-with-timer ecc-auto-notify-bell-duration nil
@@ -128,7 +128,7 @@ Check notification dispatch:
 Modify mode line flash functions to preserve buffer context:
 
 ```elisp
-(defun ecc-notification-flash-mode-line (&optional buffer)
+(defun ecc-auto-notify-flash-mode-line (&optional buffer)
   "Flash the mode line to get attention in BUFFER."
   (let ((target-buffer (or buffer (current-buffer))))
     (when ecc-notification--flash-timer
@@ -149,17 +149,17 @@ Ensure notification dispatch functions pass the correct buffer:
 
 ```elisp
 ;; Instead of:
-(ecc-notification-flash-mode-line)
+(ecc-auto-notify-flash-mode-line)
 
 ;; Use:
-(ecc-notification-flash-mode-line originating-buffer)
+(ecc-auto-notify-flash-mode-line originating-buffer)
 ```
 
 ### 3. Consider Buffer-Local Alternative
 Use buffer-local mode line modifications instead of global face inversion:
 
 ```elisp
-(defun ecc-notification-flash-mode-line-local (buffer)
+(defun ecc-auto-notify-flash-mode-line-local (buffer)
   "Flash mode line locally in BUFFER."
   (with-current-buffer buffer
     (let ((original-format mode-line-format))
@@ -184,7 +184,7 @@ Make all visual notification functions buffer-aware:
 ✅ **Fixed in commit 56acdb9** - `feature/fix-modeline-buffer-context`
 
 Fixed mode line flash buffer context preservation:
-- Added buffer parameter to `ecc-notification-flash-mode-line` and `ecc-auto-notify-flash-mode-line`
+- Added buffer parameter to `ecc-auto-notify-flash-mode-line` and `ecc-auto-notify-flash-mode-line`
 - Use `with-current-buffer` in timer callbacks to preserve buffer context
 - Added `buffer-live-p` check before timer execution for safety
 - Updated all calling functions to pass the correct buffer parameter

@@ -47,7 +47,7 @@
                            "ecc-notification-check-state"
                            "ecc-notification-dispatch"
                            "ecc-notification-ring-bell"
-                           "ecc-notification-flash-mode-line"
+                           "ecc-auto-notify-flash-mode-line"
                            "ecc-notification-setup-for-buffer"
                            ;; Debug aliases
                            "ecc-debug-make-debug-fn"

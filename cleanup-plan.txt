@@ -27,7 +27,7 @@ remove-alias:src/ecc-notification.el:ecc-notification-toggle-bell:Replaced with 
 remove-alias:src/ecc-notification.el:ecc-notification-check-state:Replaced with ecc-notification-check-state
 remove-alias:src/ecc-notification.el:ecc-notification-dispatch:Replaced with ecc-notification-dispatch
 remove-alias:src/ecc-notification.el:ecc-notification-ring-bell:Replaced with ecc-notification-ring-bell
-remove-alias:src/ecc-notification.el:ecc-notification-flash-mode-line:Replaced with ecc-notification-flash-mode-line
+remove-alias:src/ecc-notification.el:ecc-auto-notify-flash-mode-line:Replaced with ecc-auto-notify-flash-mode-line
 remove-alias:src/ecc-notification.el:ecc-notification-setup-for-buffer:Replaced with ecc-notification-setup-for-buffer
 
 # Debug aliases

@@ -41,7 +41,7 @@
   (provide 'ecc-variables-consolidated))
 
 (unless (featurep 'ecc-state-detection)
-  (defun ecc-detect-state ()
+  (defun ecc-detect-state (&optional buffer)
     (or (get 'ecc-test-state 'current-state) nil))
   (provide 'ecc-state-detection))
 

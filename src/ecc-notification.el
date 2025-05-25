@@ -219,7 +219,7 @@ Handles different system configurations to ensure bell is audible."
     ('external (ecc-notification-ring-bell-external))
     (_ (ecc-notification-ring-bell-audible)))) ; Default fallback
 
-(defun ecc-notification-flash-mode-line (&optional buffer)
+(defun ecc-auto-notify-flash-mode-line (&optional buffer)
   "Flash the mode line to get attention in BUFFER.
 If BUFFER is not provided, uses the current buffer."
   (let ((target-buffer (or buffer (current-buffer))))
@@ -263,7 +263,7 @@ Returns non-nil if notification was performed."
       (ecc-notification-ring-bell))
     
     (when (memq 'flash ecc-notification-methods)
-      (ecc-notification-flash-mode-line buffer))
+      (ecc-auto-notify-flash-mode-line buffer))
     
     (when (memq 'message ecc-notification-methods)
       (ecc-notification-display-message state buffer))

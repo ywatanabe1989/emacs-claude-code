@@ -138,7 +138,7 @@
         (ecc-notification--last-time 0)
         (ecc-notification--last-state nil))
     
-    (cl-letf (((symbol-function 'ecc-notification-flash-mode-line)
+    (cl-letf (((symbol-function 'ecc-auto-notify-flash-mode-line)
                (lambda () (setq flash-called t))))
       
       ;; Act
