@@ -179,28 +179,29 @@ where a single set of configurations applies to all buffers."
 
 ;;;; Internal Variables
 
-;; Global state tracking
+;; Global state tracking (system-wide)
 (defvar ecc-auto-response--timer nil
   "Timer for auto-response system.")
 
 (defvar ecc-auto-response--registered-buffers (make-hash-table :test 'eq)
   "Hash table of registered buffers for auto-response.")
 
-(defvar ecc-auto-response--last-state nil
-  "Last Claude state that received an auto-response.")
-
-(defvar ecc-auto-response--last-response-time 0
-  "Timestamp of last auto-response.")
-
 (defvar ecc-auto-response--registered-callback nil
   "Callback function registered with auto-core system.")
 
-;; Accumulation tracking variables
-(defvar ecc-auto-response--accumulation-count 0
-  "Counter for responses sent within current accumulation window.")
+;; Buffer-local state tracking
+(defvar-local ecc-auto-response--last-state nil
+  "Last Claude state that received an auto-response in this buffer.")
 
-(defvar ecc-auto-response--accumulation-start-time 0
-  "Start time of current accumulation tracking window.")
+(defvar-local ecc-auto-response--last-response-time 0
+  "Timestamp of last auto-response in this buffer.")
+
+;; Buffer-local accumulation tracking
+(defvar-local ecc-auto-response--accumulation-count 0
+  "Counter for responses sent within current accumulation window in this buffer.")
+
+(defvar-local ecc-auto-response--accumulation-start-time 0
+  "Start time of current accumulation tracking window in this buffer.")
 
 ;; Buffer-local variables
 (defvar-local ecc-auto-response-buffer-enabled nil

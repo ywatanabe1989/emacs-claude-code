@@ -100,20 +100,22 @@ and other auto-response activities will be displayed in the echo area."
 
 ;;;; Internal variables
 
+;; Global system state
 (defvar ecc-auto-core--timer nil
   "Timer object for auto-response checks.")
-
-(defvar ecc-auto-core--last-state nil
-  "The last detected Claude prompt state.")
-
-(defvar ecc-auto-core--last-response-time 0
-  "Timestamp of the last auto-response, used for throttling.")
 
 (defvar ecc-auto-core--registered-buffers nil
   "List of buffers registered for auto-response.")
 
-(defvar ecc-auto-core--initial-check-count 0
-  "Counter for initial checking attempts.")
+;; Buffer-local state tracking
+(defvar-local ecc-auto-core--last-state nil
+  "The last detected Claude prompt state in this buffer.")
+
+(defvar-local ecc-auto-core--last-response-time 0
+  "Timestamp of the last auto-response in this buffer, used for throttling.")
+
+(defvar-local ecc-auto-core--initial-check-count 0
+  "Counter for initial checking attempts in this buffer.")
 
 ;;;; Timer management
 

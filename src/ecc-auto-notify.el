@@ -143,14 +143,16 @@ and notification events will be shown."
 
 ;;;; Internal Variables
 
-(defvar ecc-auto-notify--last-time 0
-  "Time of the last notification.")
-
-(defvar ecc-auto-notify--last-state nil
-  "Last Claude state that triggered a notification.")
-
+;; Global system state
 (defvar ecc-auto-notify--flash-timer nil
   "Timer for mode line flashing.")
+
+;; Buffer-local notification state
+(defvar-local ecc-auto-notify--last-time 0
+  "Time of the last notification in this buffer.")
+
+(defvar-local ecc-auto-notify--last-state nil
+  "Last Claude state that triggered a notification in this buffer.")
 
 (defvar-local ecc-buffer-auto-notify-enabled nil
   "Whether notifications are enabled for this buffer.")
