@@ -190,7 +190,7 @@
         (with-current-buffer ecc-system-test-buffer-b
           (should-not ecc-buffer-debug-enabled)
           (ecc-buffer-debug-toggle)
-          (should ecc-buffer-debug-enabled)))
+          (should ecc-buffer-debug-enabled))
     (ecc-system-test-teardown)))
 
 (ert-deftest ecc-test-system-buffer-state-lifecycle ()

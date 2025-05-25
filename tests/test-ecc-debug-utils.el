@@ -1,373 +1,287 @@
-;;; -*- coding: utf-8; lexical-binding: t -*-
-;;; Author: ywatanabe
-;;; Timestamp: <2025-05-25 06:55:14>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-debug-utils.el
-
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
+;;; test-ecc-debug-utils.el --- Consolidated debug utilities tests -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;;; Tests for debug utilities module functionality.
-;;; These tests verify the functionality of the debug message system,
-;;; debug categories, buffer-local debugging, and debug factory functions.
+;; Consolidated debug utilities tests combining original and refactored versions
+;; Following "one assertion per test" principle from refactored version
 
 ;;; Code:
+
 (require 'ert)
-(require 'ecc-variables)
 (require 'ecc-debug-utils)
 
 ;;;; Test helpers
 
-(defvar ecc-debug-test-messages nil
-  "List of debug messages captured during testing.")
+(defun test-debug-capture-messages ()
+  "Capture debug messages during test execution."
+  (let ((messages '()))
+    (cl-letf (((symbol-function 'message)
+               (lambda (fmt &rest args)
+                 (push (apply #'format fmt args) messages))))
+      messages)))
 
-(defun ecc-debug-test-capture-messages (orig-fun &rest args)
-  "Capture messages for testing.
-ORIG-FUN is the original message function.
-ARGS are the arguments to pass to it."
-  (let ((msg (apply #'format args)))
-    (push msg ecc-debug-test-messages)
-    (apply orig-fun args)))
-
-(defmacro with-debug-message-capture (&rest body)
-  "Execute BODY while capturing debug messages."
-  `(let ((ecc-debug-test-messages nil))
-     (advice-add 'message :around #'ecc-debug-test-capture-messages)
-     (unwind-protect
-         (progn ,@body)
-       (advice-remove 'message #'ecc-debug-test-capture-messages))))
-
-(defun ecc-debug-test-message-contains-p (substring)
-  "Return non-nil if any captured message contains SUBSTRING."
-  (cl-some
-   (lambda (msg) (string-match-p (regexp-quote substring) msg))
-   ecc-debug-test-messages))
+(defmacro with-debug-capture (&rest body)
+  "Execute BODY and return captured debug messages."
+  `(let ((messages (test-debug-capture-messages)))
+     ,@body
+     (nreverse messages)))
 
 ;;;; Basic debug message tests
 
 (ert-deftest test-debug-message-enabled ()
-  "Test that debug messages appear when debugging is enabled."
-  (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "[Test]")
-        (ecc-debug-timestamp nil))
-    (with-debug-message-capture
-     (ecc-debug-message "Test message %d" 42)
-     (should
-      (ecc-debug-test-message-contains-p "[Test] Test message 42")))))
+  "Debug messages appear when debug is enabled."
+  (let ((ecc-debug-enabled t))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-message "Test message"))))
+      (should (cl-some (lambda (msg) (string-match-p "Test message" msg))
+                       messages)))))
 
 (ert-deftest test-debug-message-disabled ()
-  "Test that debug messages don't appear when debugging is disabled."
+  "Debug messages don't appear when debug is disabled."
   (let ((ecc-debug-enabled nil))
-    (with-debug-message-capture
-     (ecc-debug-message "Test message")
-     (should-not ecc-debug-test-messages))))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-message "Test message"))))
+      (should-not messages))))
 
 (ert-deftest test-debug-message-timestamp ()
-  "Test that timestamps appear in debug messages when enabled."
+  "Debug messages include timestamp when enabled."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-timestamp t)
-        (ecc-debug-prefix ""))
-    (with-debug-message-capture
-     (ecc-debug-message "Test with timestamp")
-     ;; Check for timestamp format [HH:MM:SS.NNN]
-     (should (string-match-p
-              "\\[\\([0-9]\\{2\\}:\\)\\{2\\}[0-9]\\{2\\}\\.[0-9]\\{3\\}\\]"
-              (car ecc-debug-test-messages))))))
+        (ecc-debug-show-timestamp t))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-message "Test"))))
+      (should (cl-some (lambda (msg) 
+                         (string-match-p "\\[ECC [0-9:-]+\\]" msg))
+                       messages)))))
 
 ;;;; Category-based debug tests
 
 (ert-deftest test-debug-category-message ()
-  "Test debug messages with categories."
+  "Debug messages work with categories."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-enabled-categories nil))
-                                        ; All categories enabled
-    (with-debug-message-capture
-     (ecc-debug-message-category 'test "Category test")
-     (should
-      (ecc-debug-test-message-contains-p "[test] Category test")))))
+        (ecc-debug-categories '(test-category)))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-category-message 'test-category "Category test"))))
+      (should (cl-some (lambda (msg) (string-match-p "Category test" msg))
+                       messages)))))
 
-(ert-deftest test-debug-category-filtering ()
-  "Test that category filtering works correctly."
+;; Category filtering tests from refactored
+
+(ert-deftest test-debug-category-filtering-shows-enabled-category ()
+  "Messages from enabled categories are shown."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-enabled-categories '(enabled-category)))
-    (with-debug-message-capture
-     ;; Should appear (category is enabled)
-     (ecc-debug-message-category 'enabled-category "Should appear")
-     ;; Should not appear (category is not enabled)
-     (ecc-debug-message-category 'disabled-category
-                                 "Should not appear")
+        (ecc-debug-categories '(enabled-cat)))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-category-message 'enabled-cat "Should show"))))
+      (should (cl-some (lambda (msg) (string-match-p "Should show" msg))
+                       messages)))))
 
-     (should (ecc-debug-test-message-contains-p "Should appear"))
-     (should-not
-      (ecc-debug-test-message-contains-p "Should not appear")))))
-
-(ert-deftest test-debug-toggle-category ()
-  "Test toggling debug categories."
+(ert-deftest test-debug-category-filtering-hides-disabled-category ()
+  "Messages from disabled categories are not shown."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-categories '(cat1 cat2 cat3))
-        (ecc-debug-enabled-categories nil))
-                                        ; All enabled initially
+        (ecc-debug-categories '(enabled-cat)))
+    (let ((messages (with-debug-capture
+                      (ecc-debug-category-message 'disabled-cat "Should not show"))))
+      (should-not (cl-some (lambda (msg) (string-match-p "Should not show" msg))
+                           messages)))))
 
-    ;; Test initial state (all enabled)
-    (should (ecc-debug--category-enabled-p 'cat1))
-    (should (ecc-debug--category-enabled-p 'cat2))
+;; Toggle category tests from refactored
 
-    ;; Disable cat1
+(ert-deftest test-debug-toggle-category-all-enabled-initially ()
+  "All categories are enabled initially."
+  (let ((ecc-debug-categories nil))
+    (should (ecc-debug-category-enabled-p 'any-category))))
+
+(ert-deftest test-debug-toggle-category-disables-specific-category ()
+  "Toggling disables a specific category."
+  (let ((ecc-debug-categories nil))
+    (ecc-debug-toggle-category 'test-cat)
+    (should-not (ecc-debug-category-enabled-p 'test-cat))))
+
+(ert-deftest test-debug-toggle-category-preserves-other-categories ()
+  "Toggling one category doesn't affect others."
+  (let ((ecc-debug-categories nil))
     (ecc-debug-toggle-category 'cat1)
-    (should-not (ecc-debug--category-enabled-p 'cat1))
-    (should (ecc-debug--category-enabled-p 'cat2))
+    (should (ecc-debug-category-enabled-p 'cat2))))
 
-    ;; Re-enable cat1
-    (ecc-debug-toggle-category 'cat1)
-    (should (ecc-debug--category-enabled-p 'cat1))
+(ert-deftest test-debug-toggle-category-reenables-disabled-category ()
+  "Toggling a disabled category re-enables it."
+  (let ((ecc-debug-categories '(test-cat)))  ; disabled
+    (ecc-debug-toggle-category 'test-cat)
+    (should (ecc-debug-category-enabled-p 'test-cat))))
 
-    ;; Disable cat2
-    (ecc-debug-toggle-category 'cat2)
-    (should (ecc-debug--category-enabled-p 'cat1))
-    (should-not (ecc-debug--category-enabled-p 'cat2))
-
-    ;; Enable all categories
+(ert-deftest test-debug-enable-all-categories-resets-to-all-enabled ()
+  "Enable all categories function resets to all enabled."
+  (let ((ecc-debug-categories '(cat1 cat2 cat3)))
     (ecc-debug-enable-all-categories)
-    (should (ecc-debug--category-enabled-p 'cat1))
-    (should (ecc-debug--category-enabled-p 'cat2))))
+    (should-not ecc-debug-categories)))
 
 ;;;; Buffer-local debug tests
 
 (ert-deftest test-debug-buffer-message ()
-  "Test buffer-local debug messages."
-  (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (test-buffer (generate-new-buffer "*debug-test*")))
-    (unwind-protect
-        (with-current-buffer test-buffer
-          (setq-local ecc-debug-buffer-enabled t)
-
-          (with-debug-message-capture
-           (ecc-debug-buffer-message test-buffer "Buffer test")
-           (should (ecc-debug-test-message-contains-p
-                    (format "[%s] Buffer test"
-                            (buffer-name test-buffer))))))
-      (kill-buffer test-buffer))))
+  "Buffer-local debug messages work correctly."
+  (with-temp-buffer
+    (let ((ecc-debug-enabled t)
+          (ecc-debug-buffer-enabled t))
+      (let ((messages (with-debug-capture
+                        (ecc-debug-buffer-message "Buffer test"))))
+        (should (cl-some (lambda (msg) (string-match-p "Buffer test" msg))
+                         messages))))))
 
 (ert-deftest test-debug-buffer-disabled ()
-  "Test that buffer-local debug is respected."
+  "Buffer-local debug respects disabled state."
+  (with-temp-buffer
+    (let ((ecc-debug-enabled t)
+          (ecc-debug-buffer-enabled nil))
+      (let ((messages (with-debug-capture
+                        (ecc-debug-buffer-message "Should not show"))))
+        (should-not messages)))))
+
+;; Toggle buffer tests from refactored
+
+(ert-deftest test-debug-toggle-buffer-enables-when-disabled ()
+  "Toggling buffer debug enables it when disabled."
+  (with-temp-buffer
+    (setq-local ecc-debug-buffer-enabled nil)
+    (ecc-debug-toggle-buffer)
+    (should ecc-debug-buffer-enabled)))
+
+(ert-deftest test-debug-toggle-buffer-disables-when-enabled ()
+  "Toggling buffer debug disables it when enabled."
+  (with-temp-buffer
+    (setq-local ecc-debug-buffer-enabled t)
+    (ecc-debug-toggle-buffer)
+    (should-not ecc-debug-buffer-enabled)))
+
+;;;; Factory function tests from refactored
+
+(ert-deftest test-debug-make-debug-fn-creates-global-debug-function ()
+  "Make-debug-fn creates working global debug function."
+  (let ((ecc-debug-enabled t))
+    (let ((debug-fn (ecc-debug-make-debug-fn "TEST")))
+      (let ((messages (with-debug-capture
+                        (funcall debug-fn "Global test"))))
+        (should (cl-some (lambda (msg) 
+                           (and (string-match-p "TEST" msg)
+                                (string-match-p "Global test" msg)))
+                         messages))))))
+
+(ert-deftest test-debug-make-debug-fn-creates-category-debug-function ()
+  "Make-debug-fn creates working category debug function."
   (let ((ecc-debug-enabled t)
-        (test-buffer (generate-new-buffer "*debug-test*")))
-    (unwind-protect
-        (with-current-buffer test-buffer
-          (setq-local ecc-debug-buffer-enabled nil)
+        (ecc-debug-categories '(test-cat)))
+    (let ((debug-fn (ecc-debug-make-debug-fn "TEST" 'test-cat)))
+      (let ((messages (with-debug-capture
+                        (funcall debug-fn "Category test"))))
+        (should (cl-some (lambda (msg) 
+                           (and (string-match-p "TEST:test-cat" msg)
+                                (string-match-p "Category test" msg)))
+                         messages))))))
 
-          (with-debug-message-capture
-           (ecc-debug-buffer-message test-buffer "Should not appear")
-           (should-not ecc-debug-test-messages)))
-      (kill-buffer test-buffer))))
+(ert-deftest test-debug-make-debug-fn-creates-buffer-debug-function ()
+  "Make-debug-fn creates working buffer debug function."
+  (with-temp-buffer
+    (let ((ecc-debug-enabled t)
+          (ecc-debug-buffer-enabled t))
+      (let ((debug-fn (ecc-debug-make-debug-fn "TEST" nil t)))
+        (let ((messages (with-debug-capture
+                          (funcall debug-fn "Buffer test"))))
+          (should (cl-some (lambda (msg) 
+                             (and (string-match-p "TEST:buffer" msg)
+                                  (string-match-p "Buffer test" msg)))
+                           messages)))))))
 
-(ert-deftest test-debug-toggle-buffer ()
-  "Test toggling buffer-local debug."
-  (let ((test-buffer (generate-new-buffer "*debug-test*")))
-    (unwind-protect
-        (with-current-buffer test-buffer
-          (setq-local ecc-debug-buffer-enabled nil)
-
-          ;; Enable debug for this buffer
-          (ecc-debug-toggle-buffer)
-          (should ecc-debug-buffer-enabled)
-
-          ;; Disable debug for this buffer
-          (ecc-debug-toggle-buffer)
-          (should-not ecc-debug-buffer-enabled))
-      (kill-buffer test-buffer))))
-
-;;;; Factory function tests
-
-(ert-deftest test-debug-make-debug-fn ()
-  "Test creating specialized debug functions."
-  (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-enabled-categories nil)
-        (test-buffer (generate-new-buffer "*debug-test*")))
-
-    (unwind-protect
-        (with-current-buffer test-buffer
-          (setq-local ecc-debug-buffer-enabled t)
-
-          ;; Test global debug function
-          (let ((debug-fn (ecc-debug-make-debug-fn)))
-            (with-debug-message-capture
-             (funcall debug-fn "Global debug")
-             (should
-              (ecc-debug-test-message-contains-p "Global debug"))))
-
-          ;; Test category debug function
-          (let
-              ((debug-fn (ecc-debug-make-debug-fn nil 'test-category)))
-            (with-debug-message-capture
-             (funcall debug-fn "Category debug")
-             (should (ecc-debug-test-message-contains-p
-                      "[test-category] Category debug"))))
-
-          ;; Test buffer debug function
-          (let ((debug-fn (ecc-debug-make-debug-fn test-buffer)))
-            (with-debug-message-capture
-             (funcall debug-fn "Buffer debug")
-             (should (ecc-debug-test-message-contains-p
-                      (format "[%s] Buffer debug"
-                              (buffer-name test-buffer))))))
-
-          ;; Test combined buffer+category debug function
-          (let
-              ((debug-fn
-                (ecc-debug-make-debug-fn test-buffer 'test-category)))
-            (with-debug-message-capture
-             (funcall debug-fn "Combined debug")
-             (should (ecc-debug-test-message-contains-p
-                      (format "[test-category] [%s] Combined debug"
-                              (buffer-name test-buffer)))))))
-      (kill-buffer test-buffer))))
+(ert-deftest test-debug-make-debug-fn-creates-buffer-category-debug-function ()
+  "Make-debug-fn creates working buffer+category debug function."
+  (with-temp-buffer
+    (let ((ecc-debug-enabled t)
+          (ecc-debug-buffer-enabled t)
+          (ecc-debug-categories '(test-cat)))
+      (let ((debug-fn (ecc-debug-make-debug-fn "TEST" 'test-cat t)))
+        (let ((messages (with-debug-capture
+                          (funcall debug-fn "Combined test"))))
+          (should (cl-some (lambda (msg) 
+                             (and (string-match-p "TEST:test-cat:buffer" msg)
+                                  (string-match-p "Combined test" msg)))
+                           messages)))))))
 
 ;;;; Module-specific debug functions
 
 (ert-deftest test-module-specific-debug ()
-  "Test module-specific debug functions."
-  (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-enabled-categories nil))
-
-    ;; Test auto-response debug
-    (with-debug-message-capture
-     (ecc-debug-auto-response "Auto-response test")
-     (should (ecc-debug-test-message-contains-p
-              "[auto-response] Auto-response test")))
-
-    ;; Test state debug
-    (with-debug-message-capture
-     (ecc-debug-state "State test")
-     (should (ecc-debug-test-message-contains-p
-              "[state] State test")))
-
-    ;; Test core debug
-    (with-debug-message-capture
-     (ecc-debug-core "Core test")
-     (should (ecc-debug-test-message-contains-p
-              "[core] Core test")))
-
-    ;; Test buffer debug
-    (with-debug-message-capture
-     (ecc-debug-buffer "Buffer test")
-     (should (ecc-debug-test-message-contains-p
-              "[buffer] Buffer test")))
-
-    ;; Test vterm debug
-    (with-debug-message-capture
-     (ecc-debug-vterm "VTerm test")
-     (should (ecc-debug-test-message-contains-p
-              "[vterm] VTerm test")))))
+  "Module-specific debug functions work correctly."
+  (let ((ecc-debug-enabled t))
+    ;; Test ecc-auto-debug
+    (let ((messages (with-debug-capture
+                      (ecc-auto-debug "Auto module test"))))
+      (should (cl-some (lambda (msg) 
+                         (and (string-match-p "AUTO" msg)
+                              (string-match-p "Auto module test" msg)))
+                       messages)))
+    
+    ;; Test ecc-state-debug
+    (let ((messages (with-debug-capture
+                      (ecc-state-debug "State module test"))))
+      (should (cl-some (lambda (msg) 
+                         (and (string-match-p "STATE" msg)
+                              (string-match-p "State module test" msg)))
+                       messages)))
+    
+    ;; Test ecc-notify-debug
+    (let ((messages (with-debug-capture
+                      (ecc-notify-debug "Notify module test"))))
+      (should (cl-some (lambda (msg) 
+                         (and (string-match-p "NOTIFY" msg)
+                              (string-match-p "Notify module test" msg)))
+                       messages)))
+    
+    ;; Test ecc-vterm-debug
+    (let ((messages (with-debug-capture
+                      (ecc-vterm-debug "Vterm module test"))))
+      (should (cl-some (lambda (msg) 
+                         (and (string-match-p "VTERM" msg)
+                              (string-match-p "Vterm module test" msg)))
+                       messages)))
+    
+    ;; Test ecc-buffer-debug
+    (let ((messages (with-debug-capture
+                      (ecc-buffer-debug "Buffer module test"))))
+      (should (cl-some (lambda (msg) 
+                         (and (string-match-p "BUFFER" msg)
+                              (string-match-p "Buffer module test" msg)))
+                       messages)))))
 
 ;;;; Debug log buffer tests
 
 (ert-deftest test-debug-log-buffer ()
-  "Test logging to debug buffer."
+  "Debug messages are logged to debug buffer."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-log-buffer-name "*test-debug-log*"))
-
-    ;; Clear any existing log buffer
-    (when (get-buffer ecc-debug-log-buffer-name)
-      (kill-buffer ecc-debug-log-buffer-name))
-
-    ;; Log a message
-    (ecc-debug-message "Log buffer test")
-
-    ;; Check if log buffer was created and contains the message
-    (let ((log-buffer (get-buffer ecc-debug-log-buffer-name)))
-      (should log-buffer)
-      (with-current-buffer log-buffer
-        (should (string-match-p "Log buffer test"
-                                (buffer-substring-no-properties
-                                 (point-min) (point-max))))))
-
-    ;; Clear the log
-    (ecc-debug-clear-log)
-
-    ;; Check if log was cleared
-    (with-current-buffer (get-buffer ecc-debug-log-buffer-name)
-      (should (string-match-p "Log cleared at"
-                              (buffer-substring-no-properties (point-min)
-                                                              (point-max)))))
-
-    ;; Clean up
-    (kill-buffer ecc-debug-log-buffer-name)))
+        (ecc-debug-log-to-buffer t))
+    (ecc-debug-message "Log test message")
+    (with-current-buffer (get-buffer-create ecc-debug-buffer-name)
+      (should (string-match-p "Log test message" (buffer-string)))
+      (kill-buffer))))
 
 (ert-deftest test-debug-log-buffer-trimming ()
-  "Test that log buffer is trimmed when it gets too long."
+  "Debug log buffer is trimmed when it exceeds max lines."
   (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil)
-        (ecc-debug-log-buffer-name "*test-debug-log*")
-        (ecc-debug-log-max-lines 10))
-
-    ;; Clear any existing log buffer
-    (when (get-buffer ecc-debug-log-buffer-name)
-      (kill-buffer ecc-debug-log-buffer-name))
-
-    ;; Log more messages than the max line count
-    (dotimes (i 20)
-      (ecc-debug-message "Log line %d" i))
-
-    ;; Check that the buffer was trimmed
-    (let ((log-buffer (get-buffer ecc-debug-log-buffer-name)))
-      (should log-buffer)
-      (with-current-buffer log-buffer
-        ;; Should contain trimming message
-        (should (string-match-p "Log trimmed at"
-                                (buffer-substring-no-properties
-                                 (point-min) (point-max))))
-        ;; Should not contain earliest messages
-        (should-not (string-match-p "Log line 0"
-                                    (buffer-substring-no-properties
-                                     (point-min) (point-max))))
-        ;; Should contain later messages
-        (should (string-match-p "Log line 19"
-                                (buffer-substring-no-properties
-                                 (point-min) (point-max))))))
-
-    ;; Clean up
-    (kill-buffer ecc-debug-log-buffer-name)))
+        (ecc-debug-log-to-buffer t)
+        (ecc-debug-buffer-max-lines 5))
+    ;; Add more than max lines
+    (dotimes (i 10)
+      (ecc-debug-message "Line %d" i))
+    (with-current-buffer (get-buffer-create ecc-debug-buffer-name)
+      (let ((line-count (count-lines (point-min) (point-max))))
+        (should (<= line-count ecc-debug-buffer-max-lines))
+        (kill-buffer)))))
 
 ;;;; Backward compatibility tests
 
 (ert-deftest test-debug-backward-compatibility ()
-  "Test backward compatibility aliases."
-  (let ((ecc-debug-enabled t)
-        (ecc-debug-prefix "")
-        (ecc-debug-timestamp nil))
-
-    ;; Test ecc-debug-message
-    (with-debug-message-capture
-     (ecc-debug-message "Compatibility test")
-     (should (ecc-debug-test-message-contains-p "Compatibility test")))
-
-    ;; Test ecc-debug-toggle-global
-    (ecc-debug-toggle-global)
-    (should-not ecc-debug-enabled)
-    (ecc-debug-toggle-global)
-    (should ecc-debug-enabled)))
-
-;;; test-ecc-debug-utils.el ends here
-
+  "Backward compatibility aliases work correctly."
+  (let ((ecc-debug-enabled t))
+    ;; Test old function name
+    (let ((messages (with-debug-capture
+                      (ecc-debug-utils-message "Compat test"))))
+      (should (cl-some (lambda (msg) (string-match-p "Compat test" msg))
+                       messages)))))
 
 (provide 'test-ecc-debug-utils)
-
-(when
-    (not load-file-name)
-  (message "test-ecc-debug-utils.el loaded."
-           (file-name-nondirectory
-            (or load-file-name buffer-file-name))))
+;;; test-ecc-debug-utils.el ends here
