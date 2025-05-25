@@ -27,18 +27,28 @@ If CONTENT is nil, creates an empty buffer."
 
 ;; Keep original tests from test-buffer-state-detection.el
 
-(ert-deftest test-buffer-state-detection-basic ()
-  "Test basic buffer state detection."
+(ert-deftest test-buffer-state-should-detect-lowercase-yn-prompt ()
+  "Test that lowercase [y/n] prompt is detected as y-n state."
   (with-temp-buffer-fixture "[y/n]"
-    (should (eq (ecc-state-detection-get-state) 'y-n)))
-  
+    ;; Act & Assert
+    (should (eq (ecc-state-detection-get-state) 'y-n))))
+
+(ert-deftest test-buffer-state-should-detect-uppercase-yn-prompt ()
+  "Test that uppercase [Y/N] prompt is detected as y-n state."
   (with-temp-buffer-fixture "[Y/N]"
-    (should (eq (ecc-state-detection-get-state) 'y-n)))
-  
+    ;; Act & Assert
+    (should (eq (ecc-state-detection-get-state) 'y-n))))
+
+(ert-deftest test-buffer-state-should-detect-human-assistant-as-waiting ()
+  "Test that Human/Assistant pattern is detected as waiting state."
   (with-temp-buffer-fixture "Human:\n\nAssistant:"
-    (should (eq (ecc-state-detection-get-state) 'waiting)))
-  
+    ;; Act & Assert
+    (should (eq (ecc-state-detection-get-state) 'waiting))))
+
+(ert-deftest test-buffer-state-should-detect-typing-as-initial-waiting ()
+  "Test that Assistant typing pattern is detected as initial-waiting state."
   (with-temp-buffer-fixture "Human:\n\nAssistant: (typing"
+    ;; Act & Assert
     (should (eq (ecc-state-detection-get-state) 'initial-waiting))))
 
 (ert-deftest test-buffer-state-detection-name-formatting ()
@@ -49,21 +59,32 @@ If CONTENT is nil, creates an empty buffer."
       (let ((result (ecc-state-detection-describe-state 'y-n)))
         (should (string-match-p buffer-name result))))))
 
-(ert-deftest test-buffer-state-detection-complex-content ()
-  "Test detection with complex buffer content."
+(ert-deftest test-buffer-state-should-detect-continue-prompt-in-multiline ()
+  "Test that [Continue?] prompt is detected in multiline content."
   (with-temp-buffer-fixture "Some content\n[Continue?]"
-    (should (eq (ecc-state-detection-get-state) 'continue)))
-  
+    ;; Act & Assert
+    (should (eq (ecc-state-detection-get-state) 'continue))))
+
+(ert-deftest test-buffer-state-should-detect-yyn-prompt-in-multiline ()
+  "Test that [y/y/n] prompt is detected in multiline content."
   (with-temp-buffer-fixture "Multiple lines\nof content\n[y/y/n]"
+    ;; Act & Assert
     (should (eq (ecc-state-detection-get-state) 'y-y-n))))
 
-(ert-deftest test-buffer-state-detection-custom-patterns ()
-  "Test detection with custom patterns."
+(ert-deftest test-buffer-state-should-detect-first-custom-pattern ()
+  "Test that first custom pattern is detected as initial-waiting."
   (let ((ecc-state-prompt-initial-waiting-alternatives
          '("\\[CUSTOM\\]" "\\[PATTERN\\]")))
     (with-temp-buffer-fixture "[CUSTOM]"
-      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))
+      ;; Act & Assert
+      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))))
+
+(ert-deftest test-buffer-state-should-detect-second-custom-pattern ()
+  "Test that second custom pattern is detected as initial-waiting."
+  (let ((ecc-state-prompt-initial-waiting-alternatives
+         '("\\[CUSTOM\\]" "\\[PATTERN\\]")))
     (with-temp-buffer-fixture "[PATTERN]"
+      ;; Act & Assert
       (should (eq (ecc-state-detection-get-state) 'initial-waiting)))))
 
 (ert-deftest test-buffer-state-detection-notification ()
@@ -79,21 +100,47 @@ If CONTENT is nil, creates an empty buffer."
 
 ;; From test-buffer-state-detection-integration.el
 
-(ert-deftest test-buffer-state-detection-integration ()
-  "Test integration between buffer state and detection."
+(ert-deftest test-buffer-state-should-detect-yn-state-correctly ()
+  "Test that y/n state is detected correctly in integration."
   (with-temp-buffer-fixture "[y/n] prompt"
+    ;; Arrange
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Act
+    (let ((detected-state (ecc-state-detection-get-state)))
+      
+      ;; Assert
+      (should (eq detected-state 'y-n)))))
+
+(ert-deftest test-buffer-state-should-update-prompt-state-from-detection ()
+  "Test that detected state can be stored in buffer state."
+  (with-temp-buffer-fixture "[y/n] prompt"
+    ;; Arrange
     (ecc-buffer-state-init (current-buffer))
     (let ((detected-state (ecc-state-detection-get-state)))
-      (should (eq detected-state 'y-n))
+      
+      ;; Act
       (ecc-buffer-state-update-prompt-state detected-state)
+      
+      ;; Assert
       (should (eq (ecc-buffer-state-get-prompt-state) 'y-n)))))
 
-(ert-deftest test-background-detection-cursor-independence ()
-  "Test that background detection doesn't depend on cursor position."
+(ert-deftest test-buffer-state-should-detect-state-with-cursor-at-beginning ()
+  "Test that state is detected correctly with cursor at buffer beginning."
   (with-temp-buffer-fixture "Line 1\nLine 2\n[y/n]"
+    ;; Arrange
     (goto-char (point-min))
-    (should (eq (ecc-state-detection-get-state) 'y-n))
+    
+    ;; Act & Assert
+    (should (eq (ecc-state-detection-get-state) 'y-n))))
+
+(ert-deftest test-buffer-state-should-detect-state-with-cursor-at-end ()
+  "Test that state is detected correctly with cursor at buffer end."
+  (with-temp-buffer-fixture "Line 1\nLine 2\n[y/n]"
+    ;; Arrange
     (goto-char (point-max))
+    
+    ;; Act & Assert
     (should (eq (ecc-state-detection-get-state) 'y-n))))
 
 (ert-deftest test-buffer-state-independence ()
