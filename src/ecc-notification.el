@@ -219,16 +219,26 @@ Handles different system configurations to ensure bell is audible."
     ('external (ecc-notification-ring-bell-external))
     (_ (ecc-notification-ring-bell-audible)))) ; Default fallback
 
-(defun ecc-notification-flash-mode-line ()
-  "Flash the mode line to get attention."
-  (when ecc-notification--flash-timer
-    (cancel-timer ecc-notification--flash-timer))
-  
-  (invert-face 'mode-line)
-  (setq ecc-notification--flash-timer
-        (run-with-timer ecc-notification-flash-duration nil
-                      (lambda ()
-                        (invert-face 'mode-line)))))
+(defun ecc-notification-flash-mode-line (&optional buffer)
+  "Flash the mode line to get attention in BUFFER.
+If BUFFER is not provided, uses the current buffer."
+  (let ((target-buffer (or buffer (current-buffer))))
+    (when ecc-notification--flash-timer
+      (cancel-timer ecc-notification--flash-timer))
+    
+    ;; First flash - invert immediately
+    (with-current-buffer target-buffer
+      (invert-face 'mode-line)
+      (force-mode-line-update))
+    
+    ;; Set timer to restore mode line
+    (setq ecc-notification--flash-timer
+          (run-with-timer ecc-notification-flash-duration nil
+                        (lambda ()
+                          (when (buffer-live-p target-buffer)
+                            (with-current-buffer target-buffer
+                              (invert-face 'mode-line)
+                              (force-mode-line-update))))))))
 
 (defun ecc-notification-display-message (state &optional buffer)
   "Display a message about STATE in the echo area.
@@ -253,7 +263,7 @@ Returns non-nil if notification was performed."
       (ecc-notification-ring-bell))
     
     (when (memq 'flash ecc-notification-methods)
-      (ecc-notification-flash-mode-line))
+      (ecc-notification-flash-mode-line buffer))
     
     (when (memq 'message ecc-notification-methods)
       (ecc-notification-display-message state buffer))
