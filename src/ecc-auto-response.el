@@ -772,30 +772,17 @@ The buffer remains registered but won't receive auto-responses."
 ;;;###autoload
 (defun ecc-auto-response-buffer-toggle (&optional buffer)
   "Toggle buffer-local auto-response for BUFFER on or off.
-If not already started, initializes with default settings."
+Always operates on buffer-local state regardless of global settings."
   (interactive)
   (let ((buf (or buffer (current-buffer))))
     (with-current-buffer buf
-      ;; Check if we're in buffer-local mode
-      (if ecc-auto-response-default
-          ;; Buffer-local mode: toggle buffer-local state
-          (if ecc-auto-response-buffer-enabled
-              (ecc-auto-response-buffer-stop buf)
-            ;; When starting, ensure buffer is registered
-            (progn
-              (ecc-auto-response-register-buffer buf)
-              (ecc-auto-response-buffer-start buf)))
-        ;; Global mode: toggle global state for current buffer
-        (if ecc-auto-response-enabled
-            ;; Stop global auto-response completely
-            (progn
-              (ecc-auto-response-stop)
-              (ecc-debug-message "Global auto-response disabled"))
-          ;; Start global auto-response with current buffer registered
-          (progn
-            (ecc-auto-response-register-buffer buf)
-            (ecc-auto-response-start)
-            (ecc-debug-message "Global auto-response enabled")))))))
+      ;; Always use buffer-local mode
+      (if ecc-auto-response-buffer-enabled
+          (ecc-auto-response-buffer-stop buf)
+        ;; When starting, ensure buffer is registered
+        (progn
+          (ecc-auto-response-register-buffer buf)
+          (ecc-auto-response-buffer-start buf))))))
 
 (defun ecc-auto-response--process-buffer-local (buffer)
   "Process BUFFER for auto-response using buffer-local settings."
