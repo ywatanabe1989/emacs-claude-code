@@ -450,23 +450,6 @@ Key bindings:
                                    (concat "[" state-str "] " 
                                            (replace-regexp-in-string "\\[.*?\\] " "" current-title))))))))))
 
-(defun ecc-term-claude-check-state ()
-  "Check and update the state of the Claude VTERM buffer.
-This is called periodically by the state timer."
-  (when (and (memq major-mode '(ecc-term-claude-mode vterm-mode))
-             (buffer-live-p (current-buffer)))
-    (let ((state (ecc-detect-state)))
-      ;; Only log state changes for efficiency
-      (unless (eq state ecc-term-claude--last-state)
-        (ecc-term-claude--debug "State changed from %s to %s" ecc-term-claude--last-state state)
-        (setq ecc-term-claude--last-state state))
-      
-      ;; Debug mode-line update
-      (ecc-term-claude--debug "Updating mode-line for buffer %s (auto-mode: %s)" 
-                             (buffer-name) 
-                             (if ecc-term-claude-auto-mode "ON" "OFF"))
-      (force-mode-line-update)
-      state)))
 
 ;;;; Claude Interaction Commands
 

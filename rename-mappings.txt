@@ -1,0 +1,35 @@
+# Rename mappings for emacs-claude-code
+# Format: old_name:new_name:reason
+
+# Auto-response aliases
+ecc-auto-response-enable:ecc-auto-response-enable:Use descriptive name
+ecc-auto-response-disable:ecc-auto-response-disable:Use descriptive name
+ecc-auto-response-toggle:ecc-auto-response-toggle:Use descriptive name
+ecc-auto-response-yes:ecc-auto-response-yes:Use descriptive name
+ecc-auto-response-yes-plus:ecc-auto-response-yes-plus:Use descriptive name
+ecc-auto-response-continue:ecc-auto-response-continue:Use descriptive name
+
+# Buffer-local aliases
+ecc-buffer-auto-response-enable:ecc-buffer-auto-response-enable:Use descriptive name
+ecc-buffer-auto-response-disable:ecc-buffer-auto-response-disable:Use descriptive name
+ecc-buffer-auto-response-toggle:ecc-buffer-auto-response-toggle:Use descriptive name
+
+# Notification aliases (standardize to ecc-notification-*)
+ecc-notification-toggle:ecc-notification-toggle:Standardize notification naming
+ecc-notification-toggle-bell:ecc-notification-toggle-bell:Standardize notification naming
+ecc-notification-check-state:ecc-notification-check-state:Standardize notification naming
+ecc-notification-dispatch:ecc-notification-dispatch:Standardize notification naming
+ecc-notification-ring-bell:ecc-notification-ring-bell:Standardize notification naming
+ecc-notification-flash-mode-line:ecc-notification-flash-mode-line:Standardize notification naming
+ecc-notification-setup-for-buffer:ecc-notification-setup-for-buffer:Standardize notification naming
+
+# Debug utils aliases
+ecc-debug-make-debug-fn:ecc-debug-make-debug-fn:Simplify naming
+ecc-debug-message:ecc-debug-message:Simplify naming
+ecc-debug-print-state-info:ecc-debug-print-state-info:Simplify naming
+ecc-debug-toggle-global:ecc-debug-toggle-global:Consistent naming
+
+# State detection consolidation
+ecc-detect-state:ecc-detect-state:Consolidate state detection
+ecc-detect-state:ecc-detect-state:Consolidate state detection
+ecc-detect-prompt-state:ecc-detect-state:Consolidate state detection

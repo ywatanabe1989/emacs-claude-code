@@ -185,7 +185,7 @@
                 (debug-calls-b 0))
             
             ;; Create buffer-specific debug functions
-            (cl-letf (((symbol-function 'ecc-debug-utils-make-debug-fn)
+            (cl-letf (((symbol-function 'ecc-debug-make-debug-fn)
                        (lambda (&optional buffer)
                          (if (eq buffer test-integration-buffer-a)
                              (lambda (&rest args)
@@ -196,11 +196,11 @@
               ;; Send to both buffers
               (ecc-vterm-utils-send-string 
                test-integration-buffer-a "test-a"
-               (ecc-debug-utils-make-debug-fn test-integration-buffer-a))
+               (ecc-debug-make-debug-fn test-integration-buffer-a))
               
               (ecc-vterm-utils-send-string 
                test-integration-buffer-b "test-b"
-               (ecc-debug-utils-make-debug-fn test-integration-buffer-b))
+               (ecc-debug-make-debug-fn test-integration-buffer-b))
               
               ;; Verify debug calls were correctly routed to each buffer
               (should (> debug-calls-a 0))

@@ -80,13 +80,13 @@ Creates a temporary buffer with CONTENT and calls TEST-FN with the buffer."
     (should (memq :initial-waiting symbols))
     (should (= (length symbols) 4))))
 
-(ert-deftest test-ecc-detect-simple-state-alias ()
+(ert-deftest test-ecc-detect-state-alias ()
   "Test backward compatibility alias."
   (test-ecc-term-claude-with-buffer
    "Some content with [y/n] prompt"
    (lambda (buffer)
      (with-current-buffer buffer
-       (should (eq (ecc-detect-simple-state) :y/n))))))
+       (should (eq (ecc-detect-state) :y/n))))))
 
 (provide 'test-ecc-term-claude-state)
 

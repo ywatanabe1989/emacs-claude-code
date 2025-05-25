@@ -145,13 +145,6 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (message "Auto-response disabled"))
 
 ;;;###autoload
-(defun ecc-auto-response-send (response &optional buffer)
-  "Send RESPONSE to Claude in BUFFER or current buffer."
-  (interactive "sResponse to send: ")
-  (let ((buf (or buffer (ecc-buffer-current))))
-    (when (buffer-live-p buf)
-      (with-current-buffer buf
-        (ecc-auto-response-send-response response "Custom")))))
 
 ;;;###autoload
 (defun ecc-auto-response-send-state-based (&optional buffer)
@@ -175,32 +168,6 @@ response for that state."
          ((eq state :waiting)
           (ecc-auto-response-send-response ecc-auto-response-waiting "Continue")))))))
 
-;; Command aliases for common operations
-
-;;;###autoload
-(defalias 'ecc-auto-start 'ecc-auto-response-enable
-  "Alias for enabling auto-response.")
-
-;;;###autoload
-(defalias 'ecc-auto-stop 'ecc-auto-response-disable
-  "Alias for disabling auto-response.")
-
-;;;###autoload
-(defalias 'ecc-auto-toggle 'ecc-auto-response-toggle
-  "Alias for toggling auto-response.")
-
-;;;###autoload
-(defalias 'ecc-yes 'ecc-auto-response-yes
-  "Alias for sending yes response.")
-
-;;;###autoload
-(defalias 'ecc-yes-plus 'ecc-auto-response-yes-plus
-  "Alias for sending yes-plus response.")
-
-;;;###autoload
-(defalias 'ecc-continue 'ecc-auto-response-continue
-  "Alias for sending continue response.")
-
 ;; Debug API
 
 ;;;###autoload
@@ -214,3 +181,6 @@ response for that state."
 (provide 'ecc-api)
 
 ;;; ecc-api.el ends here
+
+
+

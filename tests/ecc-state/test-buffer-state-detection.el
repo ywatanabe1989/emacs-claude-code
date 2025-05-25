@@ -121,7 +121,7 @@
         (notification-state nil))
     
     ;; Mock the notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-check-state)
+    (cl-letf (((symbol-function 'ecc-notification-check-state)
                (lambda (state) 
                  (setq notification-called t)
                  (setq notification-state state))))

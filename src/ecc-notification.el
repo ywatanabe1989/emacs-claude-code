@@ -25,7 +25,7 @@
 ;;;   (ecc-notification-toggle-bell)
 ;;;
 ;;;   ;; Notify about a specific state
-;;;   (ecc-notification-dispatch :waiting)
+;;;   (ecc-notification-dispatch :y/n)
 ;;;
 ;;;   ;; Setup notifications for current buffer
 ;;;   (ecc-notification-setup-for-buffer)
@@ -321,8 +321,8 @@ buffer modes to automatically set up prompt notifications."
                                ;; Use new detection system if available
                                (ecc-detect-state)
                              ;; Fall back to simple state detection 
-                             (when (fboundp 'ecc-detect-simple-state)
-                               (ecc-detect-simple-state)))))
+                             (when (fboundp 'ecc-detect-state)
+                               (ecc-detect-state)))))
                   (when state
                     (ecc-notification-check-state state))))
               nil t)))
@@ -339,28 +339,6 @@ buffer modes to automatically set up prompt notifications."
             (lambda ()
               (when (string-match-p "\\*CLAUDE.*\\*" (buffer-name))
                 (ecc-notification-setup-for-buffer)))))
-
-;; Backward compatibility aliases
-(defalias 'ecc-auto-notify-toggle 'ecc-notification-toggle
-  "Compatibility alias for toggling notifications.")
-
-(defalias 'ecc-auto-notify-toggle-bell 'ecc-notification-toggle-bell
-  "Compatibility alias for toggling bell notifications.")
-
-(defalias 'ecc-auto-notify-check-state 'ecc-notification-check-state
-  "Compatibility alias for checking state.")
-
-(defalias 'ecc-auto-notify-prompt 'ecc-notification-dispatch
-  "Compatibility alias for notification dispatch.")
-
-(defalias 'ecc-auto-notify-ring-bell 'ecc-notification-ring-bell
-  "Compatibility alias for bell function.")
-
-(defalias 'ecc-auto-notify-flash-mode-line 'ecc-notification-flash-mode-line
-  "Compatibility alias for flash function.")
-
-(defalias 'ecc-auto-notify-setup-for-buffer 'ecc-notification-setup-for-buffer
-  "Compatibility alias for buffer setup.")
 
 ;; Install the setup hooks when this module is loaded
 (ecc-notification-setup)

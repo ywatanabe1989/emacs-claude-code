@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-24 21:56:50>
+;;; Timestamp: <2025-05-25 07:03:33>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-convenience-commands.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -69,15 +69,15 @@ default settings but using '/user:auto' for the continue prompt."
 (defun ecc-notify-toggle ()
   "Toggle notifications for Claude prompts."
   (interactive)
-  (if (fboundp 'ecc-auto-notify-toggle)
-      (ecc-auto-notify-toggle)
+  (if (fboundp 'ecc-notification-toggle)
+      (ecc-notification-toggle)
     (message "Notification functionality not available")))
 
 (defun ecc-bell-toggle ()
   "Toggle bell notifications for Claude prompts."
   (interactive)
-  (if (fboundp 'ecc-auto-notify-toggle-bell)
-      (ecc-auto-notify-toggle-bell)
+  (if (fboundp 'ecc-notification-toggle-bell)
+      (ecc-notification-toggle-bell)
     (message "Notification bell functionality not available")))
 
 (defun ecc-interaction-stats ()
@@ -135,14 +135,27 @@ default settings but using '/user:auto' for the continue prompt."
 (defun ecc-stop-auto ()
   "Immediately stop auto-response and show a clear notification."
   (interactive)
-  (if (fboundp 'ecc-stop-auto-response)
-      (progn
-        (ecc-stop-auto-response)
-        (let ((msg "Auto-response STOPPED (C-g equivalent)"))
-          (message msg)
-          (when (fboundp 'display-message-or-buffer)
-            (display-message-or-buffer msg "*Claude Auto Control*"))))
-    (message "Auto-response functionality not available")))
+  (cond
+   ;; Check if we're in buffer-local mode
+   ((and (boundp 'ecc-auto-response-default) ecc-auto-response-default)
+    ;; Buffer-local mode: stop for current buffer
+    (if (fboundp 'ecc-auto-response-buffer-stop)
+        (progn
+          (ecc-auto-response-buffer-stop)
+          (let ((msg (format "Buffer-local auto-response STOPPED in %s" (buffer-name))))
+            (message msg)
+            (when (fboundp 'display-message-or-buffer)
+              (display-message-or-buffer msg "*Claude Auto Control*"))))
+      (message "Buffer-local auto-response functionality not available")))
+   ;; Global mode: stop globally
+   ((fboundp 'ecc-auto-response-stop)
+    (ecc-auto-response-stop)
+    (let ((msg "Global auto-response STOPPED"))
+      (message msg)
+      (when (fboundp 'display-message-or-buffer)
+        (display-message-or-buffer msg "*Claude Auto Control*"))))
+   (t
+    (message "Auto-response functionality not available"))))
 
 (defun ecc-help ()
   "Display help about Claude mode commands and keybindings."
@@ -296,7 +309,7 @@ default settings but using '/user:auto' for the continue prompt."
     ;; Auto-response
     (define-key map (kbd "C-c c a")
                 'ecc-auto-response-buffer-toggle)
-    (define-key map (kbd "C-l")
+    (define-key map (kbd "C-c c c")
                 'ecc-auto-response-buffer-toggle)
     (define-key map (kbd "C-c c q")
                 'ecc-quick-auto-response)

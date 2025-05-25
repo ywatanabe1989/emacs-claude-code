@@ -108,20 +108,20 @@
 (ert-deftest test-notification-backward-compatibility ()
   "Test backward compatibility aliases."
   ;; Test that aliases are defined
-  (should (fboundp 'ecc-auto-notify-toggle))
-  (should (fboundp 'ecc-auto-notify-toggle-bell))
-  (should (fboundp 'ecc-auto-notify-check-state))
-  (should (fboundp 'ecc-auto-notify-prompt))
+  (should (fboundp 'ecc-notification-toggle))
+  (should (fboundp 'ecc-notification-toggle-bell))
+  (should (fboundp 'ecc-notification-check-state))
+  (should (fboundp 'ecc-notification-dispatch))
   
   ;; Test that aliases point to the right functions
-  (should (functionp (symbol-function 'ecc-auto-notify-toggle)))
-  (should (functionp (symbol-function 'ecc-auto-notify-toggle-bell)))
+  (should (functionp (symbol-function 'ecc-notification-toggle)))
+  (should (functionp (symbol-function 'ecc-notification-toggle-bell)))
   
   ;; Call aliases and check they run without errors
   (let ((ecc-notification-enabled t))
-    (ecc-auto-notify-toggle)
+    (ecc-notification-toggle)
     (should-not ecc-notification-enabled)
-    (ecc-auto-notify-toggle)
+    (ecc-notification-toggle)
     (should ecc-notification-enabled)))
 
 ;; Test buffer name in notifications

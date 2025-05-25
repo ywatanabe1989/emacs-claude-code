@@ -45,11 +45,11 @@ This is the main function that should be used for state detection.
 It automatically uses the best available detection method, prioritizing
 line-based detection for accuracy when available."
   (with-current-buffer (or buffer (current-buffer))
-    (message "[DEBUG] ecc-detect-state called for buffer: %s" (buffer-name))
+    (ecc-debug-message "ecc-detect-state called for buffer: %s" (buffer-name))
     (let ((line-result (ecc-detect-prompt-in-last-lines ecc-state-detection-line-count))
           (basic-result (ecc-detect-basic-state)))
-      (message "[DEBUG] Line-based detection result: %s" line-result)
-      (message "[DEBUG] Basic detection result: %s" basic-result)
+      (ecc-debug-message "Line-based detection result: %s" line-result)
+      (ecc-debug-message "Basic detection result: %s" basic-result)
       (or line-result basic-result))))
 
 ;;;###autoload
@@ -92,10 +92,10 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
 (defun ecc-analyze-buffer-text-for-state (buffer-text)
   "Analyze BUFFER-TEXT to detect Claude prompt state.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
-  (message "[DEBUG] ecc-analyze-buffer-text-for-state called")
-  (message "[DEBUG] Buffer text length: %s" (length buffer-text))
+  (ecc-debug-message "ecc-analyze-buffer-text-for-state called")
+  (ecc-debug-message "Buffer text length: %s" (length buffer-text))
   (when (< (length buffer-text) 200)
-    (message "[DEBUG] Buffer text: %s" buffer-text))
+    (ecc-debug-message "Buffer text: %s" buffer-text))
   
   (let ((result
          (cond
@@ -103,50 +103,50 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
           ((and (boundp 'ecc-state-prompt-y/y/n)
                 ecc-state-prompt-y/y/n
                 (string-match-p (regexp-quote ecc-state-prompt-y/y/n) buffer-text))
-           (message "[DEBUG] Matched Y/Y/N pattern: %s" ecc-state-prompt-y/y/n)
+           (ecc-debug-message "Matched Y/Y/N pattern: %s" ecc-state-prompt-y/y/n)
            :y/y/n)
           
           ;; Check for y/n prompts using customized pattern
           ((and (boundp 'ecc-state-prompt-y/n)
                 ecc-state-prompt-y/n
                 (string-match-p (regexp-quote ecc-state-prompt-y/n) buffer-text))
-           (message "[DEBUG] Matched Y/N pattern: %s" ecc-state-prompt-y/n)
+           (ecc-debug-message "Matched Y/N pattern: %s" ecc-state-prompt-y/n)
            :y/n)
           
           ;; Check for waiting prompts using customized patterns
           ((and (boundp 'ecc-state-prompt-waiting)
                 ecc-state-prompt-waiting
                 (string-match-p (regexp-quote ecc-state-prompt-waiting) buffer-text))
-           (message "[DEBUG] Matched waiting pattern: %s" ecc-state-prompt-waiting)
+           (ecc-debug-message "Matched waiting pattern: %s" ecc-state-prompt-waiting)
            :waiting)
           
           ;; Check for initial prompts
           ((and (boundp 'ecc-state-prompt-initial-waiting)
                 ecc-state-prompt-initial-waiting
                 (string-match-p (regexp-quote ecc-state-prompt-initial-waiting) buffer-text))
-           (message "[DEBUG] Matched initial waiting pattern: %s" ecc-state-prompt-initial-waiting)
+           (ecc-debug-message "Matched initial waiting pattern: %s" ecc-state-prompt-initial-waiting)
            :initial-waiting)
           
           ;; If no custom patterns match, try alternative initial waiting patterns
           ((ecc-detect-alternative-initial-waiting buffer-text)
-           (message "[DEBUG] Matched alternative initial waiting pattern")
+           (ecc-debug-message "Matched alternative initial waiting pattern")
            :initial-waiting)
           
           ;; Fallback to common patterns
           ((string-match-p "\\[Y/y/n\\]" buffer-text) 
-           (message "[DEBUG] Matched fallback Y/Y/N pattern")
+           (ecc-debug-message "Matched fallback Y/Y/N pattern")
            :y/y/n)
           ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" buffer-text) 
-           (message "[DEBUG] Matched fallback Y/N pattern")
+           (ecc-debug-message "Matched fallback Y/N pattern")
            :y/n)
           ((string-match-p "continue>\\|Continue>" buffer-text) 
-           (message "[DEBUG] Matched fallback continue pattern")
+           (ecc-debug-message "Matched fallback continue pattern")
            :waiting)
           
           (t 
-           (message "[DEBUG] No pattern matched")
+           (ecc-debug-message "No pattern matched")
            nil))))
-    (message "[DEBUG] Final detection result: %s" result)
+    (ecc-debug-message "Final detection result: %s" result)
     result))
 
 (defun ecc-detect-alternative-initial-waiting (buffer-text)
@@ -248,14 +248,6 @@ Returns the STATE argument for convenience in chaining."
       state)))
 
 ;;;; Backward compatibility functions and aliases
-
-;;;###autoload
-(defalias 'ecc-detect-simple-state 'ecc-detect-state
-  "Alias for backwards compatibility with existing code.")
-
-;;;###autoload
-(defalias 'ecc-detect-enhanced-state 'ecc-detect-state
-  "Alias for backwards compatibility with existing code.")
 
 ;;;###autoload
 (defalias 'ecc-detect-prompt-state 'ecc-detect-state

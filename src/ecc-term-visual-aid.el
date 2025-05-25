@@ -87,7 +87,7 @@
   "Update visual aids based on current Claude state."
   (when (and ecc-term-visual-aid-enabled
              (derived-mode-p 'vterm-mode))
-    (let ((state (ecc-detect-simple-state)))
+    (let ((state (ecc-detect-state)))
       ;; Only update if state has changed
       (unless (eq state ecc-term-visual-aid--last-state)
         (ecc-term-visual-aid-clear-all)

@@ -1,7 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-21 17:30:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-debug-utils.el
+;;; Timestamp: <2025-05-25 06:55:14>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-debug-utils.el
+
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 ;;; Commentary:
 ;;; Tests for debug utilities module functionality.
@@ -36,8 +39,9 @@ ARGS are the arguments to pass to it."
 
 (defun ecc-debug-test-message-contains-p (substring)
   "Return non-nil if any captured message contains SUBSTRING."
-  (cl-some (lambda (msg) (string-match-p (regexp-quote substring) msg))
-           ecc-debug-test-messages))
+  (cl-some
+   (lambda (msg) (string-match-p (regexp-quote substring) msg))
+   ecc-debug-test-messages))
 
 ;;;; Basic debug message tests
 
@@ -48,7 +52,8 @@ ARGS are the arguments to pass to it."
         (ecc-debug-timestamp nil))
     (with-debug-message-capture
      (ecc-debug-message "Test message %d" 42)
-     (should (ecc-debug-test-message-contains-p "[Test] Test message 42")))))
+     (should
+      (ecc-debug-test-message-contains-p "[Test] Test message 42")))))
 
 (ert-deftest test-debug-message-disabled ()
   "Test that debug messages don't appear when debugging is disabled."
@@ -65,8 +70,9 @@ ARGS are the arguments to pass to it."
     (with-debug-message-capture
      (ecc-debug-message "Test with timestamp")
      ;; Check for timestamp format [HH:MM:SS.NNN]
-     (should (string-match-p "\\[\\([0-9]\\{2\\}:\\)\\{2\\}[0-9]\\{2\\}\\.[0-9]\\{3\\}\\]"
-                          (car ecc-debug-test-messages))))))
+     (should (string-match-p
+              "\\[\\([0-9]\\{2\\}:\\)\\{2\\}[0-9]\\{2\\}\\.[0-9]\\{3\\}\\]"
+              (car ecc-debug-test-messages))))))
 
 ;;;; Category-based debug tests
 
@@ -75,10 +81,12 @@ ARGS are the arguments to pass to it."
   (let ((ecc-debug-enabled t)
         (ecc-debug-prefix "")
         (ecc-debug-timestamp nil)
-        (ecc-debug-enabled-categories nil))  ; All categories enabled
+        (ecc-debug-enabled-categories nil))
+                                        ; All categories enabled
     (with-debug-message-capture
      (ecc-debug-message-category 'test "Category test")
-     (should (ecc-debug-test-message-contains-p "[test] Category test")))))
+     (should
+      (ecc-debug-test-message-contains-p "[test] Category test")))))
 
 (ert-deftest test-debug-category-filtering ()
   "Test that category filtering works correctly."
@@ -90,35 +98,38 @@ ARGS are the arguments to pass to it."
      ;; Should appear (category is enabled)
      (ecc-debug-message-category 'enabled-category "Should appear")
      ;; Should not appear (category is not enabled)
-     (ecc-debug-message-category 'disabled-category "Should not appear")
-     
+     (ecc-debug-message-category 'disabled-category
+                                 "Should not appear")
+
      (should (ecc-debug-test-message-contains-p "Should appear"))
-     (should-not (ecc-debug-test-message-contains-p "Should not appear")))))
+     (should-not
+      (ecc-debug-test-message-contains-p "Should not appear")))))
 
 (ert-deftest test-debug-toggle-category ()
   "Test toggling debug categories."
   (let ((ecc-debug-enabled t)
         (ecc-debug-categories '(cat1 cat2 cat3))
-        (ecc-debug-enabled-categories nil))  ; All enabled initially
-    
+        (ecc-debug-enabled-categories nil))
+                                        ; All enabled initially
+
     ;; Test initial state (all enabled)
     (should (ecc-debug--category-enabled-p 'cat1))
     (should (ecc-debug--category-enabled-p 'cat2))
-    
+
     ;; Disable cat1
     (ecc-debug-toggle-category 'cat1)
     (should-not (ecc-debug--category-enabled-p 'cat1))
     (should (ecc-debug--category-enabled-p 'cat2))
-    
+
     ;; Re-enable cat1
     (ecc-debug-toggle-category 'cat1)
     (should (ecc-debug--category-enabled-p 'cat1))
-    
+
     ;; Disable cat2
     (ecc-debug-toggle-category 'cat2)
     (should (ecc-debug--category-enabled-p 'cat1))
     (should-not (ecc-debug--category-enabled-p 'cat2))
-    
+
     ;; Enable all categories
     (ecc-debug-enable-all-categories)
     (should (ecc-debug--category-enabled-p 'cat1))
@@ -135,11 +146,12 @@ ARGS are the arguments to pass to it."
     (unwind-protect
         (with-current-buffer test-buffer
           (setq-local ecc-debug-buffer-enabled t)
-          
+
           (with-debug-message-capture
            (ecc-debug-buffer-message test-buffer "Buffer test")
-           (should (ecc-debug-test-message-contains-p 
-                    (format "[%s] Buffer test" (buffer-name test-buffer))))))
+           (should (ecc-debug-test-message-contains-p
+                    (format "[%s] Buffer test"
+                            (buffer-name test-buffer))))))
       (kill-buffer test-buffer))))
 
 (ert-deftest test-debug-buffer-disabled ()
@@ -149,7 +161,7 @@ ARGS are the arguments to pass to it."
     (unwind-protect
         (with-current-buffer test-buffer
           (setq-local ecc-debug-buffer-enabled nil)
-          
+
           (with-debug-message-capture
            (ecc-debug-buffer-message test-buffer "Should not appear")
            (should-not ecc-debug-test-messages)))
@@ -161,11 +173,11 @@ ARGS are the arguments to pass to it."
     (unwind-protect
         (with-current-buffer test-buffer
           (setq-local ecc-debug-buffer-enabled nil)
-          
+
           ;; Enable debug for this buffer
           (ecc-debug-toggle-buffer)
           (should ecc-debug-buffer-enabled)
-          
+
           ;; Disable debug for this buffer
           (ecc-debug-toggle-buffer)
           (should-not ecc-debug-buffer-enabled))
@@ -180,37 +192,42 @@ ARGS are the arguments to pass to it."
         (ecc-debug-timestamp nil)
         (ecc-debug-enabled-categories nil)
         (test-buffer (generate-new-buffer "*debug-test*")))
-    
+
     (unwind-protect
         (with-current-buffer test-buffer
           (setq-local ecc-debug-buffer-enabled t)
-          
+
           ;; Test global debug function
           (let ((debug-fn (ecc-debug-make-debug-fn)))
             (with-debug-message-capture
              (funcall debug-fn "Global debug")
-             (should (ecc-debug-test-message-contains-p "Global debug"))))
-          
+             (should
+              (ecc-debug-test-message-contains-p "Global debug"))))
+
           ;; Test category debug function
-          (let ((debug-fn (ecc-debug-make-debug-fn nil 'test-category)))
+          (let
+              ((debug-fn (ecc-debug-make-debug-fn nil 'test-category)))
             (with-debug-message-capture
              (funcall debug-fn "Category debug")
-             (should (ecc-debug-test-message-contains-p 
+             (should (ecc-debug-test-message-contains-p
                       "[test-category] Category debug"))))
-          
+
           ;; Test buffer debug function
           (let ((debug-fn (ecc-debug-make-debug-fn test-buffer)))
             (with-debug-message-capture
              (funcall debug-fn "Buffer debug")
-             (should (ecc-debug-test-message-contains-p 
-                      (format "[%s] Buffer debug" (buffer-name test-buffer))))))
-          
+             (should (ecc-debug-test-message-contains-p
+                      (format "[%s] Buffer debug"
+                              (buffer-name test-buffer))))))
+
           ;; Test combined buffer+category debug function
-          (let ((debug-fn (ecc-debug-make-debug-fn test-buffer 'test-category)))
+          (let
+              ((debug-fn
+                (ecc-debug-make-debug-fn test-buffer 'test-category)))
             (with-debug-message-capture
              (funcall debug-fn "Combined debug")
-             (should (ecc-debug-test-message-contains-p 
-                      (format "[test-category] [%s] Combined debug" 
+             (should (ecc-debug-test-message-contains-p
+                      (format "[test-category] [%s] Combined debug"
                               (buffer-name test-buffer)))))))
       (kill-buffer test-buffer))))
 
@@ -222,35 +239,35 @@ ARGS are the arguments to pass to it."
         (ecc-debug-prefix "")
         (ecc-debug-timestamp nil)
         (ecc-debug-enabled-categories nil))
-    
+
     ;; Test auto-response debug
     (with-debug-message-capture
      (ecc-debug-auto-response "Auto-response test")
-     (should (ecc-debug-test-message-contains-p 
+     (should (ecc-debug-test-message-contains-p
               "[auto-response] Auto-response test")))
-    
+
     ;; Test state debug
     (with-debug-message-capture
      (ecc-debug-state "State test")
-     (should (ecc-debug-test-message-contains-p 
+     (should (ecc-debug-test-message-contains-p
               "[state] State test")))
-    
+
     ;; Test core debug
     (with-debug-message-capture
      (ecc-debug-core "Core test")
-     (should (ecc-debug-test-message-contains-p 
+     (should (ecc-debug-test-message-contains-p
               "[core] Core test")))
-    
+
     ;; Test buffer debug
     (with-debug-message-capture
      (ecc-debug-buffer "Buffer test")
-     (should (ecc-debug-test-message-contains-p 
+     (should (ecc-debug-test-message-contains-p
               "[buffer] Buffer test")))
-    
+
     ;; Test vterm debug
     (with-debug-message-capture
      (ecc-debug-vterm "VTerm test")
-     (should (ecc-debug-test-message-contains-p 
+     (should (ecc-debug-test-message-contains-p
               "[vterm] VTerm test")))))
 
 ;;;; Debug log buffer tests
@@ -261,29 +278,31 @@ ARGS are the arguments to pass to it."
         (ecc-debug-prefix "")
         (ecc-debug-timestamp nil)
         (ecc-debug-log-buffer-name "*test-debug-log*"))
-    
+
     ;; Clear any existing log buffer
     (when (get-buffer ecc-debug-log-buffer-name)
       (kill-buffer ecc-debug-log-buffer-name))
-    
+
     ;; Log a message
     (ecc-debug-message "Log buffer test")
-    
+
     ;; Check if log buffer was created and contains the message
     (let ((log-buffer (get-buffer ecc-debug-log-buffer-name)))
       (should log-buffer)
       (with-current-buffer log-buffer
-        (should (string-match-p "Log buffer test" 
-                             (buffer-substring-no-properties (point-min) (point-max))))))
-    
+        (should (string-match-p "Log buffer test"
+                                (buffer-substring-no-properties
+                                 (point-min) (point-max))))))
+
     ;; Clear the log
     (ecc-debug-clear-log)
-    
+
     ;; Check if log was cleared
     (with-current-buffer (get-buffer ecc-debug-log-buffer-name)
-      (should (string-match-p "Log cleared at" 
-                           (buffer-substring-no-properties (point-min) (point-max)))))
-    
+      (should (string-match-p "Log cleared at"
+                              (buffer-substring-no-properties (point-min)
+                                                              (point-max)))))
+
     ;; Clean up
     (kill-buffer ecc-debug-log-buffer-name)))
 
@@ -294,29 +313,32 @@ ARGS are the arguments to pass to it."
         (ecc-debug-timestamp nil)
         (ecc-debug-log-buffer-name "*test-debug-log*")
         (ecc-debug-log-max-lines 10))
-    
+
     ;; Clear any existing log buffer
     (when (get-buffer ecc-debug-log-buffer-name)
       (kill-buffer ecc-debug-log-buffer-name))
-    
+
     ;; Log more messages than the max line count
     (dotimes (i 20)
       (ecc-debug-message "Log line %d" i))
-    
+
     ;; Check that the buffer was trimmed
     (let ((log-buffer (get-buffer ecc-debug-log-buffer-name)))
       (should log-buffer)
       (with-current-buffer log-buffer
         ;; Should contain trimming message
-        (should (string-match-p "Log trimmed at" 
-                             (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p "Log trimmed at"
+                                (buffer-substring-no-properties
+                                 (point-min) (point-max))))
         ;; Should not contain earliest messages
-        (should-not (string-match-p "Log line 0" 
-                                  (buffer-substring-no-properties (point-min) (point-max))))
+        (should-not (string-match-p "Log line 0"
+                                    (buffer-substring-no-properties
+                                     (point-min) (point-max))))
         ;; Should contain later messages
-        (should (string-match-p "Log line 19" 
-                             (buffer-substring-no-properties (point-min) (point-max))))))
-    
+        (should (string-match-p "Log line 19"
+                                (buffer-substring-no-properties
+                                 (point-min) (point-max))))))
+
     ;; Clean up
     (kill-buffer ecc-debug-log-buffer-name)))
 
@@ -327,18 +349,25 @@ ARGS are the arguments to pass to it."
   (let ((ecc-debug-enabled t)
         (ecc-debug-prefix "")
         (ecc-debug-timestamp nil))
-    
-    ;; Test ecc-debug-utils-message
+
+    ;; Test ecc-debug-message
     (with-debug-message-capture
-     (ecc-debug-utils-message "Compatibility test")
+     (ecc-debug-message "Compatibility test")
      (should (ecc-debug-test-message-contains-p "Compatibility test")))
-    
-    ;; Test ecc-toggle-debug
-    (ecc-toggle-debug)
+
+    ;; Test ecc-debug-toggle-global
+    (ecc-debug-toggle-global)
     (should-not ecc-debug-enabled)
-    (ecc-toggle-debug)
+    (ecc-debug-toggle-global)
     (should ecc-debug-enabled)))
+
+;;; test-ecc-debug-utils.el ends here
+
 
 (provide 'test-ecc-debug-utils)
 
-;;; test-ecc-debug-utils.el ends here
+(when
+    (not load-file-name)
+  (message "test-ecc-debug-utils.el loaded."
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))

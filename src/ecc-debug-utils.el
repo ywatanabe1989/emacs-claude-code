@@ -347,23 +347,6 @@ FORMAT-STRING and ARGS are passed to `format'."
 FORMAT-STRING and ARGS are passed to `format'."
   (apply #'ecc-debug-message-category 'vterm format-string args))
 
-;;;; Backward compatibility
-
-;; Compatibility with older code
-(defalias 'ecc-debug-utils-make-debug-fn 'ecc-debug-make-debug-fn
-  "Compatibility function for older code.")
-
-(defalias 'ecc-debug-utils-message 'ecc-debug-message
-  "Compatibility function for older code.")
-
-(defalias 'ecc-debug-utils-print-state-info 'ecc-debug-print-state-info
-  "Compatibility function for older code.")
-
-(defalias 'ecc-toggle-debug 'ecc-debug-toggle-global
-  "Compatibility function for older code.")
-
-;; Provide both the consolidated name (for new code) and the original name (for backward compatibility)
-;; Provide both the consolidated name and the original name for backward compatibility
 (provide 'ecc-debug-utils)
 
 

@@ -619,8 +619,8 @@ Handles different types of Claude prompts with the configured responses."
   
   ;; Send response based on state
   (with-current-buffer buffer
-    (when (fboundp 'ecc-auto-notify-prompt)
-      (ecc-auto-notify-prompt state buffer))
+    (when (fboundp 'ecc-notification-dispatch)
+      (ecc-notification-dispatch state buffer))
     (cond
      ((eq state :y/y/n)
       (ecc-auto-response--debug "Sending Y/Y/N response: %s" ecc-auto-response-yes-plus)
@@ -704,7 +704,10 @@ Arguments:
   (let ((buf (or buffer (current-buffer))))
     (ecc-auto-response--debug "Starting buffer-local auto-response for %s"
                              (buffer-name buf))
-    
+
+    ;; Optimize VTerm for Claude Code
+    (ecc-optimize-vterm)
+
     ;; Register buffer if not already registered
     (ecc-auto-response-register-buffer buf)
     
@@ -773,12 +776,26 @@ If not already started, initializes with default settings."
   (interactive)
   (let ((buf (or buffer (current-buffer))))
     (with-current-buffer buf
-      (if ecc-auto-response-buffer-enabled
-          (ecc-auto-response-buffer-stop buf)
-        ;; When starting, ensure buffer is registered
-        (progn
-          (ecc-auto-response-register-buffer buf)
-          (ecc-auto-response-buffer-start buf))))))
+      ;; Check if we're in buffer-local mode
+      (if ecc-auto-response-default
+          ;; Buffer-local mode: toggle buffer-local state
+          (if ecc-auto-response-buffer-enabled
+              (ecc-auto-response-buffer-stop buf)
+            ;; When starting, ensure buffer is registered
+            (progn
+              (ecc-auto-response-register-buffer buf)
+              (ecc-auto-response-buffer-start buf)))
+        ;; Global mode: toggle global state for current buffer
+        (if ecc-auto-response-enabled
+            ;; Stop global auto-response completely
+            (progn
+              (ecc-auto-response-stop)
+              (message "Global auto-response disabled"))
+          ;; Start global auto-response with current buffer registered
+          (progn
+            (ecc-auto-response-register-buffer buf)
+            (ecc-auto-response-start)
+            (message "Global auto-response enabled")))))))
 
 (defun ecc-auto-response--process-buffer-local (buffer)
   "Process BUFFER for auto-response using buffer-local settings."

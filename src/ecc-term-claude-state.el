@@ -128,7 +128,7 @@ Returns the detected state or nil if no prompt state is detected."
 ;;;; Backward compatibility aliases
 
 ;; For compatibility with existing code
-(defalias 'ecc-detect-simple-state 'ecc-term-claude-get-state)
+(defalias 'ecc-detect-state 'ecc-term-claude-get-state)
 
 (provide 'ecc-term-claude-state)
 

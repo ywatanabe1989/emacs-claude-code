@@ -278,20 +278,6 @@ Uses buffer-local state tracking."
              (if ecc-buffer-debug-enabled "enabled" "disabled")
              (buffer-name))))
 
-;; Command aliases for convenience
-
-;;;###autoload
-(defalias 'ecc-buffer-auto-start 'ecc-buffer-auto-response-enable
-  "Alias for enabling buffer-specific auto-response.")
-
-;;;###autoload
-(defalias 'ecc-buffer-auto-stop 'ecc-buffer-auto-response-disable
-  "Alias for disabling buffer-specific auto-response.")
-
-;;;###autoload
-(defalias 'ecc-buffer-auto-toggle 'ecc-buffer-auto-response-toggle
-  "Alias for toggling buffer-specific auto-response.")
-
 (provide 'ecc-buffer-api)
 
 ;;; ecc-buffer-api.el ends here

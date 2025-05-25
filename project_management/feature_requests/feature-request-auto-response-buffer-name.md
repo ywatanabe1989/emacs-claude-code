@@ -37,7 +37,7 @@ The feature was partially implemented but has been enhanced to ensure consistenc
    ```
 
 2. **Claude prompt notifications** (enhanced):
-   - Updated `ecc-auto-notify-prompt` to accept optional buffer parameter
+   - Updated `ecc-notification-dispatch` to accept optional buffer parameter
    - Updated `ecc-notification-dispatch` and `ecc-notification-display-message` to include buffer names
    - Now displays: `[*buffer-name*] Claude prompt detected: yes/no prompt`
 

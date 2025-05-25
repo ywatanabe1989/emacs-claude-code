@@ -55,7 +55,7 @@ string and arguments for debug output."
       (let ((distance-from-end (- (point-max) (point)))
             ;; Use provided debug-fn or create a standard one if needed
             (debug-function (or debug-fn 
-                               (ecc-debug-utils-make-debug-fn buffer))))
+                               (ecc-debug-make-debug-fn buffer))))
         
         ;; Send debug messages
         (when debug-function
@@ -101,7 +101,7 @@ taking a format string and arguments for debug output."
     (with-current-buffer buffer
       ;; Set up debug function
       (let ((debug-function (or debug-fn 
-                               (ecc-debug-utils-make-debug-fn buffer))))
+                               (ecc-debug-make-debug-fn buffer))))
         ;; Always preserve position for commands
         (save-excursion
           ;; Debug output
