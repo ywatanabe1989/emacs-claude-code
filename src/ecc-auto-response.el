@@ -385,7 +385,7 @@ Returns t if too many responses have been sent within the accumulation window."
 
 ;;;; Core Functions - Global Mode
 
-;;;###autoload
+
 (defun ecc-auto-response-start (&optional yes yes-plus continue)
   "Start the auto-response system with optional response values.
 When started, automatically responds to Claude prompts based on the detected state.
@@ -429,7 +429,7 @@ Example:
            ecc-auto-response-yes-plus
            ecc-auto-response-continue))
 
-;;;###autoload
+
 (defun ecc-auto-response-stop ()
   "Stop the auto-response system.
 Cancels the timer and disables automatic responses to Claude prompts."
@@ -448,6 +448,7 @@ Cancels the timer and disables automatic responses to Claude prompts."
   ;; Show stop message
   (ecc-debug-message "Auto-response disabled"))
 
+
 ;;;###autoload
 (defun ecc-auto-response-toggle ()
   "Toggle the auto-response system on or off.
@@ -463,7 +464,7 @@ If not already started, initializes with default settings."
       (ecc-auto-response-register-buffer (current-buffer))
       (ecc-auto-response-start))))
 
-;;;###autoload
+
 (defun ecc-auto-response-reset ()
   "Reset and restart the auto-response system.
 Useful to apply new settings or clear state."
@@ -474,7 +475,7 @@ Useful to apply new settings or clear state."
 
 ;;;; Buffer Management
 
-;;;###autoload
+
 (defun ecc-auto-response-register-buffer (buffer)
   "Register BUFFER for auto-response.
 Registered buffers will be checked for Claude prompts when auto-response is enabled."
@@ -491,7 +492,7 @@ Registered buffers will be checked for Claude prompts when auto-response is enab
   (ecc-auto-response--debug "Registered buffer: %s" (buffer-name buffer))
   buffer)
 
-;;;###autoload
+
 (defun ecc-auto-response-unregister-buffer (buffer)
   "Unregister BUFFER from auto-response.
 The buffer will no longer be checked for Claude prompts."
@@ -691,7 +692,7 @@ Handles sending the text through the appropriate buffer mode (vterm, comint, etc
 
 ;;;; Core Functions - Buffer-Local Mode
 
-;;;###autoload
+
 (defun ecc-auto-response-buffer-start (&optional buffer yes yes-plus continue)
   "Start buffer-local auto-response for BUFFER with optional response values.
 Enables automatic responses to Claude prompts in the specific buffer.
@@ -750,7 +751,7 @@ Arguments:
     ;; Show startup message
     (ecc-debug-message "Buffer-local auto-response enabled for %s" (buffer-name buf))))
 
-;;;###autoload
+
 (defun ecc-auto-response-buffer-stop (&optional buffer)
   "Stop buffer-local auto-response for BUFFER.
 Disables automatic responses to Claude prompts in the specific buffer.
@@ -769,6 +770,7 @@ The buffer remains registered but won't receive auto-responses."
     
     ;; Show stop message
     (ecc-debug-message "Buffer-local auto-response disabled for %s" (buffer-name buf))))
+
 
 ;;;###autoload
 (defun ecc-auto-response-buffer-toggle (&optional buffer)
@@ -861,6 +863,7 @@ Always operates on buffer-local state regardless of global settings."
 
 ;;;; Manual Response Commands
 
+
 ;;;###autoload
 (defun ecc-auto-response-yes (&optional buffer)
   "Manually send 'yes' response to Y/N prompt in BUFFER."
@@ -872,7 +875,7 @@ Always operates on buffer-local state regardless of global settings."
           (ecc-auto-response--send-to-buffer buf ecc-auto-response-buffer-yes "Y/N (manual)")
         (ecc-auto-response--send-to-buffer buf ecc-auto-response-yes "Y/N (manual)")))))
 
-;;;###autoload
+
 (defun ecc-auto-response-yes-plus (&optional buffer)
   "Manually send 'yes-plus' response to Y/Y/N prompt in BUFFER."
   (interactive)
@@ -882,6 +885,7 @@ Always operates on buffer-local state regardless of global settings."
       (if ecc-auto-response-default
           (ecc-auto-response--send-to-buffer buf ecc-auto-response-buffer-yes-plus "Y/Y/N (manual)")
         (ecc-auto-response--send-to-buffer buf ecc-auto-response-yes-plus "Y/Y/N (manual)")))))
+
 
 ;;;###autoload
 (defun ecc-auto-response-continue (&optional buffer)
@@ -894,7 +898,7 @@ Always operates on buffer-local state regardless of global settings."
           (ecc-auto-response--send-to-buffer buf ecc-auto-response-buffer-continue "Continue (manual)")
         (ecc-auto-response--send-to-buffer buf ecc-auto-response-continue "Continue (manual)")))))
 
-;;;###autoload
+
 (defun ecc-auto-response-initial-waiting (&optional buffer)
   "Manually send initial-waiting response in BUFFER."
   (interactive)
@@ -905,7 +909,7 @@ Always operates on buffer-local state regardless of global settings."
           (ecc-auto-response--send-to-buffer buf ecc-auto-response-buffer-initial-waiting "Initial-Waiting (manual)")
         (ecc-auto-response--send-to-buffer buf ecc-auto-response-initial-waiting "Initial-Waiting (manual)")))))
 
-;;;###autoload
+
 (defun ecc-auto-response-send (text &optional buffer)
   "Manually send TEXT as response in BUFFER.
 Useful for sending custom responses not covered by the standard commands."

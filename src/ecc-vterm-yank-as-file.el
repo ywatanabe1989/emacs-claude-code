@@ -106,7 +106,7 @@ Returns the full path to the created file."
     (ecc-debug-message "Wrote %s (%d bytes)" full-path (length content))
     full-path))
 
-;;;###autoload
+
 (defun ecc-vterm-yank-as-file (start end filename)
   "Yank the region between START and END to a file named FILENAME.
 Extracts the selected region from the buffer and saves it to a file,
@@ -142,7 +142,7 @@ Auto-detects the file type based on content if no extension is provided.
                (y-or-n-p "Open file in a new buffer? "))
       (find-file file-path))))
 
-;;;###autoload
+
 (defun ecc-vterm-yank-buffer-as-file (filename)
   "Yank the entire vterm buffer content to a file named FILENAME.
 Saves the complete buffer content to a file, auto-detecting the
@@ -176,7 +176,7 @@ Auto-detects the file type based on content if no extension is provided.
                (y-or-n-p "Open file in a new buffer? "))
       (find-file file-path))))
 
-;;;###autoload
+
 (defun ecc-vterm-quick-yank-region ()
   "Quickly yank the active region to an auto-named file based on content.
 Provides a streamlined workflow for rapidly saving selected text to files

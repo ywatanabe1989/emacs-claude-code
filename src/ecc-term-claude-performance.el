@@ -33,7 +33,7 @@
 
 ;;;; Buffer performance settings
 
-;;;###autoload
+
 (defcustom ecc-term-claude-performance-mode t
   "Whether to apply performance optimizations to Claude buffers.
 When enabled, various performance optimizations are applied to
@@ -41,7 +41,7 @@ improve the handling of large outputs and streaming content."
   :type 'boolean
   :group 'ecc-term-claude)
 
-;;;###autoload
+
 (defcustom ecc-term-claude-gc-threshold (* 64 1024 1024)  ; 64MB
   "GC threshold to use during high-output operations.
 Higher values reduce garbage collection frequency during periods of
@@ -50,7 +50,7 @@ The default value of 64MB provides a good balance for most systems."
   :type 'integer
   :group 'ecc-term-claude)
 
-;;;###autoload
+
 (defcustom ecc-term-claude-max-search-size 2000
   "Maximum buffer size in characters to search for state detection.
 Larger values may improve detection accuracy but can impact performance
@@ -59,7 +59,7 @@ for most prompt detection needs."
   :type 'integer
   :group 'ecc-term-claude)
 
-;;;###autoload
+
 (defcustom ecc-term-claude-jit-lock-defer-time 0.05
   "Time to defer fontification during rapid updates.
 Lower values make text appear formatted more quickly, but may
@@ -69,7 +69,7 @@ reduce responsiveness during rapid content streaming."
 
 ;;;; Performance optimization functions
 
-;;;###autoload
+
 (defun ecc-term-claude-optimize-buffer (&optional buffer)
   "Apply performance optimizations to BUFFER or current buffer.
 These optimizations are particularly helpful for handling large
@@ -107,7 +107,7 @@ Side Effects:
     ;; Disable undo for better performance
     (buffer-disable-undo)))
 
-;;;###autoload
+
 (defun ecc-term-claude-with-gc-optimization (func &rest args)
   "Execute FUNC with ARGS under optimized garbage collection settings.
 Temporarily increases GC threshold during execution of the function
@@ -126,7 +126,7 @@ Returns:
         (apply func args)
       (setq gc-cons-threshold old-gc-threshold))))
 
-;;;###autoload
+
 (defun ecc-term-claude-get-state-optimized (&optional buffer)
   "Get Claude state with performance optimizations.
 Uses optimized GC settings and performs targeted search to improve
@@ -162,7 +162,7 @@ Returns:
          state)))
    (or buffer (current-buffer))))
 
-;;;###autoload
+
 (defun ecc-term-claude-analyze-text-for-state (text)
   "Analyze TEXT for Claude prompt states.
 A performance-optimized version of state detection for use in large buffers.
@@ -209,7 +209,7 @@ Returns:
 
 ;;;; Hook optimizations
 
-;;;###autoload
+
 (defun ecc-term-claude-optimize-hooks ()
   "Optimize Claude vterm hooks for better performance.
 Consolidates multiple hook functions into a single function to reduce
@@ -238,7 +238,7 @@ Side Effects:
 
 ;;;; UI responsiveness improvements
 
-;;;###autoload
+
 (defun ecc-term-claude-defer-updates (func)
   "Create a debounced version of FUNC for improved UI responsiveness.
 Returns a function that delays execution of FUNC until there's a pause

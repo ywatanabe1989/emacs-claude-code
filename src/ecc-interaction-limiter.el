@@ -149,7 +149,7 @@ Returns t if limit reached, nil otherwise."
                             ecc-interaction-timestamps)))
     (length recent-timestamps)))
 
-;;;###autoload
+
 (defun ecc-toggle-interaction-limits ()
   "Toggle auto-response limits on/off."
   (interactive)
@@ -161,7 +161,7 @@ Returns t if limit reached, nil otherwise."
                (format "max: %d per hour" ecc-interaction-limit-per-hour)
              "no hourly limit")))
 
-;;;###autoload
+
 (defun ecc-set-interaction-limit (count)
   "Set the maximum number of allowed auto-responses to COUNT."
   (interactive "nMax auto-responses: ")
@@ -170,7 +170,7 @@ Returns t if limit reached, nil otherwise."
            count
            (if ecc-interaction-limit-enabled "auto-responses (enabled)" "auto-responses (currently disabled)")))
 
-;;;###autoload
+
 (defun ecc-toggle-time-based-limits ()
   "Toggle time-based auto-response limits on/off."
   (interactive)
@@ -180,7 +180,7 @@ Returns t if limit reached, nil otherwise."
            (if ecc-interaction-limit-per-time-enabled "enabled" "disabled")
            ecc-interaction-limit-per-hour))
 
-;;;###autoload
+
 (defun ecc-set-hourly-interaction-limit (count)
   "Set the maximum number of allowed auto-responses per hour to COUNT."
   (interactive "nMax auto-responses per hour: ")

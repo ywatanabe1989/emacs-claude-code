@@ -42,7 +42,7 @@
 
 ;;;; Basic Claude interaction commands
 
-;;;###autoload
+
 (defun ecc-term-claude-send-yes ()
   "Send y response to Claude prompt.
 Sends the text y followed by a return keypress to the current
@@ -58,7 +58,7 @@ Side Effects:
   (ecc-term-claude--vterm-send-string "y")
   (ecc-term-claude--vterm-send-return))
 
-;;;###autoload
+
 (defun ecc-term-claude-send-no ()
   "Send n response to Claude prompt.
 Sends the text n followed by a return keypress to the current
@@ -74,7 +74,7 @@ Side Effects:
   (ecc-term-claude--vterm-send-string "n")
   (ecc-term-claude--vterm-send-return))
 
-;;;###autoload
+
 (defun ecc-term-claude-clear-buffer ()
   "Clear the Claude vterm buffer.
 Removes all content from the buffer using the vterm clear command.
@@ -86,7 +86,7 @@ Side Effects:
   (interactive)
   (ecc-term-claude--vterm-clear))
 
-;;;###autoload
+
 (defun ecc-term-claude-send-string (text)
   "Send TEXT string to Claude prompt.
 Sends the provided text followed by a return keypress to the current
@@ -104,7 +104,7 @@ Side Effects:
 
 ;;;; Scrolling and view management
 
-;;;###autoload
+
 (defun ecc-term-claude-follow-bottom-after-output ()
   "Scroll to bottom after vterm produces new output.
 When enabled via `ecc-vterm-always-follow-bottom`, this function
@@ -116,7 +116,7 @@ to be called after each vterm output update."
   (when ecc-vterm-always-follow-bottom
     (ecc-term-claude-scroll-to-bottom)))
 
-;;;###autoload
+
 (defun ecc-term-claude-scroll-to-bottom ()
   "Scroll to show the bottom of the buffer.
 Adjusts the view to show the most recent content at the bottom
@@ -134,7 +134,7 @@ Side Effects:
                       ecc-vterm-follow-bottom-margin
                       1)))))))
 
-;;;###autoload
+
 (defun ecc-term-claude-toggle-follow-bottom ()
   "Toggle the always-follow-bottom feature.
 When enabled, the buffer will automatically scroll to show the bottom
@@ -153,7 +153,7 @@ buffer is controlled by `ecc-vterm-follow-bottom-margin`."
 
 ;;;; History management functions
 
-;;;###autoload
+
 (defun ecc-term-claude-browse-history ()
   "Browse through Claude interaction history.
 Opens a buffer displaying the history of recent Claude interactions.

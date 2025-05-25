@@ -72,14 +72,14 @@
 
 ;; Core functions
 
-;;;###autoload
+
 (defun ecc-buffer-state-init (&optional buffer)
   "Initialize buffer-local state tracking for BUFFER or current buffer.
 This is an alias for `ecc-buffer-state-enable' that's used in tests."
   (interactive)
   (ecc-buffer-state-enable buffer))
 
-;;;###autoload
+
 (defun ecc-buffer-state-enable (&optional buffer)
   "Enable buffer-local state tracking for BUFFER or current buffer."
   (interactive)
@@ -93,7 +93,7 @@ This is an alias for `ecc-buffer-state-enable' that's used in tests."
     (add-to-list 'ecc-buffer-state-registered-buffers (current-buffer))
     (ecc-buffer-state-debug-message "Enabled buffer-local state tracking")))
 
-;;;###autoload
+
 (defun ecc-buffer-state-disable (&optional buffer)
   "Disable buffer-local state tracking for BUFFER or current buffer."
   (interactive)
@@ -103,7 +103,7 @@ This is an alias for `ecc-buffer-state-enable' that's used in tests."
           (delq (current-buffer) ecc-buffer-state-registered-buffers))
     (ecc-buffer-state-debug-message "Disabled buffer-local state tracking")))
 
-;;;###autoload
+
 (defun ecc-buffer-state-update (&optional buffer force)
   "Update buffer-local state for BUFFER or current buffer.
 When FORCE is non-nil, forces update even if throttled."
@@ -139,7 +139,7 @@ When FORCE is non-nil, forces update even if throttled."
           new-state)))))
 
 
-;;;###autoload
+
 (defun ecc-buffer-state-get-last-update (&optional buffer)
   "Get timestamp of last state update for BUFFER or current buffer.
 Returns 0 if state tracking is not enabled."
@@ -148,7 +148,7 @@ Returns 0 if state tracking is not enabled."
         ecc-buffer-state-last-update
       0)))
 
-;;;###autoload
+
 (defun ecc-buffer-state-update-prompt (state &optional buffer)
   "Update buffer's prompt STATE for BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -160,7 +160,7 @@ Returns 0 if state tracking is not enabled."
     (setq ecc-buffer-state-last-update (float-time))
     state))
 
-;;;###autoload
+
 (defun ecc-buffer-state-export-standard (&optional buffer)
   "Export buffer's state to standard variables for BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -171,7 +171,7 @@ Returns 0 if state tracking is not enabled."
       ;; Any other exports could be added here
       )
     ecc-buffer-state-current))
-;;;###autoload
+
 (defun ecc-buffer-state-set (key value &optional buffer)
   "Set buffer-local state KEY to VALUE for BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -180,7 +180,7 @@ Returns 0 if state tracking is not enabled."
     (put 'ecc-buffer-state-current key value)
     value))
 
-;;;###autoload
+
 (defun ecc-buffer-state-get (&optional key-or-buffer buffer-if-key-provided)
   "Get buffer-local state from BUFFER.
 If KEY-OR-BUFFER is a symbol and not a buffer, treats it as a property key.
@@ -223,13 +223,13 @@ For backward compatibility with both calling patterns:
           ;; Detect on demand if tracking isn't enabled
           (ecc-detect-state))))))
 
-;;;###autoload
+
 (defun ecc-buffer-state-get-prompt (&optional buffer)
   "Get prompt state from BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
     (ecc-buffer-state-get)))
 
-;;;###autoload
+
 (defun ecc-buffer-state-has-key-p (key &optional buffer)
   "Check if buffer state has KEY in BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -238,7 +238,7 @@ For backward compatibility with both calling patterns:
 
 ;; Auto-response integration
 
-;;;###autoload
+
 (defun ecc-buffer-state-enable-auto-response (&optional buffer)
   "Enable both state tracking and auto-response for BUFFER or current buffer."
   (interactive)
@@ -257,7 +257,7 @@ For backward compatibility with both calling patterns:
     ;; Return the buffer
     (current-buffer)))
 
-;;;###autoload
+
 (defun ecc-buffer-state-disable-auto-response (&optional buffer)
   "Disable auto-response for BUFFER or current buffer."
   (interactive)
@@ -296,7 +296,7 @@ Uses FORMAT-STRING and ARGS like `message`."
 
 ;; State history and analysis
 
-;;;###autoload
+
 (defun ecc-buffer-state-history (&optional buffer)
   "Get history of Claude prompt states for BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -304,7 +304,7 @@ Uses FORMAT-STRING and ARGS like `message`."
         ecc-buffer-state-history
       nil)))
 
-;;;###autoload  
+  
 (defun ecc-buffer-state-add-to-history (state &optional buffer)
   "Add STATE to history for BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -316,7 +316,7 @@ Uses FORMAT-STRING and ARGS like `message`."
         (setq ecc-buffer-state-history
               (cl-subseq ecc-buffer-state-history 0 ecc-buffer-state-history-size))))))
 
-;;;###autoload
+
 (defun ecc-buffer-state-changed-p (&optional buffer)
   "Return t if state has changed in BUFFER or current buffer.
 Compares current state with previous state in history."
@@ -329,7 +329,7 @@ Compares current state with previous state in history."
 
 ;; Status reporting
 
-;;;###autoload
+
 (defun ecc-buffer-state-status (&optional buffer)
   "Return status string for buffer state tracking in BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -348,7 +348,7 @@ Compares current state with previous state in history."
             (- (float-time) ecc-buffer-state-last-update)
             (length ecc-buffer-state-history))))
 
-;;;###autoload
+
 (defun ecc-buffer-state-print-status (&optional buffer)
   "Print status information about buffer state tracking to messages."
   (interactive)
@@ -356,7 +356,7 @@ Compares current state with previous state in history."
 
 ;; Global management
 
-;;;###autoload
+
 (defun ecc-buffer-state-update-all-buffers ()
   "Update state for all registered buffers."
   (interactive)
@@ -370,7 +370,7 @@ Compares current state with previous state in history."
     (ecc-buffer-state-debug-message "Updated %d buffers" count)
     count))
 
-;;;###autoload
+
 (defun ecc-buffer-state-toggle-debug ()
   "Toggle debug output for buffer state tracking."
   (interactive)
@@ -381,7 +381,7 @@ Compares current state with previous state in history."
 ;; Test compatibility API functions
 ;; These functions provide the interface expected by tests
 
-;;;###autoload
+
 (defun ecc-buffer-state-update-prompt (state &optional buffer)
   "Update prompt state to STATE for BUFFER or current buffer.
 This is a test-compatible wrapper around the main state tracking."
@@ -391,7 +391,7 @@ This is a test-compatible wrapper around the main state tracking."
             ecc-buffer-state-prompt state)
       (ecc-buffer-state-add-to-history state))))
 
-;;;###autoload
+
 (defun ecc-buffer-state-get-prompt (&optional buffer)
   "Get current prompt state for BUFFER or current buffer.
 This is a test-compatible function that returns the stored prompt state."
@@ -400,7 +400,7 @@ This is a test-compatible function that returns the stored prompt state."
         ecc-buffer-state-current
       nil)))
 
-;;;###autoload  
+  
 (defun ecc-buffer-state-set (key value &optional buffer)
   "Set arbitrary state KEY to VALUE for BUFFER or current buffer.
 This provides a generic key-value store for buffer state."
@@ -410,7 +410,7 @@ This provides a generic key-value store for buffer state."
       (setq ecc-buffer-state-data
             (plist-put (or ecc-buffer-state-data nil) key value)))))
 
-;;;###autoload
+
 (defun ecc-buffer-state-get (key &optional buffer)
   "Get value for state KEY from BUFFER or current buffer.
 This retrieves values from the generic key-value store."

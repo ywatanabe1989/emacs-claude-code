@@ -18,7 +18,7 @@
   :type 'integer
   :group 'ecc-state-detect)
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-last-lines (&optional n-lines)
   "Detect Claude prompts in the last N-LINES of the current buffer.
 If N-LINES is nil, use `ecc-state-detect-line-count'.
@@ -62,7 +62,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-region (start end)
   "Detect Claude prompts in region between START and END.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -96,7 +96,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-state (&optional buffer n-lines)
   "Detect Claude prompt state in BUFFER (or current buffer) checking N-LINES.
 Return the detected state as a symbol: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -105,7 +105,7 @@ Return the detected state as a symbol: :y/y/n, :y/n, :waiting, :initial-waiting,
     (ecc-detect-prompt-in-last-lines n-lines)))
 
 ;; Replacement for the original simple detection function
-;;;###autoload
+
 (defun ecc-detect-enhanced-state (&optional buffer n-lines)
   "Enhanced detection of Claude prompt state in BUFFER, checking N-LINES.
 This function checks both standard patterns and custom patterns

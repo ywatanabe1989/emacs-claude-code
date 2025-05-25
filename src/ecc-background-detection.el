@@ -198,7 +198,7 @@ Returns the buffer if registered, nil otherwise."
 
 ;; Public API
 
-;;;###autoload
+
 (defun ecc-background-detection-start (&optional callback)
   "Start background detection with optional CALLBACK function.
 The callback should take two arguments: buffer and detected state.
@@ -214,7 +214,7 @@ If CALLBACK is nil, detection runs but no actions are taken."
   (when (called-interactively-p 'any)
     (ecc-background-detection-register-buffer (current-buffer))))
 
-;;;###autoload
+
 (defun ecc-background-detection-stop ()
   "Stop background detection system."
   (interactive)
@@ -224,7 +224,7 @@ If CALLBACK is nil, detection runs but no actions are taken."
     (ecc-background-detection-timer-stop)
     (ecc-debug-message "Background detection stopped")))
 
-;;;###autoload
+
 (defun ecc-background-detection-toggle (&optional callback)
   "Toggle background detection with optional CALLBACK function."
   (interactive)
@@ -232,7 +232,7 @@ If CALLBACK is nil, detection runs but no actions are taken."
       (ecc-background-detection-stop)
     (ecc-background-detection-start callback)))
 
-;;;###autoload
+
 (defun ecc-background-detection-add-buffer (&optional buffer)
   "Add BUFFER to background detection.
 If BUFFER is nil, use current buffer."
@@ -243,7 +243,7 @@ If BUFFER is nil, use current buffer."
         (ecc-debug-message "Added buffer %s to background detection" (buffer-name buf)))
       buf)))
 
-;;;###autoload
+
 (defun ecc-background-detection-remove-buffer (&optional buffer)
   "Remove BUFFER from background detection.
 If BUFFER is nil, use current buffer."
@@ -255,7 +255,7 @@ If BUFFER is nil, use current buffer."
 
 ;; Debugging helpers
 
-;;;###autoload
+
 (defun ecc-background-detection-debug-toggle ()
   "Toggle debug output for background detection."
   (interactive)
@@ -263,7 +263,7 @@ If BUFFER is nil, use current buffer."
   (ecc-debug-message "Background detection debug %s"
            (if ecc-background-detection-debug "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-background-detection-status ()
   "Display status information about background detection."
   (interactive)

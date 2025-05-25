@@ -81,14 +81,14 @@ When the buffer exceeds this size, the oldest lines are trimmed."
 
 ;;;; Core debug functions
 
-;;;###autoload
+
 (defun ecc-debug-message (format-string &rest args)
   "Output a debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
   (when (and (boundp 'ecc-debug-enabled) ecc-debug-enabled)
     (ecc-debug--display-message nil nil format-string args)))
 
-;;;###autoload
+
 (defun ecc-debug-message-category (category format-string &rest args)
   "Output a debug message for CATEGORY if enabled.
 FORMAT-STRING and ARGS are passed to `format'."
@@ -97,7 +97,7 @@ FORMAT-STRING and ARGS are passed to `format'."
              (ecc-debug--category-enabled-p category))
     (ecc-debug--display-message category nil format-string args)))
 
-;;;###autoload
+
 (defun ecc-debug-buffer-message (buffer format-string &rest args)
   "Output a debug message for BUFFER if its debug is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
@@ -107,7 +107,7 @@ FORMAT-STRING and ARGS are passed to `format'."
                  ecc-debug-buffer-enabled)
         (ecc-debug--display-message nil buffer format-string args)))))
 
-;;;###autoload
+
 (defun ecc-debug-buffer-message-category (buffer category format-string &rest args)
   "Output a message for CATEGORY in BUFFER if its debug is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
@@ -183,7 +183,7 @@ This function is deprecated and kept for backward compatibility."
 
 ;;;; Factory functions
 
-;;;###autoload
+
 (defun ecc-debug-make-debug-fn (&optional buffer category)
   "Create a debug function for specific context.
 If BUFFER is provided, the function checks buffer-local debug settings.
@@ -212,7 +212,7 @@ If CATEGORY is provided, the function checks category-specific settings."
 
 ;;;; State information and control
 
-;;;###autoload
+
 (defun ecc-debug-print-state-info (&optional buffer)
   "Print detailed debug state information for BUFFER or current buffer.
 Shows global and buffer-local debug settings and their values."
@@ -241,7 +241,7 @@ Shows global and buffer-local debug settings and their values."
                                            "YES" "NO"))))
         (ecc-debug-message "%s" msg)))))
 
-;;;###autoload
+
 (defun ecc-debug-toggle-global ()
   "Toggle global debug output."
   (interactive)
@@ -249,7 +249,7 @@ Shows global and buffer-local debug settings and their values."
   (ecc-debug-message "Claude global debug %s" 
            (if ecc-debug-enabled "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-debug-toggle-buffer (&optional buffer)
   "Toggle buffer-local debug output for BUFFER or current buffer."
   (interactive)
@@ -259,7 +259,7 @@ Shows global and buffer-local debug settings and their values."
              (if ecc-debug-buffer-enabled "enabled" "disabled")
              (buffer-name))))
 
-;;;###autoload
+
 (defun ecc-debug-toggle-category (category)
   "Toggle enabling of specific debug CATEGORY."
   (interactive (list (intern (completing-read 
@@ -286,14 +286,14 @@ Shows global and buffer-local debug settings and their values."
            (if (ecc-debug--category-enabled-p category)
                "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-debug-enable-all-categories ()
   "Enable all debug categories."
   (interactive)
   (setq ecc-debug-enabled-categories nil)
   (ecc-debug-message "All debug categories enabled"))
 
-;;;###autoload
+
 (defun ecc-debug-clear-log ()
   "Clear the debug log buffer."
   (interactive)
@@ -306,7 +306,7 @@ Shows global and buffer-local debug settings and their values."
             (insert (format "--- Log cleared at %s ---\n" 
                            (format-time-string "%Y-%m-%d %H:%M:%S")))))))))
 
-;;;###autoload
+
 (defun ecc-debug-view-log ()
   "View the debug log buffer."
   (interactive)
@@ -317,31 +317,31 @@ Shows global and buffer-local debug settings and their values."
 
 ;;;; Module-specific debug utilities
 
-;;;###autoload
+
 (defun ecc-debug-auto-response (format-string &rest args)
   "Output an auto-response debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
   (apply #'ecc-debug-message-category 'auto-response format-string args))
 
-;;;###autoload
+
 (defun ecc-debug-state (format-string &rest args)
   "Output a state detection debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
   (apply #'ecc-debug-message-category 'state format-string args))
 
-;;;###autoload
+
 (defun ecc-debug-core (format-string &rest args)
   "Output a core debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
   (apply #'ecc-debug-message-category 'core format-string args))
 
-;;;###autoload
+
 (defun ecc-debug-buffer (format-string &rest args)
   "Output a buffer management debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."
   (apply #'ecc-debug-message-category 'buffer format-string args))
 
-;;;###autoload
+
 (defun ecc-debug-vterm (format-string &rest args)
   "Output a vterm debug message if debugging is enabled.
 FORMAT-STRING and ARGS are passed to `format'."

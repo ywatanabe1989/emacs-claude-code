@@ -181,7 +181,7 @@ FORMAT-STRING and ARGS are passed to `format`."
 
 ;;;; Core Notification Functions
 
-;;;###autoload
+
 (defun ecc-notification-check-state (state)
   "Check if STATE requires notification and notify if needed.
 This function checks the current state against configured notification
@@ -231,7 +231,7 @@ Returns:
     ;; Return t to indicate notification was sent
     t))
 
-;;;###autoload
+
 (defun ecc-notification-dispatch (type &optional buffer)
   "Notify the user about a Claude prompt of TYPE.
 This function handles the actual notification using the configured
@@ -264,7 +264,7 @@ Arguments:
     ;; Log notification
     (ecc-auto-notify--log "Notification sent for state %s" type)))
 
-;;;###autoload
+
 (defun ecc-notification-ring-bell ()
   "Ring the terminal bell using configured method.
 Handles different system configurations to ensure bell is audible.
@@ -308,7 +308,7 @@ Uses the method specified by `ecc-auto-notify-bell-method'."
            (visible-bell nil))
        (ding t)))))
 
-;;;###autoload
+
 (defun ecc-auto-notify-flash-mode-line (&optional buffer)
   "Flash the mode line to get attention in BUFFER.
 Temporarily inverts the mode line colors and then restores them
@@ -334,7 +334,7 @@ If BUFFER is not provided, uses the current buffer."
 
 ;;;; User Commands
 
-;;;###autoload
+
 (defun ecc-notification-toggle ()
   "Toggle notification for Claude prompts.
 Enables or disables notifications globally."
@@ -344,7 +344,7 @@ Enables or disables notifications globally."
   (ecc-debug-message "Claude prompt notifications %s"
            (if ecc-auto-notify-on-claude-prompt "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-notification-toggle-bell ()
   "Toggle bell notification for Claude prompts.
 Enables or disables the audible bell component of notifications."
@@ -354,7 +354,7 @@ Enables or disables the audible bell component of notifications."
   (ecc-debug-message "Bell notifications %s"
            (if ecc-auto-notify-bell "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-notification-toggle-flash ()
   "Toggle mode line flash notification for Claude prompts.
 Enables or disables the visual mode line flash component of notifications."
@@ -364,7 +364,7 @@ Enables or disables the visual mode line flash component of notifications."
   (ecc-debug-message "Mode line flash notifications %s"
            (if ecc-auto-notify-flash "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-notification-toggle-debug ()
   "Toggle debug output for notification events.
 Enables or disables detailed logging of notification activities."
@@ -376,7 +376,7 @@ Enables or disables detailed logging of notification activities."
 
 ;;;; Buffer Setup & Integration
 
-;;;###autoload
+
 (defun ecc-notification-setup-for-buffer ()
   "Set up notifications for the current buffer.
 This function is designed to be added to mode hooks for Claude-related
@@ -395,7 +395,7 @@ buffer modes to automatically set up prompt notifications."
                     (ecc-notification-check-state state))))
               nil t)))
 
-;;;###autoload
+
 (defun ecc-auto-notify-setup-hooks ()
   "Set up hooks for buffer-based notification.
 This installs hooks to automatically set up notification in relevant buffers."
@@ -409,7 +409,7 @@ This installs hooks to automatically set up notification in relevant buffers."
 
 ;;;; Buffer Content Change Handler
 
-;;;###autoload
+
 (defun ecc-auto-notify-buffer-change-handler ()
   "Handler for buffer content changes that checks for Claude prompts.
 This function works with the unified state detection system and can handle
@@ -432,7 +432,7 @@ both global and buffer-local configurations."
 
 ;;;; Buffer-Local Notification Support
 
-;;;###autoload
+
 (defun ecc-auto-notify-buffer-local-init (&optional buffer)
   "Initialize buffer-local notification settings for BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -447,7 +447,7 @@ If BUFFER is nil, use the current buffer."
     (when (called-interactively-p 'any)
       (ecc-debug-message "Buffer-local notifications initialized for %s" (buffer-name)))))
 
-;;;###autoload
+
 (defun ecc-auto-notify-buffer-local-toggle (&optional buffer)
   "Toggle buffer-local notifications for BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -462,7 +462,7 @@ If BUFFER is nil, use the current buffer."
              (if ecc-buffer-auto-notify-enabled "enabled" "disabled")
              (buffer-name))))
 
-;;;###autoload
+
 (defun ecc-auto-notify-buffer-local-check-state (state)
   "Check if STATE requires notification using buffer-local settings.
 This is the buffer-local equivalent of `ecc-notification-check-state`.
@@ -510,7 +510,7 @@ Returns:
     ;; Return t to indicate notification was sent
     t))
 
-;;;###autoload
+
 (defun ecc-notification-dispatch-buffer-local (type)
   "Notify about Claude prompt of TYPE using buffer-local settings.
 Handles notification using the configured methods specific to this buffer.
@@ -540,7 +540,7 @@ Arguments:
 
 ;;;; Unified Checking Functions
 
-;;;###autoload
+
 (defun ecc-auto-notify-check-unified (buffer)
   "Check BUFFER for Claude prompts and notify if appropriate.
 Uses either global or buffer-local configuration based on settings.

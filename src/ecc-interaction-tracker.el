@@ -44,7 +44,7 @@ Each entry is a cons cell (COMMAND . INTERVAL) where:
   :type 'boolean
   :group 'ecc-interaction)
 
-;;;###autoload
+
 (defun ecc-track-interaction ()
   "Track a new interaction with Claude.
 Increments the counter and handles periodic commands if enabled."
@@ -92,7 +92,7 @@ Increments the counter and handles periodic commands if enabled."
                  command 
                  ecc-interaction-counter)))))
 
-;;;###autoload
+
 (defun ecc-reset-interaction-counter ()
   "Reset the Claude interaction counter to zero."
   (interactive)
@@ -100,7 +100,7 @@ Increments the counter and handles periodic commands if enabled."
   (setq ecc-interaction-timestamps nil)
   (ecc-debug-message "Claude interaction counter reset to 0"))
 
-;;;###autoload
+
 (defun ecc-display-interaction-stats ()
   "Display statistics about Claude interactions."
   (interactive)
@@ -154,7 +154,7 @@ Increments the counter and handles periodic commands if enabled."
     
     (display-buffer buffer-name)))
 
-;;;###autoload
+
 (defun ecc-toggle-periodic-commands ()
   "Toggle automatic periodic commands on/off."
   (interactive)
@@ -163,7 +163,7 @@ Increments the counter and handles periodic commands if enabled."
            (if ecc-periodic-commands-enabled "enabled" "disabled")
            (length ecc-periodic-commands-alist)))
 
-;;;###autoload
+
 (defun ecc-add-periodic-command (command interval)
   "Add or update a periodic COMMAND with INTERVAL."
   (interactive "sCommand to send: \nnInterval (interactions): ")
@@ -171,7 +171,7 @@ Increments the counter and handles periodic commands if enabled."
   (ecc-debug-message "Added periodic command: %s every %d interactions" 
            command interval))
 
-;;;###autoload
+
 (defun ecc-remove-periodic-command (command)
   "Remove COMMAND from periodic commands."
   (interactive
@@ -183,7 +183,7 @@ Increments the counter and handles periodic commands if enabled."
               ecc-periodic-commands-alist))
   (ecc-debug-message "Removed periodic command: %s" command))
 
-;;;###autoload
+
 (defun ecc-disable-periodic-command (command)
   "Disable COMMAND by setting its interval to 0."
   (interactive

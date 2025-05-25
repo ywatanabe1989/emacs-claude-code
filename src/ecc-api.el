@@ -16,7 +16,7 @@
 
 ;; Buffer management API
 
-;;;###autoload
+
 (defun ecc-buffer-register (buffer)
   "Register BUFFER as a Claude buffer.
 Returns the buffer that was registered."
@@ -34,7 +34,7 @@ Returns the buffer that was registered."
     (setq ecc-buffer-current-buffer buf)
     buf))
 
-;;;###autoload
+
 (defun ecc-buffer-set-current (buffer)
   "Set BUFFER as the current active Claude buffer.
 Returns the buffer that was set as current."
@@ -52,7 +52,7 @@ Returns the buffer that was set as current."
     (ecc-debug-message "Buffer '%s' set as current Claude buffer" (buffer-name buf))
     buf))
 
-;;;###autoload
+
 (defun ecc-buffer-list ()
   "Return a list of all registered Claude buffers."
   (interactive)
@@ -62,7 +62,7 @@ Returns the buffer that was set as current."
                (mapconcat #'buffer-name buffers ", ")))
     buffers))
 
-;;;###autoload
+
 (defun ecc-buffer-current ()
   "Return the current active Claude buffer."
   (interactive)
@@ -75,7 +75,7 @@ Returns the buffer that was set as current."
 
 ;; State detection API
 
-;;;###autoload
+
 (defun ecc-state-detect (&optional buffer)
   "Detect Claude prompt state in BUFFER or current buffer.
 Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -88,7 +88,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
       (ecc-debug-message "Detected state: %s" (ecc-state-get-name state)))
     state))
 
-;;;###autoload
+
 (defun ecc-state-waiting-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a waiting prompt."
   (interactive)
@@ -97,7 +97,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
       (ecc-debug-message "Waiting prompt? %s" (if (eq state :waiting) "Yes" "No")))
     (eq state :waiting)))
 
-;;;###autoload
+
 (defun ecc-state-y/n-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a Y/N prompt."
   (interactive)
@@ -106,7 +106,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
       (ecc-debug-message "Y/N prompt? %s" (if (eq state :y/n) "Yes" "No")))
     (eq state :y/n)))
 
-;;;###autoload
+
 (defun ecc-state-y/y/n-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a Y/Y/N prompt."
   (interactive)
@@ -115,7 +115,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
       (ecc-debug-message "Y/Y/N prompt? %s" (if (eq state :y/y/n) "Yes" "No")))
     (eq state :y/y/n)))
 
-;;;###autoload
+
 (defun ecc-state-initial-waiting-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has an initial waiting prompt."
   (interactive)
@@ -127,7 +127,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
 
 ;; Auto-response API
 
-;;;###autoload
+
 (defun ecc-auto-response-enable (&optional buffer)
   "Enable auto-response for Claude prompts in BUFFER or current buffer."
   (interactive)
@@ -137,16 +137,16 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (ecc-debug-message "Auto-response enabled for buffer '%s'"
            (buffer-name ecc-buffer-current-buffer)))
 
-;;;###autoload
+
 (defun ecc-auto-response-disable ()
   "Disable auto-response for Claude prompts."
   (interactive)
   (ecc-auto-response-stop)
   (ecc-debug-message "Auto-response disabled"))
 
-;;;###autoload
 
-;;;###autoload
+
+
 (defun ecc-auto-response-send-state-based (&optional buffer)
   "Send appropriate response based on current state in BUFFER.
 This detects the current prompt state and sends the configured
@@ -170,7 +170,7 @@ response for that state."
 
 ;; Debug API
 
-;;;###autoload
+
 (defun ecc-debug-toggle ()
   "Toggle debug message output for Claude."
   (interactive)

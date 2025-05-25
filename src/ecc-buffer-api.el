@@ -18,14 +18,14 @@
 
 ;; Buffer Registration API
 
-;;;###autoload
+
 (defun ecc-buffer-register (buffer)
   "Register BUFFER as a Claude buffer with buffer-local configuration.
 Returns the buffer that was registered."
   (interactive "bBuffer to register: ")
   (ecc-buffer-register-with-local-config buffer))
 
-;;;###autoload
+
 (defun ecc-buffer-set-current (buffer)
   "Set BUFFER as the current active Claude buffer.
 Initializes buffer-local configuration if not already done.
@@ -46,7 +46,7 @@ Returns the buffer that was set as current."
 
 ;; Buffer Settings API
 
-;;;###autoload
+
 (defun ecc-buffer-settings-get (setting &optional buffer)
   "Get buffer-local SETTING for BUFFER or current buffer.
 SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
@@ -54,14 +54,14 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
     (when (boundp setting)
       (buffer-local-value setting (current-buffer)))))
 
-;;;###autoload
+
 (defun ecc-buffer-settings-set (setting value &optional buffer)
   "Set buffer-local SETTING to VALUE for BUFFER or current buffer.
 SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
   (with-current-buffer (or buffer (current-buffer))
     (set (make-local-variable setting) value)))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-set-y/n (response &optional buffer)
   "Set Y/N response pattern to RESPONSE for BUFFER or current buffer."
   (interactive "sY/N response: ")
@@ -70,7 +70,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
     (ecc-debug-message "Y/N response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-set-y/y/n (response &optional buffer)
   "Set Y/Y/N response pattern to RESPONSE for BUFFER or current buffer."
   (interactive "sY/Y/N response: ")
@@ -79,7 +79,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
     (ecc-debug-message "Y/Y/N response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-set-waiting (response &optional buffer)
   "Set waiting response pattern to RESPONSE for BUFFER or current buffer."
   (interactive "sWaiting response: ")
@@ -88,7 +88,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
     (ecc-debug-message "Waiting response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-set-initial (response &optional buffer)
   "Set initial waiting response to RESPONSE for BUFFER or current buffer."
   (interactive "sInitial waiting response: ")
@@ -99,7 +99,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
 
 ;; State Detection API with Buffer-Local Tracking
 
-;;;###autoload
+
 (defun ecc-buffer-state-detect (&optional buffer)
   "Detect Claude prompt state in BUFFER or current buffer.
 Updates buffer-local state tracking and returns the detected state.
@@ -121,28 +121,28 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                  "none")))
     state))
 
-;;;###autoload
+
 (defun ecc-buffer-state-waiting-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a waiting prompt.
 Updates buffer-local state tracking."
   (interactive)
   (eq (ecc-buffer-state-detect buffer) :waiting))
 
-;;;###autoload
+
 (defun ecc-buffer-state-y/n-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a Y/N prompt.
 Updates buffer-local state tracking."
   (interactive)
   (eq (ecc-buffer-state-detect buffer) :y/n))
 
-;;;###autoload
+
 (defun ecc-buffer-state-y/y/n-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has a Y/Y/N prompt.
 Updates buffer-local state tracking."
   (interactive)
   (eq (ecc-buffer-state-detect buffer) :y/y/n))
 
-;;;###autoload
+
 (defun ecc-buffer-state-initial-waiting-p (&optional buffer)
   "Return non-nil if BUFFER or current buffer has an initial waiting prompt.
 Updates buffer-local state tracking."
@@ -151,7 +151,7 @@ Updates buffer-local state tracking."
 
 ;; Auto-Response API with Buffer-Local Settings
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-enable (&optional buffer)
   "Enable auto-response for Claude prompts in BUFFER or current buffer.
 Uses buffer-local configuration for response patterns."
@@ -162,7 +162,7 @@ Uses buffer-local configuration for response patterns."
       (ecc-debug-message "Auto-response enabled for buffer '%s'"
                (buffer-name)))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-disable (&optional buffer)
   "Disable auto-response for Claude prompts in BUFFER or current buffer."
   (interactive)
@@ -172,7 +172,7 @@ Uses buffer-local configuration for response patterns."
       (ecc-debug-message "Auto-response disabled for buffer '%s'"
                (buffer-name)))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-toggle (&optional buffer)
   "Toggle auto-response for Claude prompts in BUFFER or current buffer."
   (interactive)
@@ -182,7 +182,7 @@ Uses buffer-local configuration for response patterns."
           (ecc-buffer-auto-response-disable)
         (ecc-buffer-auto-response-enable)))))
 
-;;;###autoload
+
 (defun ecc-buffer-auto-response-send (response &optional buffer)
   "Send RESPONSE to Claude in BUFFER or current buffer.
 Uses buffer-local state tracking."
@@ -268,7 +268,7 @@ Uses buffer-local state tracking."
 
 ;; Debug API
 
-;;;###autoload
+
 (defun ecc-buffer-debug-toggle (&optional buffer)
   "Toggle debug message output for BUFFER or current buffer."
   (interactive)

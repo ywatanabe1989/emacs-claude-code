@@ -36,7 +36,7 @@
 
 ;;;; Core detection functions
 
-;;;###autoload
+
 (defun ecc-detect-state (&optional buffer)
   "Detect Claude prompt state in BUFFER (or current buffer).
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil.
@@ -52,7 +52,7 @@ line-based detection for accuracy when available."
       (ecc-debug-message "Basic detection result: %s" basic-result)
       (or line-result basic-result))))
 
-;;;###autoload
+
 (defun ecc-detect-basic-state ()
   "Basic detection of Claude prompt state using buffer content matching.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -61,7 +61,7 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                     (point-max))))
     (ecc-analyze-buffer-text-for-state buffer-text)))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-last-lines (&optional n-lines)
   "Detect Claude prompts in the last N-LINES of the current buffer.
 If N-LINES is nil, use `ecc-state-detection-line-count'.
@@ -79,7 +79,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                       (point-max))))
     (ecc-analyze-buffer-text-for-state buffer-text)))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-region (start end)
   "Detect Claude prompts in region between START and END.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -159,7 +159,7 @@ Returns t if a match is found, nil otherwise."
 
 ;;;; Utility functions
 
-;;;###autoload
+
 (defun ecc-state-get-name (state)
   "Convert STATE symbol to a human-readable name."
   (cond
@@ -169,7 +169,7 @@ Returns t if a match is found, nil otherwise."
    ((eq state :initial-waiting) "Initial-Waiting")
    (t (format "%s" state))))
 
-;;;###autoload
+
 (defun ecc-state-symbols ()
   "Return a list of all known state symbols used in state detection.
 This is useful for iterating over all possible states."
@@ -177,7 +177,7 @@ This is useful for iterating over all possible states."
 
 ;;;; Notification interface
 
-;;;###autoload
+
 (defun ecc-state-notify-if-prompt-detected (buffer)
   "Check if BUFFER contains a Claude prompt and notify if appropriate.
 Returns the detected state if a prompt is found, nil otherwise."
@@ -194,7 +194,7 @@ Returns the detected state if a prompt is found, nil otherwise."
 
 ;;;; Debugging helpers
 
-;;;###autoload
+
 (defun ecc-state-detection-debug-info (&optional buffer)
   "Return debug information about state detection in BUFFER or current buffer.
 Returns a string with details about the buffer and detected state."
@@ -227,7 +227,7 @@ Last %d lines: %s"
 
 ;;;; Background detection integration
 
-;;;###autoload
+
 (defun ecc-state-detect-buffer-bg (buffer)
   "Detect the state of BUFFER in background processing.
 Returns the detected state if a prompt is found, nil otherwise."
@@ -237,7 +237,7 @@ Returns the detected state if a prompt is found, nil otherwise."
 
 ;;;; Buffer state integration
 
-;;;###autoload
+
 (defun ecc-state-update-buffer-state (buffer state)
   "Update the buffer-local state in BUFFER with detected STATE.
 Returns the STATE argument for convenience in chaining."
@@ -249,11 +249,11 @@ Returns the STATE argument for convenience in chaining."
 
 ;;;; Backward compatibility functions and aliases
 
-;;;###autoload
+
 (defalias 'ecc-detect-prompt-state 'ecc-detect-state
   "Alias for backwards compatibility with existing code.")
 
-;;;###autoload
+
 (define-obsolete-function-alias 'ecc-state-detect-prompt
   'ecc-detect-state "May 2025")
 

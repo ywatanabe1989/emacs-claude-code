@@ -25,7 +25,7 @@
 
 ;;;; Core detection functions
 
-;;;###autoload
+
 (defun ecc-term-claude-get-state (&optional buffer)
   "Get the current Claude prompt state for BUFFER or current buffer.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil.
@@ -48,7 +48,7 @@ detection method, falling back to simpler methods if necessary."
      ;; Fall back to basic detection
      (t (ecc-term-claude-detect-basic-state)))))
 
-;;;###autoload
+
 (defun ecc-term-claude-detect-basic-state ()
   "Basic detection of Claude prompt state in the current buffer.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil.
@@ -94,7 +94,7 @@ detection is not available."
 
 ;;;; Utility functions
 
-;;;###autoload
+
 (defun ecc-term-claude-state-name (state)
   "Convert STATE symbol to a human-readable name.
 STATE should be one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -105,13 +105,13 @@ STATE should be one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
    ((eq state :initial-waiting) "Initial-Waiting")
    (t (format "%s" state))))
 
-;;;###autoload
+
 (defun ecc-term-claude-state-symbols ()
   "Return a list of all known Claude prompt state symbols.
 This is useful for iterating over all possible states."
   '(:y/y/n :y/n :waiting :initial-waiting))
 
-;;;###autoload
+
 (defun ecc-term-claude-check-state ()
   "Check and update the state of the Claude VTERM buffer.
 Detects the current prompt state (if any) using the state detection

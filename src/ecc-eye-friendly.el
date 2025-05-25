@@ -71,7 +71,7 @@ Lower values give smoother scrolling but may affect performance."
   "Timer for throttling buffer updates.")
 
 ;; Core functions
-;;;###autoload
+
 (define-minor-mode ecc-eye-friendly-mode
   "Minor mode for eye-friendly buffer updates and scrolling.
 Reduces eye strain during high-speed scrolling and updates."
@@ -207,7 +207,7 @@ Wraps around ORIG-FUN with ARGS to control update frequency."
         ;; Hide indicator during normal speed
         (overlay-put ecc-eye-friendly--indicator-overlay 'after-string nil)))))
 
-;;;###autoload
+
 (defun ecc-eye-friendly-toggle ()
   "Toggle eye-friendly mode in the current buffer."
   (interactive)
@@ -215,7 +215,7 @@ Wraps around ORIG-FUN with ARGS to control update frequency."
       (ecc-eye-friendly-mode (if ecc-eye-friendly-mode -1 1))
     (ecc-debug-message "Eye-friendly mode is only supported in vterm buffers")))
 
-;;;###autoload
+
 (defun ecc-eye-friendly-adjust-speed (speed)
   "Adjust the maximum scrolling SPEED (lines per second)."
   (interactive "nMaximum scroll speed (lines/sec): ")

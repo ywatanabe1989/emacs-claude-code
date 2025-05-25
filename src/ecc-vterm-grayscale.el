@@ -46,7 +46,7 @@ opening a Claude vterm buffer."
 (defvar-local ecc-vterm-grayscale-mode t
   "Whether grayscale mode is enabled in the current buffer.")
 
-;;;###autoload
+
 (defun ecc-vterm-grayscale-toggle ()
   "Toggle between color and grayscale modes in vterm.
 This affects both vterm's internal color handling and ANSI color processing."
@@ -76,7 +76,7 @@ This affects both vterm's internal color handling and ANSI color processing."
                  (if grayscale-on "enabled" "disabled")))
     (ecc-debug-message "Grayscale mode is only available in vterm buffers")))
 
-;;;###autoload
+
 (define-minor-mode ecc-vterm-grayscale-minor-mode
   "Minor mode to enable grayscale rendering in vterm buffers.
 When enabled, ANSI colors will be rendered in grayscale rather than color."

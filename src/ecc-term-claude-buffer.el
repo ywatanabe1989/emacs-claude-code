@@ -31,7 +31,7 @@ FORMAT-STRING and ARGS are passed to `format'."
 
 ;;;; Buffer registration and tracking
 
-;;;###autoload
+
 (defun ecc-term-claude-register-buffer (&optional buffer)
   "Register BUFFER as a Claude buffer in the tracking system.
 Adds the buffer to `ecc-buffer-registered-buffers-alist` and sets
@@ -65,7 +65,7 @@ Errors:
     (ecc-term-claude-buffer-debug "Set as current Claude buffer: %s" (buffer-name buf))
     buf))
 
-;;;###autoload
+
 (defun ecc-term-claude-unregister-buffer (&optional buffer)
   "Unregister BUFFER from Claude buffer tracking.
 Removes the buffer from `ecc-buffer-registered-buffers-alist`.
@@ -85,7 +85,7 @@ Returns:
         (ecc-debug-message "Buffer '%s' unregistered from Claude buffers" (buffer-name buf)))
       t)))
 
-;;;###autoload
+
 (defun ecc-term-claude-get-current-buffer ()
   "Get the current Claude buffer.
 Returns the buffer object stored in `ecc-buffer-current-buffer`,
@@ -94,7 +94,7 @@ or nil if there is no current buffer or if it's not alive."
              (buffer-live-p ecc-buffer-current-buffer))
     ecc-buffer-current-buffer))
 
-;;;###autoload
+
 (defun ecc-term-claude-set-current-buffer (buffer)
   "Set BUFFER as the current Claude buffer.
 Updates `ecc-buffer-current-buffer` with the specified buffer,
@@ -119,7 +119,7 @@ Returns:
     (ecc-debug-message "Buffer '%s' set as current Claude buffer" (buffer-name buffer)))
   buffer)
 
-;;;###autoload
+
 (defun ecc-term-claude-list-buffers ()
   "List all registered Claude buffers.
 Returns a list of buffer objects that are registered as Claude buffers.
@@ -131,7 +131,7 @@ Only includes buffers that are still alive."
           (push buffer buffers))))
     (nreverse buffers)))
 
-;;;###autoload
+
 (defun ecc-term-claude-switch-to-buffer ()
   "Switch to a registered Claude buffer.
 Provides completion for choosing among all registered Claude buffers."
@@ -143,7 +143,7 @@ Provides completion for choosing among all registered Claude buffers."
 
 ;;;; Buffer cleanup
 
-;;;###autoload
+
 (defun ecc-term-claude-cleanup-buffer ()
   "Clean up Claude resources when a buffer is killed.
 Cancels timers, removes hooks, and unregisters the buffer.
@@ -164,7 +164,7 @@ This function is typically added to `kill-buffer-hook`."
 
 ;;;; Buffer utilities
 
-;;;###autoload
+
 (defun ecc-term-claude-buffer-p (buffer)
   "Return non-nil if BUFFER is a registered Claude buffer.
 Arguments:
@@ -175,7 +175,7 @@ Returns:
   (let ((buf (if (bufferp buffer) buffer (get-buffer buffer))))
     (and buf (assoc buf ecc-buffer-registered-buffers-alist))))
 
-;;;###autoload
+
 (defun ecc-term-claude-rename-buffer (new-name)
   "Rename the current Claude buffer to NEW-NAME.
 Updates the registration to track the buffer under its new name.

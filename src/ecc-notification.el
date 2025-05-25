@@ -252,7 +252,7 @@ If BUFFER is provided, include the buffer name in the message."
 
 ;; Core notification functions
 
-;;;###autoload
+
 (defun ecc-notification-dispatch (state &optional buffer)
   "Notify the user about a Claude STATE using configured methods.
 If BUFFER is provided, include the buffer name in message notifications.
@@ -274,7 +274,7 @@ Returns non-nil if notification was performed."
     ;; Return non-nil to indicate notification was performed
     t))
 
-;;;###autoload
+
 (defun ecc-notification-check-state (state)
   "Check if STATE requires notification and dispatch if needed.
 Returns non-nil if notification was performed."
@@ -282,7 +282,7 @@ Returns non-nil if notification was performed."
 
 ;; Toggle functions
 
-;;;###autoload
+
 (defun ecc-notification-toggle ()
   "Toggle notifications for Claude prompts.
 Enables or disables notifications globally."
@@ -291,7 +291,7 @@ Enables or disables notifications globally."
   (ecc-debug-message "Claude notifications %s"
            (if ecc-notification-enabled "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-notification-toggle-bell ()
   "Toggle bell notification for Claude prompts."
   (interactive)
@@ -303,7 +303,7 @@ Enables or disables notifications globally."
            (if (memq 'bell ecc-notification-methods)
                "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-notification-toggle-flash ()
   "Toggle visual flash notification for Claude prompts."
   (interactive)
@@ -317,7 +317,7 @@ Enables or disables notifications globally."
 
 ;; Integration with buffer and state detection
 
-;;;###autoload
+
 (defun ecc-notification-setup-for-buffer ()
   "Set up notifications for the current buffer.
 This function is designed to be added to mode hooks for Claude-related
@@ -339,7 +339,7 @@ buffer modes to automatically set up prompt notifications."
 
 ;; Autoload and initialization
 
-;;;###autoload
+
 (defun ecc-notification-setup ()
   "Set up the notification system."
   (interactive)

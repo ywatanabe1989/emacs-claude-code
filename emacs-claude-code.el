@@ -74,6 +74,7 @@
 ;; Users should call (ecc-mode 1) in their init file to enable keybindings
 
 ;;;###autoload
+;;;###autoload
 (defun ecc-setup ()
   "Setup emacs-claude-code with recommended settings.
 Enables the ecc-mode minor mode to activate keybindings."

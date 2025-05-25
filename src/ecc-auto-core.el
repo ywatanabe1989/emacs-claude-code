@@ -119,14 +119,14 @@ and other auto-response activities will be displayed in the echo area."
 
 ;;;; Timer management
 
-;;;###autoload
+
 (defun ecc-auto-core-timer-active-p ()
   "Return non-nil if the auto-response timer is active.
 This can be used to check if the auto-response system is currently running."
   (and ecc-auto-core--timer
        (timerp ecc-auto-core--timer)))
 
-;;;###autoload
+
 (defun ecc-auto-core-timer-start (callback)
   "Start the auto-response timer with CALLBACK function.
 Cancels any existing timer first.
@@ -146,7 +146,7 @@ Example:
                         ecc-auto-core-interval
                         callback)))
 
-;;;###autoload
+
 (defun ecc-auto-core-timer-stop ()
   "Stop the auto-response timer if it exists.
 This cancels the timer and clears the timer variable,
@@ -157,7 +157,7 @@ ensuring no further callbacks are executed."
 
 ;;;; State and throttling management
 
-;;;###autoload
+
 (defun ecc-auto-core-update-state (state)
   "Update the tracked state to STATE and record timestamp.
 This function is called after a response is sent to update
@@ -168,7 +168,7 @@ Arguments:
   (setq ecc-auto-core--last-state state
         ecc-auto-core--last-response-time (float-time)))
 
-;;;###autoload
+
 (defun ecc-auto-core-throttled-p (state)
   "Return non-nil if auto-response for STATE should be throttled.
 Prevents responses that are too frequent for the same state.
@@ -188,7 +188,7 @@ Returns:
        (< (- (float-time) ecc-auto-core--last-response-time)
           ecc-auto-core-throttle-time)))
 
-;;;###autoload
+
 (defun ecc-auto-core-reset-state ()
   "Reset the auto-response state tracking.
 Clears the last detected state, response timestamp,
@@ -199,7 +199,7 @@ and initial check counter."
 
 ;;;; Buffer management
 
-;;;###autoload
+
 (defun ecc-auto-core-register-buffer (buffer)
   "Register BUFFER for auto-response.
 Adds the buffer to the list of buffers that will be checked
@@ -215,7 +215,7 @@ Returns:
     (ecc-auto-core--log-buffer-registration buffer)
     buffer))
 
-;;;###autoload
+
 (defun ecc-auto-core-unregister-buffer (buffer)
   "Remove BUFFER from auto-response registry.
 Removes the buffer from the list of buffers that are checked
@@ -227,7 +227,7 @@ Arguments:
         (delq buffer ecc-auto-core--registered-buffers))
   (ecc-auto-core--log-buffer-unregistration buffer))
 
-;;;###autoload
+
 (defun ecc-auto-core-registered-buffers ()
   "Return list of currently registered buffers that are still live.
 Filters out any dead buffers from the registry and returns
@@ -238,7 +238,7 @@ Returns:
   (setq ecc-auto-core--registered-buffers
         (seq-filter #'buffer-live-p ecc-auto-core--registered-buffers)))
 
-;;;###autoload
+
 (defun ecc-auto-core-cleanup-buffers ()
   "Clean up the buffer registry by removing dead buffers.
 Returns the updated list of registered buffers.
@@ -256,7 +256,7 @@ Returns:
 
 ;;;; Core processing
 
-;;;###autoload
+
 (defun ecc-auto-core-process-buffer (buffer callback)
   "Process BUFFER for auto-response with CALLBACK.
 The callback should take two arguments: the buffer and the detected state.
@@ -314,7 +314,7 @@ Arguments:
       (ecc-debug-message "[Auto Core] Unregistered buffer %s from auto-response"
                (buffer-name buffer)))))
 
-;;;###autoload
+
 (defun ecc-auto-core-initial-check (buffer callback)
   "Perform initial check for BUFFER, calling CALLBACK if state detected.
 This function specifically targets the initial-waiting state with more
@@ -363,7 +363,7 @@ Arguments:
     (run-with-timer ecc-auto-core-initial-check-interval nil 
                     #'ecc-auto-core-initial-check buffer callback)))
 
-;;;###autoload
+
 (defun ecc-auto-core-process-all-buffers (callback)
   "Process all registered buffers for auto-response using CALLBACK.
 Calls `ecc-auto-core-process-buffer` for each registered buffer.
@@ -376,7 +376,7 @@ Arguments:
 
 ;;;; Lifecycle management
 
-;;;###autoload
+
 (defun ecc-auto-core-initialize ()
   "Initialize the auto-core system.
 This resets state tracking and cleans up any existing resources.
@@ -387,7 +387,7 @@ Call this function before starting the auto-response system."
   (when ecc-auto-core-debug
     (ecc-debug-message "[Auto Core] Initialized")))
 
-;;;###autoload
+
 (defun ecc-auto-core-shutdown ()
   "Shut down the auto-core system, cleaning up all resources.
 Stops timers, resets state tracking, and clears buffer registry.
@@ -400,7 +400,7 @@ Call this function when you're done with the auto-response system."
 
 ;;;; Debugging utilities
 
-;;;###autoload
+
 (defun ecc-auto-core-debug-status ()
   "Return a string with debug status information for auto-core.
 This is useful for debugging and understanding the current state
@@ -422,7 +422,7 @@ Returns:
           (length (ecc-auto-core-registered-buffers))
           ecc-auto-core--initial-check-count))
 
-;;;###autoload
+
 (defun ecc-auto-core-toggle-debug ()
   "Toggle debug output for auto-core.
 When debug is enabled, messages about auto-response operations
@@ -434,7 +434,7 @@ will be displayed in the echo area. This is useful for troubleshooting."
   (when ecc-auto-core-debug
     (ecc-debug-message "%s" (ecc-auto-core-debug-status))))
 
-;;;###autoload
+
 (defun ecc-auto-core-print-status ()
   "Print status information about auto-core to messages.
 Displays current timer state, last detected prompt, and buffer information."
@@ -443,7 +443,7 @@ Displays current timer state, last detected prompt, and buffer information."
 
 ;;;; Integration with other modules
 
-;;;###autoload
+
 (defun ecc-auto-core-get-registered-buffers ()
   "Return list of currently registered live buffers.
 This is an alias for `ecc-auto-core-registered-buffers` for better naming consistency.
@@ -451,7 +451,7 @@ Returns:
   List of live buffers registered for auto-response."
   (ecc-auto-core-registered-buffers))
 
-;;;###autoload
+
 (defun ecc-auto-core-debug-toggle ()
   "Toggle debug output for auto-core.
 This is an alias for `ecc-auto-core-toggle-debug` for better naming consistency."

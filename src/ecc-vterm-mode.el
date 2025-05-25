@@ -42,7 +42,7 @@ Positive numbers increase size, negative numbers decrease size."
   :type 'integer
   :group 'ecc-vterm)
 
-;;;###autoload
+
 (define-minor-mode ecc-vterm-mode
   "Minor mode for optimized vterm buffers used with Claude Code.
 This mode provides performance optimizations and enhanced features
@@ -145,7 +145,7 @@ for handling high-throughput interactions with Claude."
   (let ((gc-cons-threshold (* 100 1024 1024)))  ; 100MB during flush
     (apply orig-fun args)))
 
-;;;###autoload
+
 (defun ecc-vterm-truncate-buffer ()
   "Truncate vterm buffer to recent lines for performance."
   (interactive)
@@ -159,7 +159,7 @@ for handling high-throughput interactions with Claude."
         (delete-region (point-min) (point)))
       (ecc-debug-message "Buffer truncated to %d lines" max-lines))))
 
-;;;###autoload
+
 (defun ecc-vterm-toggle-optimizations ()
   "Toggle vterm optimizations on/off."
   (interactive)
@@ -167,7 +167,7 @@ for handling high-throughput interactions with Claude."
       (ecc-vterm-mode -1)
     (ecc-vterm-mode 1)))
 
-;;;###autoload
+
 (defun ecc-vterm-toggle-line-numbers ()
   "Toggle line numbers display in the current vterm buffer."
   (interactive)
@@ -183,7 +183,7 @@ for handling high-throughput interactions with Claude."
     (setq-local ecc-vterm-hide-line-numbers 
                 (not (bound-and-true-p display-line-numbers-mode)))))
 
-;;;###autoload
+
 (defun ecc-vterm-increase-font-size (&optional n)
   "Increase the font size in current vterm buffer by N steps.
 If N is nil, uses `ecc-vterm-font-size-step' as the step size."
@@ -197,7 +197,7 @@ If N is nil, uses `ecc-vterm-font-size-step' as the step size."
       (text-scale-set new-size)
       (ecc-debug-message "Font size: %+d" new-size))))
 
-;;;###autoload
+
 (defun ecc-vterm-decrease-font-size (&optional n)
   "Decrease the font size in current vterm buffer by N steps.
 If N is nil, uses `ecc-vterm-font-size-step' as the step size."
@@ -211,7 +211,7 @@ If N is nil, uses `ecc-vterm-font-size-step' as the step size."
       (text-scale-set new-size)
       (ecc-debug-message "Font size: %+d" new-size))))
 
-;;;###autoload
+
 (defun ecc-vterm-reset-font-size ()
   "Reset the font size to default in current vterm buffer."
   (interactive)
