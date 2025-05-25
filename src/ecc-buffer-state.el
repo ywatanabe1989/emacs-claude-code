@@ -352,7 +352,7 @@ Compares current state with previous state in history."
 (defun ecc-buffer-state-print-status (&optional buffer)
   "Print status information about buffer state tracking to messages."
   (interactive)
-  (message "%s" (ecc-buffer-state-status buffer)))
+  (ecc-debug-message "%s" (ecc-buffer-state-status buffer)))
 
 ;; Global management
 
@@ -375,7 +375,7 @@ Compares current state with previous state in history."
   "Toggle debug output for buffer state tracking."
   (interactive)
   (setq ecc-buffer-state-debug (not ecc-buffer-state-debug))
-  (message "Buffer state debug %s"
+  (ecc-debug-message "Buffer state debug %s"
            (if ecc-buffer-state-debug "enabled" "disabled")))
 
 ;; Test compatibility API functions

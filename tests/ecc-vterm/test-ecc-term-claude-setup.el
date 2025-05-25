@@ -14,9 +14,9 @@
 
 (require 'ert)
 
-;; Load the mock version of ecc-term-claude-setup.el for testing
-(load-file (expand-file-name "mock-ecc-term-claude-setup.el" 
-                             (file-name-directory load-file-name)))
+;; Load the actual module instead of a mock
+(require 'ecc-term-claude-setup)
+(require 'ecc-api)
 
 ;; Define mock mode for testing
 (defvar vterm-mode-map (make-sparse-keymap))

@@ -109,7 +109,7 @@ Reduces eye strain during high-speed scrolling and updates."
   ;; Initialize last update time
   (setq ecc-eye-friendly--last-update-time (float-time))
   
-  (message "Eye-friendly mode enabled"))
+  (ecc-debug-message "Eye-friendly mode enabled"))
 
 (defun ecc-eye-friendly--disable ()
   "Disable eye-friendly features for the current buffer."
@@ -138,7 +138,7 @@ Reduces eye strain during high-speed scrolling and updates."
       (delete-overlay ecc-eye-friendly--indicator-overlay)
       (setq ecc-eye-friendly--indicator-overlay nil)))
   
-  (message "Eye-friendly mode disabled"))
+  (ecc-debug-message "Eye-friendly mode disabled"))
 
 (defun ecc-eye-friendly--throttled-update (orig-fun &rest args)
   "Throttle vterm updates to reduce eye strain.
@@ -213,14 +213,14 @@ Wraps around ORIG-FUN with ARGS to control update frequency."
   (interactive)
   (if (derived-mode-p 'vterm-mode)
       (ecc-eye-friendly-mode (if ecc-eye-friendly-mode -1 1))
-    (message "Eye-friendly mode is only supported in vterm buffers")))
+    (ecc-debug-message "Eye-friendly mode is only supported in vterm buffers")))
 
 ;;;###autoload
 (defun ecc-eye-friendly-adjust-speed (speed)
   "Adjust the maximum scrolling SPEED (lines per second)."
   (interactive "nMaximum scroll speed (lines/sec): ")
   (setq ecc-eye-friendly-max-speed speed)
-  (message "Maximum scroll speed set to %d lines/second" speed))
+  (ecc-debug-message "Maximum scroll speed set to %d lines/second" speed))
 
 ;; Auto-setup for Claude buffers
 (defun ecc-eye-friendly-auto-setup ()

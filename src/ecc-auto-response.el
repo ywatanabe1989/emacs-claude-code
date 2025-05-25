@@ -248,7 +248,7 @@ Messages go to *Messages* buffer without minibuffer echo."
     (let ((inhibit-message t))  ; Prevent minibuffer echo
       (if (fboundp 'ecc-debug-message)
           (apply #'ecc-debug-message (concat "[Auto-Response] " format-string) args)
-        (message "[ECC-AUTO-RESPONSE DEBUG %s] %s" 
+        (ecc-debug-message "[ECC-AUTO-RESPONSE DEBUG %s] %s" 
                  (buffer-name) 
                  (apply #'format format-string args))))))
 
@@ -423,7 +423,7 @@ Example:
                              ecc-auto-response-check-interval))
   
   ;; Show startup message
-  (message "Auto-response enabled: Y/N=%s, Y/Y/N=%s, Continue=%s"
+  (ecc-debug-message "Auto-response enabled: Y/N=%s, Y/Y/N=%s, Continue=%s"
            ecc-auto-response-yes
            ecc-auto-response-yes-plus
            ecc-auto-response-continue))
@@ -445,7 +445,7 @@ Cancels the timer and disables automatic responses to Claude prompts."
     (ecc-auto-response--debug "Cancelled auto-response timer"))
   
   ;; Show stop message
-  (message "Auto-response disabled"))
+  (ecc-debug-message "Auto-response disabled"))
 
 ;;;###autoload
 (defun ecc-auto-response-toggle ()
@@ -562,7 +562,7 @@ Checks buffer for Claude prompts and sends responses if appropriate."
       (ecc-auto-response--debug "ESC interrupt detected in %s, stopping auto-response" 
                                (buffer-name buffer))
       (setq ecc-auto-response-enabled nil)
-      (message "Auto-response stopped due to ESC interrupt")
+      (ecc-debug-message "Auto-response stopped due to ESC interrupt")
       (cl-return-from ecc-auto-response--process-buffer-global))
     
     ;; Check for accumulation
@@ -570,7 +570,7 @@ Checks buffer for Claude prompts and sends responses if appropriate."
       (ecc-auto-response--debug "Accumulation detected, stopping")
       (ecc-auto-response--debug "Accumulation detected, stopping auto-response")
       (setq ecc-auto-response-enabled nil)
-      (message "Auto-response stopped due to accumulation detection")
+      (ecc-debug-message "Auto-response stopped due to accumulation detection")
       (cl-return-from ecc-auto-response--process-buffer-global))
     
     (ecc-auto-response--debug "Detecting state...")
@@ -686,7 +686,7 @@ Handles sending the text through the appropriate buffer mode (vterm, comint, etc
   
   ;; Show notification if enabled
   (when ecc-auto-response-notify
-    (message "[%s] Auto-response to %s: %s" (buffer-name buffer) state-name text)))
+    (ecc-debug-message "[%s] Auto-response to %s: %s" (buffer-name buffer) state-name text)))
 
 ;;;; Core Functions - Buffer-Local Mode
 
@@ -747,7 +747,7 @@ Arguments:
                                ecc-auto-response-check-interval))
     
     ;; Show startup message
-    (message "Buffer-local auto-response enabled for %s" (buffer-name buf))))
+    (ecc-debug-message "Buffer-local auto-response enabled for %s" (buffer-name buf))))
 
 ;;;###autoload
 (defun ecc-auto-response-buffer-stop (&optional buffer)
@@ -767,7 +767,7 @@ The buffer remains registered but won't receive auto-responses."
       (setq-local ecc-buffer-auto-response-enabled nil))
     
     ;; Show stop message
-    (message "Buffer-local auto-response disabled for %s" (buffer-name buf))))
+    (ecc-debug-message "Buffer-local auto-response disabled for %s" (buffer-name buf))))
 
 ;;;###autoload
 (defun ecc-auto-response-buffer-toggle (&optional buffer)
@@ -790,12 +790,12 @@ If not already started, initializes with default settings."
             ;; Stop global auto-response completely
             (progn
               (ecc-auto-response-stop)
-              (message "Global auto-response disabled"))
+              (ecc-debug-message "Global auto-response disabled"))
           ;; Start global auto-response with current buffer registered
           (progn
             (ecc-auto-response-register-buffer buf)
             (ecc-auto-response-start)
-            (message "Global auto-response enabled")))))))
+            (ecc-debug-message "Global auto-response enabled")))))))
 
 (defun ecc-auto-response--process-buffer-local (buffer)
   "Process BUFFER for auto-response using buffer-local settings."
@@ -814,14 +814,14 @@ If not already started, initializes with default settings."
                                  (buffer-name buffer))
         (setq-local ecc-auto-response-buffer-enabled nil)
         (setq-local ecc-auto-response-buffer-interrupt-detected t)
-        (message "Buffer-local auto-response stopped due to ESC interrupt in %s" (buffer-name buffer))
+        (ecc-debug-message "Buffer-local auto-response stopped due to ESC interrupt in %s" (buffer-name buffer))
         (cl-return-from ecc-auto-response--process-buffer-local nil))
       
       ;; Check for buffer-local accumulation
       (when (ecc-auto-response--buffer-accumulation-detected-p)
         (ecc-auto-response--debug "Buffer-local accumulation detected, disabling auto-response")
         (setq-local ecc-auto-response-buffer-enabled nil)
-        (message "Buffer-local auto-response stopped due to accumulation detection in %s" (buffer-name buffer))
+        (ecc-debug-message "Buffer-local auto-response stopped due to accumulation detection in %s" (buffer-name buffer))
         (cl-return-from ecc-auto-response--process-buffer-local nil))
       
       (let ((state (ecc-detect-state)))
@@ -951,7 +951,7 @@ Displays current settings, state, and statistics."
     
     (with-current-buffer buf
       (let ((buffer-status (if ecc-auto-response-buffer-enabled "enabled" "disabled")))
-        (message "Auto-response status: Global: %s (%s mode), Buffer: %s, Registered buffers: %d"
+        (ecc-debug-message "Auto-response status: Global: %s (%s mode), Buffer: %s, Registered buffers: %d"
                  global-status global-mode buffer-status registered-count)))))
 
 ;;;; Backward Compatibility - Buffer-Local Module

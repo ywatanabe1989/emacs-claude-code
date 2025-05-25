@@ -8,7 +8,8 @@
 ;;; This module provides functions for sending commands and responses to Claude,
 ;;; handling scrolling and view management, and other direct interaction features.
 
-(require 'vterm)
+;; Optional dependency - vterm must be installed separately
+(require 'vterm nil t)
 (require 'ecc-variables)
 
 ;; Forward declarations to prevent free variable warnings
@@ -16,6 +17,26 @@
   "When non-nil, automatically scroll to show the bottom of the buffer after new output.")
 (defvar ecc-vterm-follow-bottom-margin 2
   "Number of lines to keep between cursor and bottom of window.")
+
+;;;; Vterm compatibility wrappers
+
+(defun ecc-term-claude--vterm-send-string (string)
+  "Send STRING to vterm if available."
+  (if (fboundp 'vterm-send-string)
+      (vterm-send-string string)
+    (ecc-debug-message "vterm not available, cannot send: %s" string)))
+
+(defun ecc-term-claude--vterm-send-return ()
+  "Send return to vterm if available."
+  (if (fboundp 'vterm-send-return)
+      (vterm-send-return)
+    (ecc-debug-message "vterm not available, cannot send return")))
+
+(defun ecc-term-claude--vterm-clear ()
+  "Clear vterm buffer if available."
+  (if (fboundp 'vterm-clear)
+      (vterm-clear)
+    (ecc-debug-message "vterm not available, cannot clear buffer")))
 
 ;;; Code:
 
@@ -34,8 +55,8 @@ Side Effects:
   Sends text to the vterm process.
   May trigger Claude to continue processing or change its behavior."
   (interactive)
-  (vterm-send-string "y")
-  (vterm-send-return))
+  (ecc-term-claude--vterm-send-string "y")
+  (ecc-term-claude--vterm-send-return))
 
 ;;;###autoload
 (defun ecc-term-claude-send-no ()
@@ -50,8 +71,8 @@ Side Effects:
   Sends text to the vterm process.
   May trigger Claude to continue processing or change its behavior."
   (interactive)
-  (vterm-send-string "n")
-  (vterm-send-return))
+  (ecc-term-claude--vterm-send-string "n")
+  (ecc-term-claude--vterm-send-return))
 
 ;;;###autoload
 (defun ecc-term-claude-clear-buffer ()
@@ -63,7 +84,7 @@ sensitive information.
 Side Effects:
   Clears all content from the vterm buffer."
   (interactive)
-  (vterm-clear))
+  (ecc-term-claude--vterm-clear))
 
 ;;;###autoload
 (defun ecc-term-claude-send-string (text)
@@ -125,7 +146,7 @@ buffer is controlled by `ecc-vterm-follow-bottom-margin`."
   (interactive)
   (setq ecc-vterm-always-follow-bottom 
         (not ecc-vterm-always-follow-bottom))
-  (message "Always follow bottom %s"
+  (ecc-debug-message "Always follow bottom %s"
            (if ecc-vterm-always-follow-bottom "enabled" "disabled"))
   (when ecc-vterm-always-follow-bottom
     (ecc-term-claude-scroll-to-bottom)))
@@ -140,7 +161,7 @@ This allows reviewing earlier conversations and responses.
 
 Not yet implemented."
   (interactive)
-  (message "History browsing is not yet implemented"))
+  (ecc-debug-message "History browsing is not yet implemented"))
 
 ;;;; Backward compatibility aliases
 

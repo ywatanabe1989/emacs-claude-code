@@ -140,7 +140,7 @@ FORMAT-STRING and ARGS are passed to `format'."
     (let ((msg (apply #'format full-format args)))
       ;; Display message without echoing to minibuffer
       (let ((inhibit-message t))
-        (message "%s" msg))
+        (ecc-debug-message "%s" msg))
       ;; Log to debug buffer if enabled
       (when ecc-debug-log-buffer-name
         (let ((log-buffer (get-buffer-create ecc-debug-log-buffer-name)))
@@ -157,7 +157,7 @@ FORMAT-STRING and ARGS are passed to `format'."
       (memq category ecc-debug-enabled-categories)))
 
 ;; This function is now inlined in ecc-debug--display-message for better reliability
-(defun ecc-debug--log-to-buffer (message)
+(defun ecc-debug--log-to-buffer (ecc-debug-message)
   "Append MESSAGE to the debug log buffer.
 This function is deprecated and kept for backward compatibility."
   (when ecc-debug-log-buffer-name
@@ -239,14 +239,14 @@ Shows global and buffer-local debug settings and their values."
               "  Auto-response enabled: " (if (and (boundp 'ecc-buffer-auto-response-enabled)
                                                 ecc-buffer-auto-response-enabled)
                                            "YES" "NO"))))
-        (message "%s" msg)))))
+        (ecc-debug-message "%s" msg)))))
 
 ;;;###autoload
 (defun ecc-debug-toggle-global ()
   "Toggle global debug output."
   (interactive)
   (setq ecc-debug-enabled (not ecc-debug-enabled))
-  (message "Claude global debug %s" 
+  (ecc-debug-message "Claude global debug %s" 
            (if ecc-debug-enabled "enabled" "disabled")))
 
 ;;;###autoload
@@ -255,7 +255,7 @@ Shows global and buffer-local debug settings and their values."
   (interactive)
   (with-current-buffer (or buffer (current-buffer))
     (setq ecc-debug-buffer-enabled (not ecc-debug-buffer-enabled))
-    (message "Claude buffer debug %s for %s" 
+    (ecc-debug-message "Claude buffer debug %s for %s" 
              (if ecc-debug-buffer-enabled "enabled" "disabled")
              (buffer-name))))
 
@@ -281,7 +281,7 @@ Shows global and buffer-local debug settings and their values."
    (t
     (push category ecc-debug-enabled-categories)))
   
-  (message "Debug category '%s' is now %s" 
+  (ecc-debug-message "Debug category '%s' is now %s" 
            category
            (if (ecc-debug--category-enabled-p category)
                "enabled" "disabled")))
@@ -291,7 +291,7 @@ Shows global and buffer-local debug settings and their values."
   "Enable all debug categories."
   (interactive)
   (setq ecc-debug-enabled-categories nil)
-  (message "All debug categories enabled"))
+  (ecc-debug-message "All debug categories enabled"))
 
 ;;;###autoload
 (defun ecc-debug-clear-log ()
@@ -313,7 +313,7 @@ Shows global and buffer-local debug settings and their values."
   (if (and ecc-debug-log-buffer-name
            (get-buffer ecc-debug-log-buffer-name))
       (switch-to-buffer-other-window (get-buffer ecc-debug-log-buffer-name))
-    (message "Debug log buffer not created yet. Enable logging first.")))
+    (ecc-debug-message "Debug log buffer not created yet. Enable logging first.")))
 
 ;;;; Module-specific debug utilities
 

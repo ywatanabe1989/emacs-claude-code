@@ -16,9 +16,8 @@
 (require 'ecc-term-claude-state)
 (require 'ecc-variables)
 
-;; Load the mock version of ecc-term-claude-auto.el for testing
-(load-file (expand-file-name "mock-ecc-term-claude-auto.el" 
-                             (file-name-directory load-file-name)))
+;; Load the actual module instead of a mock
+(require 'ecc-term-claude-auto)
 
 ;; Define mock mode for testing
 (defvar vterm-mode-map (make-sparse-keymap))
@@ -28,6 +27,12 @@
 (defun vterm-clear ()
   "Mock function to clear the terminal."
   (message "Terminal cleared"))
+(defun vterm-send-string (string)
+  "Mock function to send STRING to terminal."
+  (message "Sending: %s" string))
+(defun vterm-send-return ()
+  "Mock function to send return to terminal."
+  (message "Sending return"))
 
 ;;;; Test Utilities
 

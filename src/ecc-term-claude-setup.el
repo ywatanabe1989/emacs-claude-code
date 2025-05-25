@@ -115,7 +115,7 @@ Adds the buffer to the tracking system and sets it as the current Claude buffer.
     ;; Register the buffer
     (unless (assoc buf ecc-buffer-registered-buffers-alist)
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
-      (message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
+      (ecc-debug-message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)

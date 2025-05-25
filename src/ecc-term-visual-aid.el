@@ -188,9 +188,9 @@
   (if ecc-term-visual-aid-enabled
       (progn
         (ecc-term-visual-aid-update)
-        (message "Claude visual aids enabled"))
+        (ecc-debug-message "Claude visual aids enabled"))
     (ecc-term-visual-aid-clear-all)
-    (message "Claude visual aids disabled")))
+    (ecc-debug-message "Claude visual aids disabled")))
 
 ;; Setup for Claude vterm buffers
 (defun ecc-term-visual-aid-setup ()

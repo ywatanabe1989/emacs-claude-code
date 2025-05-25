@@ -72,9 +72,9 @@ This affects both vterm's internal color handling and ANSI color processing."
         (when ecc-vterm-grayscale-indicator
           (ecc-vterm-grayscale-update-mode-line))
         
-        (message "Vterm grayscale mode: %s" 
+        (ecc-debug-message "Vterm grayscale mode: %s" 
                  (if grayscale-on "enabled" "disabled")))
-    (message "Grayscale mode is only available in vterm buffers")))
+    (ecc-debug-message "Grayscale mode is only available in vterm buffers")))
 
 ;;;###autoload
 (define-minor-mode ecc-vterm-grayscale-minor-mode
@@ -102,7 +102,7 @@ When enabled, ANSI colors will be rendered in grayscale rather than color."
     
     ;; Not in vterm mode, disable the mode
     (setq ecc-vterm-grayscale-minor-mode nil)
-    (message "Grayscale mode is only available in vterm buffers")))
+    (ecc-debug-message "Grayscale mode is only available in vterm buffers")))
 
 (defun ecc-vterm-grayscale-update-mode-line ()
   "Update the mode line indicator for grayscale mode."

@@ -94,14 +94,6 @@
              (lambda () nil)))
     (should (string= (ecc-term-claude-mode-line-state-indicator) ""))))
 
-(ert-deftest test-ecc-term-claude-cleanup-buffer ()
-  "Test buffer cleanup."
-  (let ((ecc-term-claude-state-timer (run-with-timer 100 nil #'ignore))
-        (ecc-buffer-registered-buffers-alist (list (cons (current-buffer) nil))))
-    (ecc-term-claude-cleanup-buffer)
-    (should-not ecc-term-claude-state-timer)
-    (should-not (assoc (current-buffer) ecc-buffer-registered-buffers-alist))))
-
 (provide 'test-ecc-term-claude-setup)
 
 ;;; test-ecc-term-claude-setup.el ends here

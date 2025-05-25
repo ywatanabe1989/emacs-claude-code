@@ -62,7 +62,7 @@ Increments the counter and handles periodic commands if enabled."
   
   ;; Display count if enabled
   (when ecc-interaction-display-count
-    (message "Claude interaction #%d" ecc-interaction-counter))
+    (ecc-debug-message "Claude interaction #%d" ecc-interaction-counter))
   
   ;; Handle periodic commands if enabled
   (when ecc-periodic-commands-enabled
@@ -88,7 +88,7 @@ Increments the counter and handles periodic commands if enabled."
     (with-current-buffer ecc-buffer-current-buffer
       (when (fboundp 'ecc-auto--send-vterm-response)
         (ecc-auto--send-vterm-response command)
-        (message "Sent command: %s (interaction #%d)" 
+        (ecc-debug-message "Sent command: %s (interaction #%d)" 
                  command 
                  ecc-interaction-counter)))))
 
@@ -98,7 +98,7 @@ Increments the counter and handles periodic commands if enabled."
   (interactive)
   (setq ecc-interaction-counter 0)
   (setq ecc-interaction-timestamps nil)
-  (message "Claude interaction counter reset to 0"))
+  (ecc-debug-message "Claude interaction counter reset to 0"))
 
 ;;;###autoload
 (defun ecc-display-interaction-stats ()
@@ -159,7 +159,7 @@ Increments the counter and handles periodic commands if enabled."
   "Toggle automatic periodic commands on/off."
   (interactive)
   (setq ecc-periodic-commands-enabled (not ecc-periodic-commands-enabled))
-  (message "Periodic commands %s (%d commands configured)"
+  (ecc-debug-message "Periodic commands %s (%d commands configured)"
            (if ecc-periodic-commands-enabled "enabled" "disabled")
            (length ecc-periodic-commands-alist)))
 
@@ -168,7 +168,7 @@ Increments the counter and handles periodic commands if enabled."
   "Add or update a periodic COMMAND with INTERVAL."
   (interactive "sCommand to send: \nnInterval (interactions): ")
   (setf (alist-get command ecc-periodic-commands-alist nil nil #'string=) interval)
-  (message "Added periodic command: %s every %d interactions" 
+  (ecc-debug-message "Added periodic command: %s every %d interactions" 
            command interval))
 
 ;;;###autoload
@@ -181,7 +181,7 @@ Increments the counter and handles periodic commands if enabled."
   (setq ecc-periodic-commands-alist
         (delq (assoc command ecc-periodic-commands-alist)
               ecc-periodic-commands-alist))
-  (message "Removed periodic command: %s" command))
+  (ecc-debug-message "Removed periodic command: %s" command))
 
 ;;;###autoload
 (defun ecc-disable-periodic-command (command)
@@ -191,7 +191,7 @@ Increments the counter and handles periodic commands if enabled."
                           (mapcar #'car ecc-periodic-commands-alist)
                           nil t)))
   (setf (alist-get command ecc-periodic-commands-alist nil nil #'string=) 0)
-  (message "Disabled periodic command: %s (interval set to 0)" command))
+  (ecc-debug-message "Disabled periodic command: %s (interval set to 0)" command))
 
 ;; Hook into vterm to track user input
 (defun ecc-track-vterm-input-hook (input)

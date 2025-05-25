@@ -14,7 +14,7 @@
 
 (require 'ecc-variables)
 (require 'ecc-term-claude-state)
-(require 'vterm)
+(require 'vterm nil t)  ; Optional - don't fail if vterm not available
 
 ;; Forward declarations to prevent free variable warnings
 
@@ -34,6 +34,20 @@
   "Response to send for initial waiting prompts.")
 
 ;;; Code:
+
+;;;; Vterm compatibility wrappers
+
+(defun ecc-term-claude--vterm-send-string (string)
+  "Send STRING to vterm if available."
+  (if (fboundp 'vterm-send-string)
+      (vterm-send-string string)
+    (ecc-debug-message "vterm not available, cannot send: %s" string)))
+
+(defun ecc-term-claude--vterm-send-return ()
+  "Send return to vterm if available."
+  (if (fboundp 'vterm-send-return)
+      (vterm-send-return)
+    (ecc-debug-message "vterm not available, cannot send return")))
 
 ;;;; Auto-response configuration
 
@@ -99,7 +113,7 @@ Returns t if a response was sent, nil otherwise."
 
     ;; Log debug info if enabled
     (when ecc-term-claude-auto-debug
-      (message "Auto-response debug: state=%s, var=%s, value=%s"
+      (ecc-debug-message "Auto-response debug: state=%s, var=%s, value=%s"
                state response-var response))
 
     ;; Validate response
@@ -115,14 +129,14 @@ Returns t if a response was sent, nil otherwise."
         (run-with-timer ecc-term-claude-auto-delay nil
                         (lambda ()
                           (when (buffer-live-p (current-buffer))
-                            (vterm-send-string response)
-                            (vterm-send-return)
-                            (message "Auto-responded to %s prompt: %s"
+                            (ecc-term-claude--vterm-send-string response)
+                            (ecc-term-claude--vterm-send-return)
+                            (ecc-debug-message "Auto-responded to %s prompt: %s"
                                      state-name response))))
       ;; Immediate response
-      (vterm-send-string response)
-      (vterm-send-return)
-      (message "Auto-responded to %s prompt: %s" state-name response))
+      (ecc-term-claude--vterm-send-string response)
+      (ecc-term-claude--vterm-send-return)
+      (ecc-debug-message "Auto-responded to %s prompt: %s" state-name response))
     t))
 
 (defun ecc-term-claude-auto-send-accept ()
@@ -138,7 +152,7 @@ to automatically check for and respond to prompts after each update."
           (when state
             (ecc-term-claude-auto-send state)))
       (error
-       (message "Auto-response error: %s" (error-message-string err))
+       (ecc-debug-message "Auto-response error: %s" (error-message-string err))
        nil))))
 
 ;;;; Convenience functions
@@ -149,7 +163,7 @@ Enables or disables the auto-response mode that automatically
 responds to Claude prompts based on their type."
   (interactive)
   (setq ecc-term-claude-auto-mode (not ecc-term-claude-auto-mode))
-  (message "Claude auto-mode %s"
+  (ecc-debug-message "Claude auto-mode %s"
            (if ecc-term-claude-auto-mode "enabled" "disabled"))
 
   ;; Set up hooks for auto-responses
@@ -193,6 +207,6 @@ responds to Claude prompts based on their type."
 
 (when
     (not load-file-name)
-  (message "ecc-term-claude-auto.el loaded."
+  (ecc-debug-message "ecc-term-claude-auto.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

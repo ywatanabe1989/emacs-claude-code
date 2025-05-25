@@ -234,10 +234,10 @@ Handles different system configurations to ensure bell is audible."
   "Display a message about STATE in the echo area.
 If BUFFER is provided, include the buffer name in the message."
   (if buffer
-      (message "[%s] Claude prompt detected: %s" 
+      (ecc-debug-message "[%s] Claude prompt detected: %s" 
                (buffer-name buffer)
                (ecc-notification--state-description state))
-    (message "Claude prompt detected: %s" 
+    (ecc-debug-message "Claude prompt detected: %s" 
              (ecc-notification--state-description state))))
 
 ;; Core notification functions
@@ -278,7 +278,7 @@ Returns non-nil if notification was performed."
 Enables or disables notifications globally."
   (interactive)
   (setq ecc-notification-enabled (not ecc-notification-enabled))
-  (message "Claude notifications %s"
+  (ecc-debug-message "Claude notifications %s"
            (if ecc-notification-enabled "enabled" "disabled")))
 
 ;;;###autoload
@@ -289,7 +289,7 @@ Enables or disables notifications globally."
       (setq ecc-notification-methods 
             (delq 'bell ecc-notification-methods))
     (push 'bell ecc-notification-methods))
-  (message "Bell notifications %s"
+  (ecc-debug-message "Bell notifications %s"
            (if (memq 'bell ecc-notification-methods)
                "enabled" "disabled")))
 
@@ -301,7 +301,7 @@ Enables or disables notifications globally."
       (setq ecc-notification-methods 
             (delq 'flash ecc-notification-methods))
     (push 'flash ecc-notification-methods))
-  (message "Flash notifications %s"
+  (ecc-debug-message "Flash notifications %s"
            (if (memq 'flash ecc-notification-methods)
                "enabled" "disabled")))
 

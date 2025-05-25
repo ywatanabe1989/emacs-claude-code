@@ -25,7 +25,7 @@
 FORMAT-STRING and ARGS are passed to `format'."
   (when ecc-term-claude-buffer-debug-enabled
     (let ((inhibit-message t))  ; Only to *Messages*, not minibuffer
-      (message "[ECC-BUFFER DEBUG %s] %s" 
+      (ecc-debug-message "[ECC-BUFFER DEBUG %s] %s" 
                (buffer-name) 
                (apply #'format format-string args)))))
 
@@ -58,7 +58,7 @@ Errors:
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
       (ecc-term-claude-buffer-debug "Buffer registered in alist: %s" (buffer-name buf))
       (when (called-interactively-p 'any)
-        (message "Buffer '%s' registered as Claude buffer" (buffer-name buf))))
+        (ecc-debug-message "Buffer '%s' registered as Claude buffer" (buffer-name buf))))
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)
@@ -82,7 +82,7 @@ Returns:
       (setq ecc-buffer-registered-buffers-alist
             (assq-delete-all buf ecc-buffer-registered-buffers-alist))
       (when (called-interactively-p 'any)
-        (message "Buffer '%s' unregistered from Claude buffers" (buffer-name buf)))
+        (ecc-debug-message "Buffer '%s' unregistered from Claude buffers" (buffer-name buf)))
       t)))
 
 ;;;###autoload
@@ -116,7 +116,7 @@ Returns:
   ;; Set as current
   (setq ecc-buffer-current-buffer buffer)
   (when (called-interactively-p 'any)
-    (message "Buffer '%s' set as current Claude buffer" (buffer-name buffer)))
+    (ecc-debug-message "Buffer '%s' set as current Claude buffer" (buffer-name buffer)))
   buffer)
 
 ;;;###autoload

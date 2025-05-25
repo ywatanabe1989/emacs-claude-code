@@ -125,7 +125,7 @@ Returns the buffer that was registered."
     ;; Register the buffer
     (unless (assoc buf ecc-buffer-registered-buffers-alist)
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
-      (message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
+      (ecc-debug-message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
     
     ;; Initialize buffer-local variables
     (ecc-buffer-local-init buf)

@@ -255,9 +255,9 @@ Arguments:
     
     ;; Display message with optional buffer name
     (if buffer
-        (message "[%s] Claude prompt detected: %s" 
+        (ecc-debug-message "[%s] Claude prompt detected: %s" 
                  (buffer-name buffer) type-name)
-      (message "Claude prompt detected: %s" type-name))
+      (ecc-debug-message "Claude prompt detected: %s" type-name))
     
     ;; Log notification
     (ecc-auto-notify--log "Notification sent for state %s" type)))
@@ -329,7 +329,7 @@ Enables or disables notifications globally."
   (interactive)
   (setq ecc-auto-notify-on-claude-prompt 
         (not ecc-auto-notify-on-claude-prompt))
-  (message "Claude prompt notifications %s"
+  (ecc-debug-message "Claude prompt notifications %s"
            (if ecc-auto-notify-on-claude-prompt "enabled" "disabled")))
 
 ;;;###autoload
@@ -339,7 +339,7 @@ Enables or disables the audible bell component of notifications."
   (interactive)
   (setq ecc-auto-notify-bell 
         (not ecc-auto-notify-bell))
-  (message "Bell notifications %s"
+  (ecc-debug-message "Bell notifications %s"
            (if ecc-auto-notify-bell "enabled" "disabled")))
 
 ;;;###autoload
@@ -349,7 +349,7 @@ Enables or disables the visual mode line flash component of notifications."
   (interactive)
   (setq ecc-auto-notify-flash 
         (not ecc-auto-notify-flash))
-  (message "Mode line flash notifications %s"
+  (ecc-debug-message "Mode line flash notifications %s"
            (if ecc-auto-notify-flash "enabled" "disabled")))
 
 ;;;###autoload
@@ -359,7 +359,7 @@ Enables or disables detailed logging of notification activities."
   (interactive)
   (setq ecc-auto-notify-debug
         (not ecc-auto-notify-debug))
-  (message "Notification debug messages %s"
+  (ecc-debug-message "Notification debug messages %s"
            (if ecc-auto-notify-debug "enabled" "disabled")))
 
 ;;;; Buffer Setup & Integration
@@ -433,7 +433,7 @@ If BUFFER is nil, use the current buffer."
     (setq-local ecc-buffer-auto-notify-last-state nil)
     
     (when (called-interactively-p 'any)
-      (message "Buffer-local notifications initialized for %s" (buffer-name)))))
+      (ecc-debug-message "Buffer-local notifications initialized for %s" (buffer-name)))))
 
 ;;;###autoload
 (defun ecc-auto-notify-buffer-local-toggle (&optional buffer)
@@ -446,7 +446,7 @@ If BUFFER is nil, use the current buffer."
     
     (setq-local ecc-buffer-auto-notify-enabled 
                 (not ecc-buffer-auto-notify-enabled))
-    (message "Buffer-local notifications %s for %s"
+    (ecc-debug-message "Buffer-local notifications %s for %s"
              (if ecc-buffer-auto-notify-enabled "enabled" "disabled")
              (buffer-name))))
 
@@ -520,7 +520,7 @@ Arguments:
       (ecc-notification-flash-mode-line))
     
     ;; Display buffer-specific message
-    (message "Claude prompt in %s: %s" (buffer-name) type-name)
+    (ecc-debug-message "Claude prompt in %s: %s" (buffer-name) type-name)
     
     ;; Log notification
     (ecc-auto-notify--log "Buffer-local notification sent for state %s in %s" 

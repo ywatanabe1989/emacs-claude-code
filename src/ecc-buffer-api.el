@@ -41,7 +41,7 @@ Returns the buffer that was set as current."
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)
-    (message "Buffer '%s' set as current Claude buffer" (buffer-name buf))
+    (ecc-debug-message "Buffer '%s' set as current Claude buffer" (buffer-name buf))
     buf))
 
 ;; Buffer Settings API
@@ -67,7 +67,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
   (interactive "sY/N response: ")
   (with-current-buffer (or buffer (current-buffer))
     (setq-local ecc-buffer-auto-response-y/n response)
-    (message "Y/N response set to \"%s\" for buffer %s" 
+    (ecc-debug-message "Y/N response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
 ;;;###autoload
@@ -76,7 +76,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
   (interactive "sY/Y/N response: ")
   (with-current-buffer (or buffer (current-buffer))
     (setq-local ecc-buffer-auto-response-y/y/n response)
-    (message "Y/Y/N response set to \"%s\" for buffer %s" 
+    (ecc-debug-message "Y/Y/N response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
 ;;;###autoload
@@ -85,7 +85,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
   (interactive "sWaiting response: ")
   (with-current-buffer (or buffer (current-buffer))
     (setq-local ecc-buffer-auto-response-waiting response)
-    (message "Waiting response set to \"%s\" for buffer %s" 
+    (ecc-debug-message "Waiting response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
 ;;;###autoload
@@ -94,7 +94,7 @@ SETTING should be a symbol like 'ecc-buffer-auto-response-y/n'."
   (interactive "sInitial waiting response: ")
   (with-current-buffer (or buffer (current-buffer))
     (setq-local ecc-buffer-auto-response-initial-waiting response)
-    (message "Initial waiting response set to \"%s\" for buffer %s" 
+    (ecc-debug-message "Initial waiting response set to \"%s\" for buffer %s" 
              response (buffer-name))))
 
 ;; State Detection API with Buffer-Local Tracking
@@ -114,7 +114,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                         (ecc-buffer-local-update-state detected-state))
                       detected-state)))))
     (when (called-interactively-p 'any)
-      (message "Detected state in %s: %s" 
+      (ecc-debug-message "Detected state in %s: %s" 
                (buffer-name buf)
                (if state
                    (ecc-state-get-name state)
@@ -159,7 +159,7 @@ Uses buffer-local configuration for response patterns."
   (let ((buf (or buffer (current-buffer))))
     (with-current-buffer buf
       (setq-local ecc-buffer-auto-response-enabled t)
-      (message "Auto-response enabled for buffer '%s'"
+      (ecc-debug-message "Auto-response enabled for buffer '%s'"
                (buffer-name)))))
 
 ;;;###autoload
@@ -169,7 +169,7 @@ Uses buffer-local configuration for response patterns."
   (let ((buf (or buffer (current-buffer))))
     (with-current-buffer buf
       (setq-local ecc-buffer-auto-response-enabled nil)
-      (message "Auto-response disabled for buffer '%s'"
+      (ecc-debug-message "Auto-response disabled for buffer '%s'"
                (buffer-name)))))
 
 ;;;###autoload
@@ -211,7 +211,7 @@ Uses buffer-local configuration and state tracking."
   ;; Notify user about the response
   (when ecc-buffer-auto-notify-completions
     (let ((msg (format "Auto-responded: %s (\"%s\")" type response)))
-      (message msg))))
+      (ecc-debug-message msg))))
 
 ;; Buffer-specific vterm response handler
 (defun ecc-buffer-send-vterm-response (response)
@@ -274,7 +274,7 @@ Uses buffer-local state tracking."
   (interactive)
   (with-current-buffer (or buffer (current-buffer))
     (setq-local ecc-buffer-debug-enabled (not ecc-buffer-debug-enabled))
-    (message "Claude debug messages %s for buffer '%s'" 
+    (ecc-debug-message "Claude debug messages %s for buffer '%s'" 
              (if ecc-buffer-debug-enabled "enabled" "disabled")
              (buffer-name))))
 

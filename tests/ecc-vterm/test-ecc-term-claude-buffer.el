@@ -14,9 +14,9 @@
 
 (require 'ert)
 
-;; Load the mock version of ecc-term-claude-buffer.el for testing
-(load-file (expand-file-name "mock-ecc-term-claude-buffer.el" 
-                             (file-name-directory load-file-name)))
+;; Load the actual module instead of a mock
+(require 'ecc-term-claude-buffer)
+(require 'ecc-api)
 
 ;;;; Test Utilities
 

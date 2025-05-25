@@ -18,7 +18,7 @@
 (require 'ecc-api)
 (require 'ecc-term-claude-interaction)
 (require 'ecc-api)
-(require 'ecc-term-claude-mode-v2)
+(require 'ecc-term-claude-mode)
 (require 'ecc-api)
 
 ;;; Code:

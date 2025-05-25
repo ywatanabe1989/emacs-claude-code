@@ -227,7 +227,7 @@ Side Effects:
                       (condition-case err
                           (funcall func)
                         (error
-                         (message "Error in hook function %s: %s"
+                         (ecc-debug-message "Error in hook function %s: %s"
                                  func (error-message-string err))))))))))
   
   ;; Connect to vterm hooks with optimized function

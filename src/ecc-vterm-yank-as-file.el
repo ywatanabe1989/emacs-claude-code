@@ -103,7 +103,7 @@ Returns the full path to the created file."
       (insert content))
     
     ;; Return the full path
-    (message "Wrote %s (%d bytes)" full-path (length content))
+    (ecc-debug-message "Wrote %s (%d bytes)" full-path (length content))
     full-path))
 
 ;;;###autoload

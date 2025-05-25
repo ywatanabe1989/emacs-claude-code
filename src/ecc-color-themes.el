@@ -102,7 +102,7 @@ Possible values are 'dark, 'light, and 'gray."
     ;; Apply new theme
     (ecc-colors-apply-theme ecc-colors-theme (current-buffer))
     
-    (message "Claude theme set to %s" ecc-colors-theme)))
+    (ecc-debug-message "Claude theme set to %s" ecc-colors-theme)))
 
 ;;;###autoload
 (defun ecc-colors-init-buffer ()

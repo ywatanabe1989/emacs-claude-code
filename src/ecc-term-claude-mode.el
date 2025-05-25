@@ -26,7 +26,8 @@
 
 ;;; Code:
 
-(require 'vterm)
+;; Optional dependency - vterm must be installed separately
+(require 'vterm nil t)
 
 ;; Prefer consolidated modules when available
 (if (featurep 'ecc-variables-consolidated)
@@ -216,7 +217,9 @@ Used to track face remapping state.")
 
 (defvar ecc-term-claude-mode-map
   (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map vterm-mode-map)
+    ;; Only set parent keymap if vterm is loaded
+    (when (boundp 'vterm-mode-map)
+      (set-keymap-parent map vterm-mode-map))
     
     ;; Claude-specific keybindings
     (define-key map (kbd "C-c C-y") 'ecc-term-claude-yes)
@@ -236,6 +239,20 @@ Used to track face remapping state.")
     
     map)
   "Keymap for `ecc-term-claude-mode'.")
+
+;;;; Vterm compatibility wrappers
+
+(defun ecc-term-claude--vterm-send-string (string)
+  "Send STRING to vterm if available."
+  (if (fboundp 'vterm-send-string)
+      (vterm-send-string string)
+    (ecc-debug-message "vterm not available, cannot send: %s" string)))
+
+(defun ecc-term-claude--vterm-send-return ()
+  "Send return to vterm if available."
+  (if (fboundp 'vterm-send-return)
+      (vterm-send-return)
+    (ecc-debug-message "vterm not available, cannot send return")))
 
 ;;;; Debugging Functions
 
@@ -257,13 +274,13 @@ otherwise they go to *Messages*."
                   (goto-char (point-min))
                   (forward-line 50000)
                   (delete-region (point-min) (point)))))
-          (message "%s" msg))))))
+          (ecc-debug-message "%s" msg))))))
 
 (defun ecc-term-claude-debug-toggle ()
   "Toggle debugging for Claude vterm mode."
   (interactive)
   (setq ecc-term-claude-debug (not ecc-term-claude-debug))
-  (message "Claude vterm debug mode %s"
+  (ecc-debug-message "Claude vterm debug mode %s"
            (if ecc-term-claude-debug "enabled" "disabled")))
 
 (defun ecc-term-claude-debug-show-buffer ()
@@ -278,17 +295,19 @@ otherwise they go to *Messages*."
 
 ;;;; Mode Definition
 
-(define-derived-mode ecc-term-claude-mode vterm-mode "Claude-VTerm"
-  "Major mode for optimized Claude interaction in vterm.
+;; Only define the derived mode if vterm is available
+(when (featurep 'vterm)
+  (define-derived-mode ecc-term-claude-mode vterm-mode "Claude-VTerm"
+    "Major mode for optimized Claude interaction in vterm.
 This mode is optimized for high-performance streaming output.
 You can also use `ecc-term-claude-enable` in an existing vterm buffer
 to apply Claude features without changing the major mode.
 
 Key bindings:
 \\{ecc-term-claude-mode-map}"
-  ;; Apply the mode setup
-  (ecc-term-claude--debug "Setting up ecc-term-claude-mode")
-  (ecc-term-claude--setup-buffer))
+    ;; Apply the mode setup
+    (ecc-term-claude--debug "Setting up ecc-term-claude-mode")
+    (ecc-term-claude--setup-buffer)))
 
 ;;;; Buffer Setup Functions
 
@@ -487,7 +506,7 @@ Key bindings:
   
   (setq ecc-term-claude-auto-mode (not ecc-term-claude-auto-mode))
   (ecc-term-claude--debug "Auto-mode toggled to: %s" (if ecc-term-claude-auto-mode "ON" "OFF"))
-  (message "Claude auto-mode %s"
+  (ecc-debug-message "Claude auto-mode %s"
            (if ecc-term-claude-auto-mode "enabled" "disabled"))
   
   ;; Force mode-line update to show auto-mode indicator
@@ -579,31 +598,31 @@ Key bindings:
 (defun ecc-term-claude--auto-send-y/n ()
   "Automatically respond with 'y' to Y/N prompts."
   (ecc-term-claude--debug "Auto-responding to Y/N with '%s'" ecc-auto-response-yes)
-  (vterm-send-string ecc-auto-response-yes)
-  (vterm-send-return)
-  (message "Auto-responded: %s" ecc-auto-response-yes))
+  (ecc-term-claude--vterm-send-string ecc-auto-response-yes)
+  (ecc-term-claude--vterm-send-return)
+  (ecc-debug-message "Auto-responded: %s" ecc-auto-response-yes))
 
 (defun ecc-term-claude--auto-send-y/y/n ()
   "Automatically respond with 'y' to Y/Y/N prompts."
   (ecc-term-claude--debug "Auto-responding to Y/Y/N with '%s'" ecc-auto-response-yes-plus)
-  (vterm-send-string ecc-auto-response-yes-plus)
-  (vterm-send-return)
-  (message "Auto-responded: %s" ecc-auto-response-yes-plus))
+  (ecc-term-claude--vterm-send-string ecc-auto-response-yes-plus)
+  (ecc-term-claude--vterm-send-return)
+  (ecc-debug-message "Auto-responded: %s" ecc-auto-response-yes-plus))
 
 (defun ecc-term-claude--auto-send-continue ()
   "Automatically respond to continue prompts."
   (ecc-term-claude--debug "Auto-responding to continue with '%s'" ecc-auto-response-continue)
-  (vterm-send-string ecc-auto-response-continue)
-  (vterm-send-return)
-  (message "Auto-responded: %s" ecc-auto-response-continue))
+  (ecc-term-claude--vterm-send-string ecc-auto-response-continue)
+  (ecc-term-claude--vterm-send-return)
+  (ecc-debug-message "Auto-responded: %s" ecc-auto-response-continue))
 
 (defun ecc-term-claude--auto-send-initial-waiting ()
   "Automatically respond to initial waiting prompts."
   (ecc-term-claude--debug "Auto-responding to initial waiting with '%s'"
                           ecc-auto-response-initial-waiting)
-  (vterm-send-string ecc-auto-response-initial-waiting)
-  (vterm-send-return)
-  (message "Auto-responded: %s" ecc-auto-response-initial-waiting))
+  (ecc-term-claude--vterm-send-string ecc-auto-response-initial-waiting)
+  (ecc-term-claude--vterm-send-return)
+  (ecc-debug-message "Auto-responded: %s" ecc-auto-response-initial-waiting))
 
 ;;;; Buffer Management
 
@@ -669,7 +688,7 @@ Only has effect if `ecc-vterm-always-follow-bottom` is non-nil."
         (not ecc-vterm-always-follow-bottom))
   (ecc-term-claude--debug "Follow bottom %s" 
                           (if ecc-vterm-always-follow-bottom "enabled" "disabled"))
-  (message "Always follow bottom %s"
+  (ecc-debug-message "Always follow bottom %s"
            (if ecc-vterm-always-follow-bottom "enabled" "disabled"))
   (when ecc-vterm-always-follow-bottom
     (ecc-term-claude-scroll-to-bottom)))
@@ -704,7 +723,7 @@ without changing the major mode."
   (ecc-term-claude--setup-appearance)
   (add-hook 'kill-buffer-hook 'ecc-term-claude--cleanup-buffer nil t)
   
-  (message "Claude features applied to current vterm buffer"))
+  (ecc-debug-message "Claude features applied to current vterm buffer"))
 
 (defun ecc-term-claude ()
   "Create a new Claude vterm buffer with optimized settings.

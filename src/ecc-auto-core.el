@@ -35,7 +35,7 @@
 ;;;  (lambda ()
 ;;;    (ecc-auto-core-process-all-buffers
 ;;;     (lambda (buffer state)
-;;;       (message "Detected state %s in %s"
+;;;       (ecc-debug-message "Detected state %s in %s"
 ;;;                state (buffer-name buffer))))))
 ;;; ```
 
@@ -137,7 +137,7 @@ Example:
   (ecc-auto-core-timer-start
    (lambda ()
      (ecc-auto-core-process-all-buffers
-      (lambda (buffer state) (message \"State: %s\" state)))))"
+      (lambda (buffer state) (ecc-debug-message \"State: %s\" state)))))"
   (ecc-auto-core-timer-stop)
   (setq ecc-auto-core--timer
         (run-with-timer ecc-auto-core-initial-wait-time
@@ -248,7 +248,7 @@ Returns:
         (new-count 0))
     (setq new-count (length new-buffers))
     (when (and ecc-auto-core-debug (< new-count old-count))
-      (message "[Auto Core] Cleaned up %d dead buffers from registry" 
+      (ecc-debug-message "[Auto Core] Cleaned up %d dead buffers from registry" 
                (- old-count new-count)))
     new-buffers))
 
@@ -286,7 +286,7 @@ Arguments:
         (ecc-debug-message "Detected state %s in %s"
                          (ecc-state-get-name state)
                          (buffer-name buffer))
-      (message "[Auto Core] Detected state %s in %s"
+      (ecc-debug-message "[Auto Core] Detected state %s in %s"
                (ecc-state-get-name state)
                (buffer-name buffer)))))
 
@@ -298,7 +298,7 @@ Arguments:
     (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
         (ecc-debug-message "Registered buffer %s for auto-response"
                          (buffer-name buffer))
-      (message "[Auto Core] Registered buffer %s for auto-response"
+      (ecc-debug-message "[Auto Core] Registered buffer %s for auto-response"
                (buffer-name buffer)))))
 
 (defun ecc-auto-core--log-buffer-unregistration (buffer)
@@ -309,7 +309,7 @@ Arguments:
     (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
         (ecc-debug-message "Unregistered buffer %s from auto-response"
                          (buffer-name buffer))
-      (message "[Auto Core] Unregistered buffer %s from auto-response"
+      (ecc-debug-message "[Auto Core] Unregistered buffer %s from auto-response"
                (buffer-name buffer)))))
 
 ;;;###autoload
@@ -349,7 +349,7 @@ Arguments:
     (if (and (featurep 'ecc-debug-utils) (fboundp 'ecc-debug-message))
         (ecc-debug-message "Detected initial state in %s"
                          (buffer-name buffer))
-      (message "[Auto Core] Detected initial state in %s"
+      (ecc-debug-message "[Auto Core] Detected initial state in %s"
                (buffer-name buffer)))))
 
 (defun ecc-auto-core--schedule-next-initial-check (buffer callback)
@@ -383,7 +383,7 @@ Call this function before starting the auto-response system."
   (ecc-auto-core-reset-state)
   (ecc-auto-core-cleanup-buffers)
   (when ecc-auto-core-debug
-    (message "[Auto Core] Initialized")))
+    (ecc-debug-message "[Auto Core] Initialized")))
 
 ;;;###autoload
 (defun ecc-auto-core-shutdown ()
@@ -394,7 +394,7 @@ Call this function when you're done with the auto-response system."
   (ecc-auto-core-reset-state)
   (setq ecc-auto-core--registered-buffers nil)
   (when ecc-auto-core-debug
-    (message "[Auto Core] Shut down")))
+    (ecc-debug-message "[Auto Core] Shut down")))
 
 ;;;; Debugging utilities
 
@@ -427,17 +427,17 @@ When debug is enabled, messages about auto-response operations
 will be displayed in the echo area. This is useful for troubleshooting."
   (interactive)
   (setq ecc-auto-core-debug (not ecc-auto-core-debug))
-  (message "Auto-core debug %s"
+  (ecc-debug-message "Auto-core debug %s"
            (if ecc-auto-core-debug "enabled" "disabled"))
   (when ecc-auto-core-debug
-    (message "%s" (ecc-auto-core-debug-status))))
+    (ecc-debug-message "%s" (ecc-auto-core-debug-status))))
 
 ;;;###autoload
 (defun ecc-auto-core-print-status ()
   "Print status information about auto-core to messages.
 Displays current timer state, last detected prompt, and buffer information."
   (interactive)
-  (message "%s" (ecc-auto-core-debug-status)))
+  (ecc-debug-message "%s" (ecc-auto-core-debug-status)))
 
 ;;;; Integration with other modules
 

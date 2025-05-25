@@ -18,12 +18,12 @@
    ;; Fall back to a simple vterm setup if available
    ((fboundp 'vterm)
     (let ((buf (vterm)))
-      (message
+      (ecc-debug-message
        "Starting basic vterm (Claude optimizations not available)")
       buf))
    ;; No vterm available
    (t
-    (message "Claude vterm mode not available"))))
+    (ecc-debug-message "Claude vterm mode not available"))))
 
 (defun ecc-optimize-vterm ()
   "Optimize the current vterm buffer for Claude."
@@ -33,8 +33,8 @@
         (unless (derived-mode-p 'vterm-mode)
           (user-error "Not in a vterm buffer"))
         (ecc-vterm-mode 1)
-        (message "Vterm buffer optimized for Claude"))
-    (message "ecc-vterm-mode not available")))
+        (ecc-debug-message "Vterm buffer optimized for Claude"))
+    (ecc-debug-message "ecc-vterm-mode not available")))
 
 (defun ecc-auto-respond ()
   "Enable auto-response for Claude in the current buffer."
@@ -43,8 +43,8 @@
       (progn
         (ecc-register-buffer)
         (ecc-start-auto-response)
-        (message "Auto-response enabled for this buffer"))
-    (message "Auto-response functionality not available")))
+        (ecc-debug-message "Auto-response enabled for this buffer"))
+    (ecc-debug-message "Auto-response functionality not available")))
 
 (defun ecc-quick-auto-response ()
   "Quickly enable auto-response with the '/user:auto' continue response.
@@ -55,79 +55,79 @@ default settings but using '/user:auto' for the continue prompt."
       (progn
         (ecc-register-buffer)
         (ecc-start-auto-response "1" "2" "/user:auto")
-        (message
+        (ecc-debug-message
          "Quick auto-response enabled with /user:auto continue"))
-    (message "Auto-response functionality not available")))
+    (ecc-debug-message "Auto-response functionality not available")))
 
 (defun ecc-visual-aid-toggle ()
   "Toggle visual aids for Claude interaction."
   (interactive)
   (if (fboundp 'ecc-term-visual-aid-toggle)
       (ecc-term-visual-aid-toggle)
-    (message "Visual aid functionality not available")))
+    (ecc-debug-message "Visual aid functionality not available")))
 
 (defun ecc-notify-toggle ()
   "Toggle notifications for Claude prompts."
   (interactive)
   (if (fboundp 'ecc-notification-toggle)
       (ecc-notification-toggle)
-    (message "Notification functionality not available")))
+    (ecc-debug-message "Notification functionality not available")))
 
 (defun ecc-bell-toggle ()
   "Toggle bell notifications for Claude prompts."
   (interactive)
   (if (fboundp 'ecc-notification-toggle-bell)
       (ecc-notification-toggle-bell)
-    (message "Notification bell functionality not available")))
+    (ecc-debug-message "Notification bell functionality not available")))
 
 (defun ecc-interaction-stats ()
   "Display Claude interaction statistics."
   (interactive)
   (if (fboundp 'ecc-display-interaction-stats)
       (ecc-display-interaction-stats)
-    (message "Interaction tracking functionality not available")))
+    (ecc-debug-message "Interaction tracking functionality not available")))
 
 (defun ecc-toggle-periodic-cmds ()
   "Toggle sending periodic commands to Claude."
   (interactive)
   (if (fboundp 'ecc-toggle-periodic-commands)
       (ecc-toggle-periodic-commands)
-    (message "Periodic commands functionality not available")))
+    (ecc-debug-message "Periodic commands functionality not available")))
 
 (defun ecc-add-periodic-cmd (command interval)
   "Add a new periodic COMMAND with INTERVAL."
   (interactive "sCommand to send: \nnInterval (interactions): ")
   (if (fboundp 'ecc-add-periodic-command)
       (ecc-add-periodic-command command interval)
-    (message "Periodic commands functionality not available")))
+    (ecc-debug-message "Periodic commands functionality not available")))
 
 (defun ecc-toggle-colors ()
   "Toggle between color themes for Claude vterm buffers."
   (interactive)
   (if (fboundp 'ecc-colors-toggle-theme)
       (ecc-colors-toggle-theme)
-    (message "Color theme functionality not available")))
+    (ecc-debug-message "Color theme functionality not available")))
 
 (defun ecc-toggle-grayscale ()
   "Toggle grayscale mode for Claude vterm buffers."
   (interactive)
   (if (fboundp 'ecc-vterm-grayscale-toggle)
       (ecc-vterm-grayscale-toggle)
-    (message "Grayscale mode functionality not available")))
+    (ecc-debug-message "Grayscale mode functionality not available")))
 
 (defun ecc-toggle-eye-friendly ()
   "Toggle eye-friendly mode for buffer updates and scrolling."
   (interactive)
   (if (fboundp 'ecc-eye-friendly-toggle)
       (ecc-eye-friendly-toggle)
-    (message "Eye-friendly functionality not available")))
+    (ecc-debug-message "Eye-friendly functionality not available")))
 
 (defun ecc-adjust-scroll-speed (speed)
   "Adjust maximum scroll speed to SPEED lines per second."
   (interactive "nMaximum scroll speed (lines/sec): ")
   (if (fboundp 'ecc-eye-friendly-adjust-speed)
       (ecc-eye-friendly-adjust-speed speed)
-    (message "Eye-friendly functionality not available")))
+    (ecc-debug-message "Eye-friendly functionality not available")))
 
 ;; Disable auto-follow by default to prevent scrolling issues
 (setq ecc-vterm-always-follow-bottom nil)
@@ -143,19 +143,19 @@ default settings but using '/user:auto' for the continue prompt."
         (progn
           (ecc-auto-response-buffer-stop)
           (let ((msg (format "Buffer-local auto-response STOPPED in %s" (buffer-name))))
-            (message msg)
+            (ecc-debug-message msg)
             (when (fboundp 'display-message-or-buffer)
               (display-message-or-buffer msg "*Claude Auto Control*"))))
-      (message "Buffer-local auto-response functionality not available")))
+      (ecc-debug-message "Buffer-local auto-response functionality not available")))
    ;; Global mode: stop globally
    ((fboundp 'ecc-auto-response-stop)
     (ecc-auto-response-stop)
     (let ((msg "Global auto-response STOPPED"))
-      (message msg)
+      (ecc-debug-message msg)
       (when (fboundp 'display-message-or-buffer)
         (display-message-or-buffer msg "*Claude Auto Control*"))))
    (t
-    (message "Auto-response functionality not available"))))
+    (ecc-debug-message "Auto-response functionality not available"))))
 
 (defun ecc-help ()
   "Display help about Claude mode commands and keybindings."
@@ -352,6 +352,6 @@ When enabled, provides keybindings for Claude interaction commands."
 
 (when
     (not load-file-name)
-  (message "ecc-convenience-commands.el loaded."
+  (ecc-debug-message "ecc-convenience-commands.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

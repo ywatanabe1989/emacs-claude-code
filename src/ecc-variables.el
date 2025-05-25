@@ -265,6 +265,6 @@ These are used as fallbacks if the primary pattern doesn't match."
 
 (when
     (not load-file-name)
-  (message "ecc-variables.el loaded."
+  (ecc-debug-message "ecc-variables.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

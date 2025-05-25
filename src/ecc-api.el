@@ -28,7 +28,7 @@ Returns the buffer that was registered."
     ;; Register the buffer
     (unless (assoc buf ecc-buffer-registered-buffers-alist)
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
-      (message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
+      (ecc-debug-message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)
@@ -49,7 +49,7 @@ Returns the buffer that was set as current."
     
     ;; Set as current Claude buffer
     (setq ecc-buffer-current-buffer buf)
-    (message "Buffer '%s' set as current Claude buffer" (buffer-name buf))
+    (ecc-debug-message "Buffer '%s' set as current Claude buffer" (buffer-name buf))
     buf))
 
 ;;;###autoload
@@ -58,7 +58,7 @@ Returns the buffer that was set as current."
   (interactive)
   (let ((buffers (mapcar #'car ecc-buffer-registered-buffers-alist)))
     (when (called-interactively-p 'any)
-      (message "Registered Claude buffers: %s"
+      (ecc-debug-message "Registered Claude buffers: %s"
                (mapconcat #'buffer-name buffers ", ")))
     buffers))
 
@@ -68,9 +68,9 @@ Returns the buffer that was set as current."
   (interactive)
   (when (called-interactively-p 'any)
     (if ecc-buffer-current-buffer
-        (message "Current Claude buffer: %s"
+        (ecc-debug-message "Current Claude buffer: %s"
                  (buffer-name ecc-buffer-current-buffer))
-      (message "No current Claude buffer set")))
+      (ecc-debug-message "No current Claude buffer set")))
   ecc-buffer-current-buffer)
 
 ;; State detection API
@@ -85,7 +85,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
                   (with-current-buffer buf
                     (ecc-detect-state)))))
     (when (called-interactively-p 'any)
-      (message "Detected state: %s" (ecc-state-get-name state)))
+      (ecc-debug-message "Detected state: %s" (ecc-state-get-name state)))
     state))
 
 ;;;###autoload
@@ -94,7 +94,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive)
   (let ((state (ecc-state-detect buffer)))
     (when (called-interactively-p 'any)
-      (message "Waiting prompt? %s" (if (eq state :waiting) "Yes" "No")))
+      (ecc-debug-message "Waiting prompt? %s" (if (eq state :waiting) "Yes" "No")))
     (eq state :waiting)))
 
 ;;;###autoload
@@ -103,7 +103,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive)
   (let ((state (ecc-state-detect buffer)))
     (when (called-interactively-p 'any)
-      (message "Y/N prompt? %s" (if (eq state :y/n) "Yes" "No")))
+      (ecc-debug-message "Y/N prompt? %s" (if (eq state :y/n) "Yes" "No")))
     (eq state :y/n)))
 
 ;;;###autoload
@@ -112,7 +112,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive)
   (let ((state (ecc-state-detect buffer)))
     (when (called-interactively-p 'any)
-      (message "Y/Y/N prompt? %s" (if (eq state :y/y/n) "Yes" "No")))
+      (ecc-debug-message "Y/Y/N prompt? %s" (if (eq state :y/y/n) "Yes" "No")))
     (eq state :y/y/n)))
 
 ;;;###autoload
@@ -121,7 +121,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (interactive)
   (let ((state (ecc-state-detect buffer)))
     (when (called-interactively-p 'any)
-      (message "Initial waiting prompt? %s" 
+      (ecc-debug-message "Initial waiting prompt? %s" 
                (if (eq state :initial-waiting) "Yes" "No")))
     (eq state :initial-waiting)))
 
@@ -134,7 +134,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   (when buffer
     (ecc-buffer-set-current buffer))
   (ecc-auto-response-start)
-  (message "Auto-response enabled for buffer '%s'"
+  (ecc-debug-message "Auto-response enabled for buffer '%s'"
            (buffer-name ecc-buffer-current-buffer)))
 
 ;;;###autoload
@@ -142,7 +142,7 @@ Returns one of :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
   "Disable auto-response for Claude prompts."
   (interactive)
   (ecc-auto-response-stop)
-  (message "Auto-response disabled"))
+  (ecc-debug-message "Auto-response disabled"))
 
 ;;;###autoload
 
@@ -175,7 +175,7 @@ response for that state."
   "Toggle debug message output for Claude."
   (interactive)
   (setq ecc-debug-enabled (not ecc-debug-enabled))
-  (message "Claude debug messages %s" 
+  (ecc-debug-message "Claude debug messages %s" 
            (if ecc-debug-enabled "enabled" "disabled")))
 
 (provide 'ecc-api)
