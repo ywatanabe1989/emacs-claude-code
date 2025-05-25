@@ -367,43 +367,82 @@ Returns `auto-test-mock-state'."
       ;; Check callback was not called
       (should-not auto-test-callback-called))))
 
-(ert-deftest test-auto-core-initial-check ()
-  "Test initial check functionality."
+(ert-deftest test-auto-core-should-call-callback-when-initial-waiting-detected ()
+  "Test that callback is called when initial waiting state is detected."
   (with-temp-buffer-fixture "Test content with initial prompt"
-    ;; Set up test variables
-    (setq auto-test-callback-called nil
-          auto-test-callback-buffer nil
-          auto-test-callback-state nil
-          ecc-auto-core--initial-check-count 0)
-    
-    ;; Replace state detection with mock
-    (cl-letf (((symbol-function 'ecc-detect-state) #'auto-test-mock-detect-state))
-      ;; Set mock state to initial waiting
-      (setq auto-test-mock-state :initial-waiting)
+    ;; Arrange
+    (setq auto-test-callback-called nil)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
       
-      ;; Perform initial check
+      ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
       
-      ;; Check callback was called with correct parameters
-      (should auto-test-callback-called)
-      (should (eq auto-test-callback-buffer temp-buffer))
-      (should (eq auto-test-callback-state :initial-waiting))
+      ;; Assert
+      (should auto-test-callback-called))))
+
+(ert-deftest test-auto-core-should-pass-buffer-to-callback ()
+  "Test that correct buffer is passed to callback."
+  (with-temp-buffer-fixture "Test content with initial prompt"
+    ;; Arrange
+    (setq auto-test-callback-buffer nil)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
       
-      ;; Check counter was incremented
-      (should (= ecc-auto-core--initial-check-count 1))
-      
-      ;; Reset and test with different state
-      (setq auto-test-callback-called nil
-            auto-test-mock-state :y/n
-            ecc-auto-core--initial-check-count 0)
-      
-      ;; Perform initial check again
+      ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
       
-      ;; Check callback was not called (only works with :initial-waiting)
-      (should-not auto-test-callback-called)
+      ;; Assert
+      (should (eq auto-test-callback-buffer temp-buffer)))))
+
+(ert-deftest test-auto-core-should-pass-state-to-callback ()
+  "Test that detected state is passed to callback."
+  (with-temp-buffer-fixture "Test content with initial prompt"
+    ;; Arrange
+    (setq auto-test-callback-state nil)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
       
-      ;; Check counter was still incremented
+      ;; Act
+      (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
+      
+      ;; Assert
+      (should (eq auto-test-callback-state :initial-waiting)))))
+
+(ert-deftest test-auto-core-should-increment-check-counter ()
+  "Test that initial check counter is incremented."
+  (with-temp-buffer-fixture "Test content with initial prompt"
+    ;; Arrange
+    (setq ecc-auto-core--initial-check-count 0)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+      
+      ;; Act
+      (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
+      
+      ;; Assert
+      (should (= ecc-auto-core--initial-check-count 1)))))
+
+(ert-deftest test-auto-core-should-not-call-callback-for-non-initial-waiting ()
+  "Test that callback is not called for non-initial-waiting states."
+  (with-temp-buffer-fixture "Test content with y/n prompt"
+    ;; Arrange
+    (setq auto-test-callback-called nil)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n)))
+      
+      ;; Act
+      (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
+      
+      ;; Assert
+      (should-not auto-test-callback-called))))
+
+(ert-deftest test-auto-core-should-increment-counter-even-without-callback ()
+  "Test that counter increments even when callback is not called."
+  (with-temp-buffer-fixture "Test content with y/n prompt"
+    ;; Arrange
+    (setq ecc-auto-core--initial-check-count 0)
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n)))
+      
+      ;; Act
+      (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
+      
+      ;; Assert
       (should (= ecc-auto-core--initial-check-count 1)))))
 
 (ert-deftest test-auto-core-process-all-buffers ()
@@ -440,49 +479,138 @@ Returns `auto-test-mock-state'."
 
 ;;;; Lifecycle tests
 
-(ert-deftest test-auto-core-initialize ()
-  "Test initialization of auto-core system."
+(ert-deftest test-auto-core-should-stop-existing-timer-on-initialize ()
+  "Test that existing timer is stopped during initialization."
   (unwind-protect
       (progn
-        ;; Set up some state to be reset
+        ;; Arrange
         (ecc-auto-core-timer-start #'ignore)
-        (setq ecc-auto-core--last-state :y/n
-              ecc-auto-core--last-response-time (float-time)
-              ecc-auto-core--initial-check-count 3)
         
-        ;; Initialize the system
+        ;; Act
         (ecc-auto-core-initialize)
         
-        ;; Check everything was reset
-        (should-not (ecc-auto-core-timer-active-p))
-        (should-not ecc-auto-core--last-state)
-        (should (= ecc-auto-core--last-response-time 0))
-        (should (= ecc-auto-core--initial-check-count 0)))
-    
+        ;; Assert
+        (should-not (ecc-auto-core-timer-active-p)))
     ;; Clean up
     (ecc-auto-core-timer-stop)))
 
-(ert-deftest test-auto-core-shutdown ()
-  "Test shutdown of auto-core system."
+(ert-deftest test-auto-core-should-clear-last-state-on-initialize ()
+  "Test that last state is cleared during initialization."
   (unwind-protect
       (progn
-        ;; Set up some state
-        (ecc-auto-core-timer-start #'ignore)
-        (setq ecc-auto-core--last-state :y/n
-              ecc-auto-core--last-response-time (float-time)
-              ecc-auto-core--initial-check-count 3
-              ecc-auto-core--registered-buffers '(dummy-buffer))
+        ;; Arrange
+        (setq ecc-auto-core--last-state :y/n)
         
-        ;; Shut down the system
+        ;; Act
+        (ecc-auto-core-initialize)
+        
+        ;; Assert
+        (should-not ecc-auto-core--last-state))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-reset-last-response-time-on-initialize ()
+  "Test that last response time is reset during initialization."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--last-response-time (float-time))
+        
+        ;; Act
+        (ecc-auto-core-initialize)
+        
+        ;; Assert
+        (should (= ecc-auto-core--last-response-time 0)))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-reset-initial-check-count-on-initialize ()
+  "Test that initial check count is reset during initialization."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--initial-check-count 3)
+        
+        ;; Act
+        (ecc-auto-core-initialize)
+        
+        ;; Assert
+        (should (= ecc-auto-core--initial-check-count 0)))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-stop-timer-on-shutdown ()
+  "Test that timer is stopped during shutdown."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (ecc-auto-core-timer-start #'ignore)
+        
+        ;; Act
         (ecc-auto-core-shutdown)
         
-        ;; Check everything was reset
-        (should-not (ecc-auto-core-timer-active-p))
-        (should-not ecc-auto-core--last-state)
-        (should (= ecc-auto-core--last-response-time 0))
-        (should (= ecc-auto-core--initial-check-count 0))
+        ;; Assert
+        (should-not (ecc-auto-core-timer-active-p)))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-clear-last-state-on-shutdown ()
+  "Test that last state is cleared during shutdown."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--last-state :y/n)
+        
+        ;; Act
+        (ecc-auto-core-shutdown)
+        
+        ;; Assert
+        (should-not ecc-auto-core--last-state))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-reset-last-response-time-on-shutdown ()
+  "Test that last response time is reset to 0 during shutdown."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--last-response-time (float-time))
+        
+        ;; Act
+        (ecc-auto-core-shutdown)
+        
+        ;; Assert
+        (should (= ecc-auto-core--last-response-time 0)))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-reset-initial-check-count-on-shutdown ()
+  "Test that initial check count is reset to 0 during shutdown."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--initial-check-count 3)
+        
+        ;; Act
+        (ecc-auto-core-shutdown)
+        
+        ;; Assert
+        (should (= ecc-auto-core--initial-check-count 0)))
+    ;; Clean up
+    (ecc-auto-core-timer-stop)))
+
+(ert-deftest test-auto-core-should-clear-registered-buffers-on-shutdown ()
+  "Test that registered buffers list is cleared during shutdown."
+  (unwind-protect
+      (progn
+        ;; Arrange
+        (setq ecc-auto-core--registered-buffers '(dummy-buffer))
+        
+        ;; Act
+        (ecc-auto-core-shutdown)
+        
+        ;; Assert
         (should-not ecc-auto-core--registered-buffers))
-    
     ;; Clean up
     (ecc-auto-core-timer-stop)))
 

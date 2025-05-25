@@ -28,30 +28,71 @@
   (should (string= (ecc-notification--state-description :unknown-state) "unknown-state")))
 
 ;; Test throttling logic
-(ert-deftest test-notification-throttling ()
-  "Test notification throttling logic."
-  ;; Ensure notifications are enabled for testing
+(ert-deftest test-notification-should-notify-for-new-state ()
+  "Test that notification is allowed for a new state."
+  ;; Arrange
   (let ((ecc-notification-enabled t)
         (ecc-notification-states '(:y/n :waiting))
         (ecc-notification-throttle-interval 1.0)
         (ecc-notification--last-time 0)
         (ecc-notification--last-state nil))
     
-    ;; Should notify for new state
-    (should (ecc-notification--should-notify-p :y/n))
+    ;; Act & Assert
+    (should (ecc-notification--should-notify-p :y/n))))
+
+(ert-deftest test-notification-should-not-notify-for-same-state-too-soon ()
+  "Test that notification is throttled for repeated same state."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
     
-    ;; Update tracking variables
+    ;; First notification should work
     (ecc-notification--update-state :y/n)
     
-    ;; Should not notify for same state too soon
-    (should-not (ecc-notification--should-notify-p :y/n))
+    ;; Act & Assert - immediate repeat should be throttled
+    (should-not (ecc-notification--should-notify-p :y/n))))
+
+(ert-deftest test-notification-should-notify-for-different-state ()
+  "Test that notification is allowed when state changes."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
+        (ecc-notification--last-time (float-time))
+        (ecc-notification--last-state :y/n))
     
-    ;; Should notify for different state
-    (should (ecc-notification--should-notify-p :waiting))
+    ;; Act & Assert - different state should notify
+    (should (ecc-notification--should-notify-p :waiting))))
+
+(ert-deftest test-notification-should-notify-after-throttle-interval ()
+  "Test that notification is allowed after throttle interval passes."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
+        (ecc-notification--last-time (- (float-time) 2.0)) ; 2 seconds ago
+        (ecc-notification--last-state :y/n))
     
-    ;; Test throttling after time passes
-    (setq ecc-notification--last-time (- (float-time) 2.0))
+    ;; Act & Assert - enough time has passed
     (should (ecc-notification--should-notify-p :y/n))))
+
+(ert-deftest test-notification-should-update-tracking-state ()
+  "Test that notification tracking state is updated."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    ;; Act
+    (ecc-notification--update-state :y/n)
+    
+    ;; Assert
+    (should (eq ecc-notification--last-state :y/n))
+    (should (> ecc-notification--last-time 0))))
 
 ;; Test notification dispatch
 (ert-deftest test-notification-dispatch ()
