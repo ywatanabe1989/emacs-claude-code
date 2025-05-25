@@ -95,35 +95,92 @@
     (should (> ecc-notification--last-time 0))))
 
 ;; Test notification dispatch
-(ert-deftest test-notification-dispatch ()
-  "Test notification dispatch function."
-  ;; Mock notification methods for testing
-  (let ((bell-called nil)
-        (flash-called nil)
-        (message-called nil)
-        (ecc-notification-enabled t)
+(ert-deftest test-notification-dispatch-should-return-true-when-notified ()
+  "Test that notification dispatch returns true when notification occurs."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
         (ecc-notification-states '(:y/n))
-        (ecc-notification-methods '(bell flash message))
+        (ecc-notification-methods '(message))
         (ecc-notification--last-time 0)
         (ecc-notification--last-state nil))
     
-    ;; Override notification methods with test versions
+    (cl-letf (((symbol-function 'ecc-notification-display-message) #'ignore))
+      
+      ;; Act & Assert
+      (should (ecc-notification-dispatch :y/n)))))
+
+(ert-deftest test-notification-should-call-bell-method-when-enabled ()
+  "Test that bell method is called when included in methods list."
+  ;; Arrange
+  (let ((bell-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(bell))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
     (cl-letf (((symbol-function 'ecc-notification-ring-bell)
-               (lambda () (setq bell-called t)))
-              ((symbol-function 'ecc-notification-flash-mode-line)
-               (lambda () (setq flash-called t)))
-              ((symbol-function 'ecc-notification-display-message)
+               (lambda () (setq bell-called t))))
+      
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
+      (should bell-called))))
+
+(ert-deftest test-notification-should-call-flash-method-when-enabled ()
+  "Test that flash method is called when included in methods list."
+  ;; Arrange
+  (let ((flash-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(flash))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-flash-mode-line)
+               (lambda () (setq flash-called t))))
+      
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
+      (should flash-called))))
+
+(ert-deftest test-notification-should-call-message-method-when-enabled ()
+  "Test that message method is called when included in methods list."
+  ;; Arrange
+  (let ((message-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(message))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-display-message)
                (lambda (state &optional buffer) (setq message-called t))))
       
-      ;; Test notification dispatch
-      (should (ecc-notification-dispatch :y/n))
+      ;; Act
+      (ecc-notification-dispatch :y/n)
       
-      ;; All methods should be called
-      (should bell-called)
-      (should flash-called)
-      (should message-called)
+      ;; Assert
+      (should message-called))))
+
+(ert-deftest test-notification-should-update-last-state-after-dispatch ()
+  "Test that last state is updated after successful dispatch."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(message))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-display-message) #'ignore))
       
-      ;; State should be updated
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
       (should (eq ecc-notification--last-state :y/n)))))
 
 ;; Test notification method toggling

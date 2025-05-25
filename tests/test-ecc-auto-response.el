@@ -493,39 +493,50 @@ Does nothing in testing."
 
 ;;;; Accumulation Detection Tests
 
-(ert-deftest test-auto-response-accumulation-detection ()
-  "Test detection of accumulated auto-responses.
-Verifies that the system can detect when multiple responses
-are being sent in rapid succession beyond normal throttling."
+(ert-deftest test-auto-response-should-count-rapid-responses ()
+  "Test that rapid responses are counted for accumulation detection."
   (with-temp-buffer-fixture "Test content"
-    ;; Mock current time for controlled testing
+    ;; Arrange
     (let ((mock-time 1000.0)
           (responses-sent 0))
       (cl-letf (((symbol-function 'float-time) (lambda () mock-time))
                 ((symbol-function 'ecc-auto-response--send-to-buffer)
                  (lambda (buffer text state-name)
                    (setq responses-sent (1+ responses-sent))))
-                ((symbol-function 'ecc-detect-state) 
-                 (lambda () :waiting))
+                ((symbol-function 'ecc-detect-state) (lambda () :waiting))
                 ((symbol-function 'message) #'ignore))
         
-        ;; Enable buffer-local auto-response
         (ecc-auto-response-buffer-start temp-buffer)
         (with-current-buffer temp-buffer
           (setq-local ecc-buffer-auto-response-enabled t))
         
-        ;; Send multiple responses quickly (should trigger accumulation detection)
-        (dotimes (i 10)
+        ;; Act - Send multiple responses quickly
+        (dotimes (i 5)
           (setq mock-time (+ mock-time 0.1)) ; 100ms intervals
           (ecc-auto-response--process-buffer-local temp-buffer))
         
-        ;; Should detect accumulation and stop sending after threshold
-        (should (fboundp 'ecc-auto-response--accumulation-detected-p))
-        (should (fboundp 'ecc-auto-response--reset-accumulation-counter))
-        
-        ;; Test accumulation counter exists and works
-        (should (boundp 'ecc-auto-response--accumulation-count))
-        (should (boundp 'ecc-auto-response--accumulation-start-time))))))
+        ;; Assert
+        (should (= responses-sent 5))))))
+
+(ert-deftest test-auto-response-accumulation-detection-function-exists ()
+  "Test that accumulation detection function is defined."
+  ;; Assert
+  (should (fboundp 'ecc-auto-response--accumulation-detected-p)))
+
+(ert-deftest test-auto-response-accumulation-reset-function-exists ()
+  "Test that accumulation reset function is defined."
+  ;; Assert
+  (should (fboundp 'ecc-auto-response--reset-accumulation-counter)))
+
+(ert-deftest test-auto-response-accumulation-count-variable-exists ()
+  "Test that accumulation count variable is defined."
+  ;; Assert
+  (should (boundp 'ecc-auto-response--accumulation-count)))
+
+(ert-deftest test-auto-response-accumulation-start-time-variable-exists ()
+  "Test that accumulation start time variable is defined."
+  ;; Assert
+  (should (boundp 'ecc-auto-response--accumulation-start-time)))
 
 (ert-deftest test-auto-response-accumulation-threshold ()
   "Test accumulation threshold configuration and detection.

@@ -24,17 +24,58 @@ If CONTENT is nil, creates an empty buffer."
 
 ;; From test-buffer-state-basic.el
 
-(ert-deftest test-buffer-state-init-creates-buffer-local-variables ()
-  "Buffer state initialization creates buffer-local variables."
+(ert-deftest test-buffer-state-should-create-data-as-buffer-local ()
+  "Test that buffer state data variable is created as buffer-local."
   (with-temp-buffer-fixture nil
+    ;; Act
     (ecc-buffer-state-init (current-buffer))
-    ;; Check variables are buffer-local
-    (should (local-variable-p 'ecc-buffer-state--data))
-    (should (local-variable-p 'ecc-buffer-state--prompt-state))
-    (should (local-variable-p 'ecc-buffer-state--last-update))
-    ;; Check initial values
-    (should (hash-table-p ecc-buffer-state--data))
-    (should (null ecc-buffer-state--prompt-state))
+    
+    ;; Assert
+    (should (local-variable-p 'ecc-buffer-state--data))))
+
+(ert-deftest test-buffer-state-should-create-prompt-state-as-buffer-local ()
+  "Test that prompt state variable is created as buffer-local."
+  (with-temp-buffer-fixture nil
+    ;; Act
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Assert
+    (should (local-variable-p 'ecc-buffer-state--prompt-state))))
+
+(ert-deftest test-buffer-state-should-create-last-update-as-buffer-local ()
+  "Test that last update variable is created as buffer-local."
+  (with-temp-buffer-fixture nil
+    ;; Act
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Assert
+    (should (local-variable-p 'ecc-buffer-state--last-update))))
+
+(ert-deftest test-buffer-state-should-initialize-data-as-hash-table ()
+  "Test that buffer state data is initialized as a hash table."
+  (with-temp-buffer-fixture nil
+    ;; Act
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Assert
+    (should (hash-table-p ecc-buffer-state--data))))
+
+(ert-deftest test-buffer-state-should-initialize-prompt-state-as-nil ()
+  "Test that prompt state is initialized as nil."
+  (with-temp-buffer-fixture nil
+    ;; Act
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Assert
+    (should (null ecc-buffer-state--prompt-state))))
+
+(ert-deftest test-buffer-state-should-initialize-last-update-as-nil ()
+  "Test that last update is initialized as nil."
+  (with-temp-buffer-fixture nil
+    ;; Act
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Assert
     (should (null ecc-buffer-state--last-update))))
 
 (ert-deftest test-buffer-state-update-prompt-changes-stored-value ()
@@ -78,24 +119,61 @@ If CONTENT is nil, creates an empty buffer."
 
 ;; From test-buffer-state-enhanced.el
 
-(ert-deftest ecc-test-buffer-state-container ()
-  "Test buffer state container operations."
+(ert-deftest test-buffer-state-should-store-and-retrieve-string-value ()
+  "Test that buffer state can store and retrieve string values."
   (with-temp-buffer-fixture nil
+    ;; Arrange
     (ecc-buffer-state-init (current-buffer))
-    ;; Test multiple key-value pairs
+    
+    ;; Act
     (ecc-buffer-state-set 'key1 "value1")
+    
+    ;; Assert
+    (should (equal (ecc-buffer-state-get 'key1) "value1"))))
+
+(ert-deftest test-buffer-state-should-store-and-retrieve-symbol-value ()
+  "Test that buffer state can store and retrieve symbol values."
+  (with-temp-buffer-fixture nil
+    ;; Arrange
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Act
     (ecc-buffer-state-set 'key2 'symbol-value)
+    
+    ;; Assert
+    (should (eq (ecc-buffer-state-get 'key2) 'symbol-value))))
+
+(ert-deftest test-buffer-state-should-store-and-retrieve-numeric-value ()
+  "Test that buffer state can store and retrieve numeric values."
+  (with-temp-buffer-fixture nil
+    ;; Arrange
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Act
     (ecc-buffer-state-set 'key3 123)
     
-    (should (equal (ecc-buffer-state-get 'key1) "value1"))
-    (should (eq (ecc-buffer-state-get 'key2) 'symbol-value))
-    (should (= (ecc-buffer-state-get 'key3) 123))
+    ;; Assert
+    (should (= (ecc-buffer-state-get 'key3) 123))))
+
+(ert-deftest test-buffer-state-should-store-and-retrieve-nil-value ()
+  "Test that buffer state can store and retrieve nil values."
+  (with-temp-buffer-fixture nil
+    ;; Arrange
+    (ecc-buffer-state-init (current-buffer))
     
-    ;; Test nil value
+    ;; Act
     (ecc-buffer-state-set 'key4 nil)
-    (should (null (ecc-buffer-state-get 'key4)))
     
-    ;; Test non-existent key
+    ;; Assert
+    (should (null (ecc-buffer-state-get 'key4)))))
+
+(ert-deftest test-buffer-state-should-return-nil-for-non-existent-key ()
+  "Test that buffer state returns nil for non-existent keys."
+  (with-temp-buffer-fixture nil
+    ;; Arrange
+    (ecc-buffer-state-init (current-buffer))
+    
+    ;; Act & Assert
     (should (null (ecc-buffer-state-get 'non-existent)))))
 
 (ert-deftest ecc-test-buffer-state-prompt-tracking ()
