@@ -69,8 +69,17 @@
 (require 'ecc-color-themes)
 (require 'ecc-eye-friendly)
 (require 'ecc-convenience-commands)
-;; Enable minor mode by default
-(ecc-mode 1)
+
+;; Note: ecc-mode is not enabled automatically
+;; Users should call (ecc-mode 1) in their init file to enable keybindings
+
+;;;###autoload
+(defun ecc-setup ()
+  "Setup emacs-claude-code with recommended settings.
+Enables the ecc-mode minor mode to activate keybindings."
+  (interactive)
+  (ecc-mode 1)
+  (message "Emacs Claude Code mode enabled. Use C-c c h for help."))
 
 ;;; emacs-claude-code.el ends here)
 
