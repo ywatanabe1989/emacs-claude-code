@@ -248,10 +248,10 @@ These are used as fallbacks if the primary pattern doesn't match."
 
 ;; Old variable names for buffers
 
-(defvar ecc-buffer-name ecc-buffer-prefix
+(defvaralias 'ecc-buffer-name 'ecc-buffer-prefix
   "Backward compatibility alias for buffer prefix.")
 
-(defvar ecc-buffer ecc-buffer-current-buffer
+(defvaralias 'ecc-buffer 'ecc-buffer-current-buffer
   "Backward compatibility alias for current buffer.")
 
 ;; The ecc-debug variables are now handled by ecc-debug-utils-consolidated.el
