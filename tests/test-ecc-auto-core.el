@@ -253,8 +253,8 @@ Returns `auto-test-mock-state'."
              ecc-auto-core--last-state nil
              ecc-auto-core--timer original-timer))))
 
-(ert-deftest test-auto-core-registered-buffers-includes-multiple-registered-buffers ()
-  "Test that registered-buffers returns all registered live buffers."
+(ert-deftest test-auto-core-registered-buffers-returns-correct-count-for-multiple-buffers ()
+  "Test that registered-buffers returns correct count when multiple buffers are registered."
   (with-clean-ecc-auto-core-state
     (with-temp-buffer-fixture "Test content"
       (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
@@ -267,17 +267,57 @@ Returns `auto-test-mock-state'."
               ;; Act: Get registered buffers
               (let ((buffers (ecc-auto-core-registered-buffers)))
                 
-                ;; Assert: Both buffers are included
-                (should (= (length buffers) 2))
-                (should (memq temp-buffer buffers))
+                ;; Assert: Count is correct
+                (should (= (length buffers) 2))))
+          
+          ;; Clean up
+          (when (buffer-live-p temp-buffer-2)
+            (kill-buffer temp-buffer-2)))))))
+
+(ert-deftest test-auto-core-registered-buffers-includes-first-registered-buffer ()
+  "Test that registered-buffers includes first registered buffer."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        (unwind-protect
+            (progn
+              ;; Arrange: Register two test buffers
+              (ecc-auto-core-register-buffer temp-buffer)
+              (ecc-auto-core-register-buffer temp-buffer-2)
+              
+              ;; Act: Get registered buffers
+              (let ((buffers (ecc-auto-core-registered-buffers)))
+                
+                ;; Assert: First buffer is included
+                (should (memq temp-buffer buffers))))
+          
+          ;; Clean up
+          (when (buffer-live-p temp-buffer-2)
+            (kill-buffer temp-buffer-2)))))))
+
+(ert-deftest test-auto-core-registered-buffers-includes-second-registered-buffer ()
+  "Test that registered-buffers includes second registered buffer."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        (unwind-protect
+            (progn
+              ;; Arrange: Register two test buffers
+              (ecc-auto-core-register-buffer temp-buffer)
+              (ecc-auto-core-register-buffer temp-buffer-2)
+              
+              ;; Act: Get registered buffers
+              (let ((buffers (ecc-auto-core-registered-buffers)))
+                
+                ;; Assert: Second buffer is included
                 (should (memq temp-buffer-2 buffers))))
           
           ;; Clean up
           (when (buffer-live-p temp-buffer-2)
             (kill-buffer temp-buffer-2)))))))
 
-(ert-deftest test-auto-core-registered-buffers-excludes-dead-buffers ()
-  "Test that registered-buffers excludes dead buffers from results."
+(ert-deftest test-auto-core-registered-buffers-returns-correct-count-after-buffer-death ()
+  "Test that registered-buffers returns correct count after a buffer is killed."
   (with-clean-ecc-auto-core-state
     (with-temp-buffer-fixture "Test content"
       (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
@@ -291,9 +331,43 @@ Returns `auto-test-mock-state'."
         ;; Get registered buffers after killing one
         (let ((buffers (ecc-auto-core-registered-buffers)))
           
-          ;; Assert: Only live buffer is included
-          (should (= (length buffers) 1))
-          (should (memq temp-buffer buffers))
+          ;; Assert: Count reflects only live buffers
+          (should (= (length buffers) 1)))))))
+
+(ert-deftest test-auto-core-registered-buffers-includes-live-buffer-after-other-dies ()
+  "Test that registered-buffers includes live buffer after another buffer dies."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        ;; Arrange: Register two buffers
+        (ecc-auto-core-register-buffer temp-buffer)
+        (ecc-auto-core-register-buffer temp-buffer-2)
+        
+        ;; Act: Kill one buffer
+        (kill-buffer temp-buffer-2)
+        
+        ;; Get registered buffers after killing one
+        (let ((buffers (ecc-auto-core-registered-buffers)))
+          
+          ;; Assert: Live buffer is still included
+          (should (memq temp-buffer buffers)))))))
+
+(ert-deftest test-auto-core-registered-buffers-excludes-dead-buffer ()
+  "Test that registered-buffers excludes dead buffer from results."
+  (with-clean-ecc-auto-core-state
+    (with-temp-buffer-fixture "Test content"
+      (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+        ;; Arrange: Register two buffers
+        (ecc-auto-core-register-buffer temp-buffer)
+        (ecc-auto-core-register-buffer temp-buffer-2)
+        
+        ;; Act: Kill one buffer
+        (kill-buffer temp-buffer-2)
+        
+        ;; Get registered buffers after killing one
+        (let ((buffers (ecc-auto-core-registered-buffers)))
+          
+          ;; Assert: Dead buffer is not included
           (should-not (memq temp-buffer-2 buffers)))))))
 
 (ert-deftest test-auto-core-registered-buffers-returns-empty-when-none-registered ()
@@ -307,8 +381,8 @@ Returns `auto-test-mock-state'."
       ;; Assert: Empty list returned
       (should (= (length buffers) 0)))))
 
-(ert-deftest test-auto-core-cleanup-buffers ()
-  "Test cleaning up dead buffers."
+(ert-deftest test-auto-core-cleanup-buffers-returns-correct-count ()
+  "Test that cleanup-buffers returns correct count of live buffers."
   (with-temp-buffer-fixture "Test content"
     (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
       (unwind-protect
@@ -325,10 +399,59 @@ Returns `auto-test-mock-state'."
             
             ;; Clean up buffer registry
             (let ((result (ecc-auto-core-cleanup-buffers)))
-              ;; Check only the live buffer remains
-              (should (= (length result) 1))
-              (should (memq temp-buffer result))
-              (should-not (memq temp-buffer-2 ecc-auto-core--registered-buffers))))
+              ;; Check count
+              (should (= (length result) 1))))
+        
+        ;; Clean up
+        (when (buffer-live-p temp-buffer-2)
+          (kill-buffer temp-buffer-2))))))
+
+(ert-deftest test-auto-core-cleanup-buffers-includes-live-buffer ()
+  "Test that cleanup-buffers includes live buffers in result."
+  (with-temp-buffer-fixture "Test content"
+    (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+      (unwind-protect
+          (progn
+            ;; Clear existing registrations
+            (setq ecc-auto-core--registered-buffers nil)
+            
+            ;; Register test buffers
+            (ecc-auto-core-register-buffer temp-buffer)
+            (ecc-auto-core-register-buffer temp-buffer-2)
+            
+            ;; Kill one buffer
+            (kill-buffer temp-buffer-2)
+            
+            ;; Clean up buffer registry
+            (let ((result (ecc-auto-core-cleanup-buffers)))
+              ;; Check live buffer is included
+              (should (memq temp-buffer result))))
+        
+        ;; Clean up
+        (when (buffer-live-p temp-buffer-2)
+          (kill-buffer temp-buffer-2))))))
+
+(ert-deftest test-auto-core-cleanup-buffers-removes-dead-buffer-from-registry ()
+  "Test that cleanup-buffers removes dead buffers from internal registry."
+  (with-temp-buffer-fixture "Test content"
+    (let ((temp-buffer-2 (generate-new-buffer "*auto-test-2*")))
+      (unwind-protect
+          (progn
+            ;; Clear existing registrations
+            (setq ecc-auto-core--registered-buffers nil)
+            
+            ;; Register test buffers
+            (ecc-auto-core-register-buffer temp-buffer)
+            (ecc-auto-core-register-buffer temp-buffer-2)
+            
+            ;; Kill one buffer
+            (kill-buffer temp-buffer-2)
+            
+            ;; Clean up buffer registry
+            (ecc-auto-core-cleanup-buffers)
+            
+            ;; Check dead buffer removed from registry
+            (should-not (memq temp-buffer-2 ecc-auto-core--registered-buffers)))
         
         ;; Clean up
         (when (buffer-live-p temp-buffer-2)
@@ -372,7 +495,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with initial prompt"
     ;; Arrange
     (setq auto-test-callback-called nil)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :initial-waiting)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
@@ -385,7 +508,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with initial prompt"
     ;; Arrange
     (setq auto-test-callback-buffer nil)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :initial-waiting)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
@@ -398,7 +521,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with initial prompt"
     ;; Arrange
     (setq auto-test-callback-state nil)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :initial-waiting)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
@@ -411,7 +534,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with initial prompt"
     ;; Arrange
     (setq ecc-auto-core--initial-check-count 0)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :initial-waiting)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
@@ -424,7 +547,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with y/n prompt"
     ;; Arrange
     (setq auto-test-callback-called nil)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :y/n)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)
@@ -437,7 +560,7 @@ Returns `auto-test-mock-state'."
   (with-temp-buffer-fixture "Test content with y/n prompt"
     ;; Arrange
     (setq ecc-auto-core--initial-check-count 0)
-    (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n)))
+    (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :y/n)))
       
       ;; Act
       (ecc-auto-core-initial-check temp-buffer #'auto-test-callback)

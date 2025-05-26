@@ -136,7 +136,14 @@
   (let ((restore-func (ecc-system-test-mock-vterm-response)))
     (unwind-protect
         (progn
-          ;; Register buffers
+          ;; Enable auto-response system
+          (setq ecc-auto-response-enabled t)
+          
+          ;; Register buffers for auto-response
+          (ecc-auto-response-register-buffer ecc-system-test-buffer-x)
+          (ecc-auto-response-register-buffer ecc-system-test-buffer-y)
+          
+          ;; Register buffers for background detection
           (ecc-background-detection-add-buffer ecc-system-test-buffer-x)
           (ecc-background-detection-add-buffer ecc-system-test-buffer-y)
           
@@ -192,10 +199,17 @@
   (let ((restore-func (ecc-system-test-mock-vterm-response)))
     (unwind-protect
         (progn
+          ;; Enable auto-response system
+          (setq ecc-auto-response-enabled t)
+          
+          ;; Register buffers for auto-response
+          (ecc-auto-response-register-buffer ecc-system-test-buffer-x)
+          (ecc-auto-response-register-buffer ecc-system-test-buffer-y)
+          
           ;; Start background detection with auto-response callback
           (ecc-background-detection-start #'ecc-auto-response--process-buffer-global)
           
-          ;; Register buffers
+          ;; Register buffers for background detection
           (ecc-background-detection-add-buffer ecc-system-test-buffer-x)
           (ecc-background-detection-add-buffer ecc-system-test-buffer-y)
           

@@ -31,7 +31,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (local-variable-p 'ecc-buffer-state--data))))
+    (should (local-variable-p 'ecc-buffer-state-data))))
 
 (ert-deftest test-buffer-state-should-create-prompt-state-as-buffer-local ()
   "Test that prompt state variable is created as buffer-local."
@@ -40,7 +40,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (local-variable-p 'ecc-buffer-state--prompt-state))))
+    (should (local-variable-p 'ecc-buffer-state-prompt))))
 
 (ert-deftest test-buffer-state-should-create-last-update-as-buffer-local ()
   "Test that last update variable is created as buffer-local."
@@ -77,7 +77,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (null (ecc-buffer-state-get-prompt-state)))))
+    (should (null (ecc-buffer-state-get-prompt)))))
 
 (ert-deftest test-buffer-state-should-update-prompt-state-when-changed ()
   "Test that prompt state updates to new value when changed."
@@ -86,10 +86,10 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Act
-    (ecc-buffer-state-update-prompt-state 'waiting)
+    (ecc-buffer-state-update-prompt 'waiting)
     
     ;; Assert
-    (should (eq (ecc-buffer-state-get-prompt-state) 'waiting))))
+    (should (eq (ecc-buffer-state-get-prompt) 'waiting))))
 
 (ert-deftest test-buffer-state-should-store-value-when-key-is-set ()
   "Test that buffer state stores value when key is set."
@@ -226,36 +226,36 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Act
-    (ecc-buffer-state-update-prompt-state 'initial-waiting)
+    (ecc-buffer-state-update-prompt 'initial-waiting)
     
     ;; Assert
-    (should (eq (ecc-buffer-state-get-prompt-state) 'initial-waiting))))
+    (should (eq (ecc-buffer-state-get-prompt) 'initial-waiting))))
 
 (ert-deftest test-buffer-state-should-transition-from-initial-to-waiting ()
   "Test that prompt state can transition from initial-waiting to waiting."
   (with-temp-buffer-fixture nil
     ;; Arrange
     (ecc-buffer-state-init (current-buffer))
-    (ecc-buffer-state-update-prompt-state 'initial-waiting)
+    (ecc-buffer-state-update-prompt 'initial-waiting)
     
     ;; Act
-    (ecc-buffer-state-update-prompt-state 'waiting)
+    (ecc-buffer-state-update-prompt 'waiting)
     
     ;; Assert
-    (should (eq (ecc-buffer-state-get-prompt-state) 'waiting))))
+    (should (eq (ecc-buffer-state-get-prompt) 'waiting))))
 
 (ert-deftest test-buffer-state-should-clear-prompt-state-when-set-to-nil ()
   "Test that prompt state is cleared when set to nil."
   (with-temp-buffer-fixture nil
     ;; Arrange
     (ecc-buffer-state-init (current-buffer))
-    (ecc-buffer-state-update-prompt-state 'waiting)
+    (ecc-buffer-state-update-prompt 'waiting)
     
     ;; Act
-    (ecc-buffer-state-update-prompt-state nil)
+    (ecc-buffer-state-update-prompt nil)
     
     ;; Assert
-    (should (null (ecc-buffer-state-get-prompt-state)))))
+    (should (null (ecc-buffer-state-get-prompt)))))
 
 ;; From test-buffer-state-refactored.el
 

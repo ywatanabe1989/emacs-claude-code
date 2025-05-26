@@ -20,12 +20,33 @@
 (require 'ecc-notification)
 
 ;; Test state description function
-(ert-deftest test-notification-state-description ()
-  "Test the state description function."
-  (should (stringp (ecc-notification--state-description :y/n)))
-  (should (string= (ecc-notification--state-description :y/n) "yes/no prompt"))
-  (should (string= (ecc-notification--state-description :waiting) "waiting for input"))
-  (should (string= (ecc-notification--state-description :unknown-state) "unknown-state")))
+(ert-deftest test-notification-state-description-should-return-string-for-y/n-state ()
+  "Test that state description returns a string for y/n state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :y/n)))
+    ;; Assert
+    (should (stringp result))))
+
+(ert-deftest test-notification-state-description-should-return-yes-no-prompt-for-y/n-state ()
+  "Test that state description returns 'yes/no prompt' for y/n state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :y/n)))
+    ;; Assert
+    (should (string= result "yes/no prompt"))))
+
+(ert-deftest test-notification-state-description-should-return-waiting-for-input-for-waiting-state ()
+  "Test that state description returns 'waiting for input' for waiting state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :waiting)))
+    ;; Assert
+    (should (string= result "waiting for input"))))
+
+(ert-deftest test-notification-state-description-should-return-state-name-for-unknown-state ()
+  "Test that state description returns state name for unknown state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :unknown-state)))
+    ;; Assert
+    (should (string= result "unknown-state"))))
 
 ;; Test throttling logic
 (ert-deftest test-notification-should-notify-for-new-state ()
@@ -139,7 +160,7 @@
         (ecc-notification--last-state nil))
     
     (cl-letf (((symbol-function 'ecc-auto-notify-flash-mode-line)
-               (lambda () (setq flash-called t))))
+               (lambda (&optional buffer) (setq flash-called t))))
       
       ;; Act
       (ecc-notification-dispatch :y/n)
@@ -184,22 +205,41 @@
       (should (eq ecc-notification--last-state :y/n)))))
 
 ;; Test notification method toggling
-(ert-deftest test-notification-toggle-methods ()
-  "Test toggling notification methods."
-  ;; Start with all methods
+(ert-deftest test-notification-toggle-bell-should-disable-when-enabled ()
+  "Test that bell toggle disables bell when it is enabled."
+  ;; Arrange
   (let ((ecc-notification-methods '(bell flash message)))
-    
-    ;; Test bell toggle
+    ;; Act
     (ecc-notification-toggle-bell)
-    (should-not (memq 'bell ecc-notification-methods))
+    ;; Assert
+    (should-not (memq 'bell ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-bell-should-enable-when-disabled ()
+  "Test that bell toggle enables bell when it is disabled."
+  ;; Arrange
+  (let ((ecc-notification-methods '(flash message)))
+    ;; Act
+    (ecc-notification-toggle-bell)
+    ;; Assert
+    (should (memq 'bell ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-bell-should-preserve-other-methods ()
+  "Test that bell toggle preserves other notification methods."
+  ;; Arrange
+  (let ((ecc-notification-methods '(bell flash message)))
+    ;; Act
+    (ecc-notification-toggle-bell)
+    ;; Assert
     (should (memq 'flash ecc-notification-methods))
-    
-    ;; Toggle back on
-    (ecc-notification-toggle-bell)
-    (should (memq 'bell ecc-notification-methods))
-    
-    ;; Test flash toggle
+    (should (memq 'message ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-flash-should-disable-when-enabled ()
+  "Test that flash toggle disables flash when it is enabled."
+  ;; Arrange
+  (let ((ecc-notification-methods '(bell flash message)))
+    ;; Act
     (ecc-notification-toggle-flash)
+    ;; Assert
     (should-not (memq 'flash ecc-notification-methods))))
 
 ;; Test backward compatibility aliases

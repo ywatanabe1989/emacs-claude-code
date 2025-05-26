@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-23 12:23:23>
+;;; Timestamp: <2025-05-26 09:29:24>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-term-claude-auto.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -113,8 +113,9 @@ Returns t if a response was sent, nil otherwise."
 
     ;; Log debug info if enabled
     (when ecc-term-claude-auto-debug
-      (ecc-debug-message "Auto-response debug: state=%s, var=%s, value=%s"
-               state response-var response))
+      (ecc-debug-message
+       "Auto-response debug: state=%s, var=%s, value=%s"
+       state response-var response))
 
     ;; Validate response
     (unless (and response-var (boundp response-var))
@@ -129,14 +130,19 @@ Returns t if a response was sent, nil otherwise."
         (run-with-timer ecc-term-claude-auto-delay nil
                         (lambda ()
                           (when (buffer-live-p (current-buffer))
-                            (ecc-term-claude--vterm-send-string response)
+                            (ecc-term-claude--vterm-send-string
+                             response)
+                            (sit-for 1.0)
                             (ecc-term-claude--vterm-send-return)
-                            (ecc-debug-message "Auto-responded to %s prompt: %s"
-                                     state-name response))))
+                            (ecc-debug-message
+                             "Auto-responded to %s prompt: %s"
+                             state-name response))))
       ;; Immediate response
       (ecc-term-claude--vterm-send-string response)
+      (sit-for 1.0)
       (ecc-term-claude--vterm-send-return)
-      (ecc-debug-message "Auto-responded to %s prompt: %s" state-name response))
+      (ecc-debug-message "Auto-responded to %s prompt: %s" state-name
+                         response))
     t))
 
 (defun ecc-term-claude-auto-send-accept ()
@@ -152,7 +158,8 @@ to automatically check for and respond to prompts after each update."
           (when state
             (ecc-term-claude-auto-send state)))
       (error
-       (ecc-debug-message "Auto-response error: %s" (error-message-string err))
+       (ecc-debug-message "Auto-response error: %s"
+                          (error-message-string err))
        nil))))
 
 ;;;; Convenience functions
@@ -164,7 +171,8 @@ responds to Claude prompts based on their type."
   (interactive)
   (setq ecc-term-claude-auto-mode (not ecc-term-claude-auto-mode))
   (ecc-debug-message "Claude auto-mode %s"
-           (if ecc-term-claude-auto-mode "enabled" "disabled"))
+                     (if ecc-term-claude-auto-mode "enabled"
+                       "disabled"))
 
   ;; Set up hooks for auto-responses
   (if ecc-term-claude-auto-mode
@@ -202,11 +210,17 @@ responds to Claude prompts based on their type."
 
 ;;; ecc-term-claude-auto.el ends here
 
+(when
+    (not load-file-name)
+  (ecc-debug-message "ecc-term-claude-auto.el loaded."
+                     (file-name-nondirectory
+                      (or load-file-name buffer-file-name))))
+
 
 (provide 'ecc-term-claude-auto)
 
 (when
     (not load-file-name)
-  (ecc-debug-message "ecc-term-claude-auto.el loaded."
+  (message "ecc-term-claude-auto.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

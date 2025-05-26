@@ -83,25 +83,69 @@
   "Test that ecc-term-claude-mode-map is a keymap."
   (should (keymapp ecc-term-claude-mode-map)))
 
-(ert-deftest test-ecc-term-claude-mode-consolidated-customization ()
-  "Test that customization variables are properly defined."
-  ;; Check customization group
-  (should (get 'ecc-term-claude 'custom-group))
-  
-  ;; Check basic customization variables
-  (should (boundp 'ecc-term-claude-line-numbers))
-  (should (boundp 'ecc-term-claude-scroll-conservatively))
-  (should (boundp 'ecc-term-claude-truncate-lines))
-  (should (boundp 'ecc-term-claude-state-update-interval))
-  (should (boundp 'ecc-term-claude-auto-mode))
-  (should (boundp 'ecc-term-claude-buffer-name))
-  (should (boundp 'ecc-term-claude-show-state-in-mode-line))
-  
-  ;; Check new customization variables in consolidated version
-  (should (boundp 'ecc-term-claude-update-frame-title))
-  (should (boundp 'ecc-term-claude-debug))
-  (should (boundp 'ecc-term-claude-debug-to-buffer))
-  (should (boundp 'ecc-term-claude-disable-bold))
+(ert-deftest test-ecc-term-claude-customization-group-should-be-defined ()
+  "Test that customization group is properly defined."
+  ;; Assert
+  (should (get 'ecc-term-claude 'custom-group)))
+
+(ert-deftest test-ecc-term-claude-line-numbers-variable-should-be-bound ()
+  "Test that line numbers customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-line-numbers)))
+
+(ert-deftest test-ecc-term-claude-scroll-conservatively-variable-should-be-bound ()
+  "Test that scroll conservatively customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-scroll-conservatively)))
+
+(ert-deftest test-ecc-term-claude-truncate-lines-variable-should-be-bound ()
+  "Test that truncate lines customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-truncate-lines)))
+
+(ert-deftest test-ecc-term-claude-state-update-interval-variable-should-be-bound ()
+  "Test that state update interval customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-state-update-interval)))
+
+(ert-deftest test-ecc-term-claude-auto-mode-variable-should-be-bound ()
+  "Test that auto mode customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-auto-mode)))
+
+(ert-deftest test-ecc-term-claude-buffer-name-variable-should-be-bound ()
+  "Test that buffer name customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-buffer-name)))
+
+(ert-deftest test-ecc-term-claude-show-state-in-mode-line-variable-should-be-bound ()
+  "Test that show state in mode line customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-show-state-in-mode-line)))
+
+(ert-deftest test-ecc-term-claude-update-frame-title-variable-should-be-bound ()
+  "Test that update frame title customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-update-frame-title)))
+
+(ert-deftest test-ecc-term-claude-debug-variable-should-be-bound ()
+  "Test that debug customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-debug)))
+
+(ert-deftest test-ecc-term-claude-debug-to-buffer-variable-should-be-bound ()
+  "Test that debug to buffer customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-debug-to-buffer)))
+
+(ert-deftest test-ecc-term-claude-disable-bold-variable-should-be-bound ()
+  "Test that disable bold customization variable is bound."
+  ;; Assert
+  (should (boundp 'ecc-term-claude-disable-bold)))
+
+(ert-deftest test-ecc-term-claude-disable-underline-variable-should-be-bound ()
+  "Test that disable underline customization variable is bound."
+  ;; Assert
   (should (boundp 'ecc-term-claude-disable-underline)))
 
 ;;; Tests for debug functionality
@@ -131,28 +175,58 @@
 
 ;;; Tests for mode commands
 
-(ert-deftest test-ecc-term-claude-mode-consolidated-commands ()
-  "Test that the basic commands are available and callable."
-  ;; Test that commands are defined
-  (should (fboundp 'ecc-term-claude-yes))
-  (should (fboundp 'ecc-term-claude-no))
-  (should (fboundp 'ecc-term-claude-clear))
-  (should (fboundp 'ecc-term-claude-auto-mode-toggle))
-  (should (fboundp 'ecc-term-claude-toggle-follow-bottom))
-  
-  ;; Test debug commands
-  (should (fboundp 'ecc-term-claude-debug-toggle))
-  (should (fboundp 'ecc-term-claude-debug-show-buffer))
-  
-  ;; Test that commands are callable (only testing they don't error)
+(ert-deftest test-ecc-term-claude-yes-command-should-be-defined ()
+  "Test that yes command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-yes)))
+
+(ert-deftest test-ecc-term-claude-no-command-should-be-defined ()
+  "Test that no command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-no)))
+
+(ert-deftest test-ecc-term-claude-clear-command-should-be-defined ()
+  "Test that clear command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-clear)))
+
+(ert-deftest test-ecc-term-claude-auto-mode-toggle-command-should-be-defined ()
+  "Test that auto mode toggle command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-auto-mode-toggle)))
+
+(ert-deftest test-ecc-term-claude-toggle-follow-bottom-command-should-be-defined ()
+  "Test that toggle follow bottom command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-toggle-follow-bottom)))
+
+(ert-deftest test-ecc-term-claude-debug-toggle-command-should-be-defined ()
+  "Test that debug toggle command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-debug-toggle)))
+
+(ert-deftest test-ecc-term-claude-debug-show-buffer-command-should-be-defined ()
+  "Test that debug show buffer command is defined."
+  ;; Assert
+  (should (fboundp 'ecc-term-claude-debug-show-buffer)))
+
+(ert-deftest test-ecc-term-claude-yes-command-should-be-callable ()
+  "Test that yes command can be called without error."
+  ;; Act & Assert
   (should-not (condition-case err 
                   (progn (call-interactively 'ecc-term-claude-yes) nil) 
-                (error err)))
-  
+                (error err))))
+
+(ert-deftest test-ecc-term-claude-no-command-should-be-callable ()
+  "Test that no command can be called without error."
+  ;; Act & Assert
   (should-not (condition-case err 
                   (progn (call-interactively 'ecc-term-claude-no) nil) 
-                (error err)))
-  
+                (error err))))
+
+(ert-deftest test-ecc-term-claude-clear-command-should-be-callable ()
+  "Test that clear command can be called without error."
+  ;; Act & Assert
   (should-not (condition-case err 
                   (progn (call-interactively 'ecc-term-claude-clear) nil) 
                 (error err))))
@@ -206,31 +280,31 @@
 
 (ert-deftest test-mode-line-state-indicator-shows-waiting-state ()
   "Test that mode line shows [Waiting] for :waiting state."
-  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :waiting))
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :waiting))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) " [Waiting]"))))
 
 (ert-deftest test-mode-line-state-indicator-shows-y-n-state ()
   "Test that mode line shows [Y/N] for :y/n state."
-  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n))
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :y/n))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/N]"))))
 
 (ert-deftest test-mode-line-state-indicator-shows-y-y-n-state ()
   "Test that mode line shows [Y/Y/N] for :y/y/n state."
-  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/y/n))
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :y/y/n))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/Y/N]"))))
 
 (ert-deftest test-mode-line-state-indicator-shows-initial-waiting-state ()
   "Test that mode line shows [Init] for :initial-waiting state."
-  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting))
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) :initial-waiting))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) " [Init]"))))
 
 (ert-deftest test-mode-line-state-indicator-shows-empty-for-nil-state ()
   "Test that mode line shows empty string for nil state."
-  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () nil))
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda (&optional buffer) nil))
             ((symbol-function 'ecc-term-claude--update-frame-title) (lambda (_) nil)))
     (should (string= (ecc-term-claude--mode-line-state-indicator) ""))))
 

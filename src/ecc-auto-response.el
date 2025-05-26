@@ -385,7 +385,6 @@ Returns t if too many responses have been sent within the accumulation window."
 
 ;;;; Core Functions - Global Mode
 
-
 (defun ecc-auto-response-start (&optional yes yes-plus continue)
   "Start the auto-response system with optional response values.
 When started, automatically responds to Claude prompts based on the detected state.
@@ -424,7 +423,7 @@ Example:
                              ecc-auto-response-check-interval))
   
   ;; Show startup message
-  (ecc-debug-message "Auto-response enabled: Y/N=%s, Y/Y/N=%s, Continue=%s"
+  (message "Auto-response enabled: Y/N=%s, Y/Y/N=%s, Continue=%s"
            ecc-auto-response-yes
            ecc-auto-response-yes-plus
            ecc-auto-response-continue))
@@ -505,44 +504,67 @@ The buffer will no longer be checked for Claude prompts."
   buffer)
 
 (defun ecc-auto-response--process-all-buffers ()
-  "Process all registered buffers for auto-response.
-Checks each buffer for Claude prompts and sends responses if appropriate."
+  "Process buffers for auto-response, prioritizing current buffer.
+Checks current buffer first, then other registered buffers for Claude prompts."
   (ecc-auto-response--debug "ecc-auto-response--process-all-buffers called")
   (ecc-auto-response--debug "Auto-response enabled: %s" ecc-auto-response-enabled)
   (ecc-auto-response--debug "Registered buffers count: %s" (hash-table-count ecc-auto-response--registered-buffers))
   
   (when ecc-auto-response-enabled
-    (ecc-auto-response--debug "Processing all buffers for auto-response")
+    (ecc-auto-response--debug "Processing buffers for auto-response")
     
-    ;; Loop through registered buffers
+    ;; First, prioritize current buffer if it's a vterm buffer
+    (when (and (derived-mode-p 'vterm-mode)
+               (buffer-live-p (current-buffer)))
+      (ecc-auto-response--debug "Prioritizing current buffer: %s" (buffer-name))
+      
+      ;; Auto-register current buffer if not already registered
+      (unless (gethash (current-buffer) ecc-auto-response--registered-buffers)
+        (ecc-auto-response--debug "Auto-registering current buffer")
+        (ecc-auto-response-register-buffer (current-buffer)))
+      
+      ;; Process current buffer first
+      (ecc-auto-response--process-single-buffer (current-buffer)))
+    
+    ;; Then process other registered buffers (excluding current to avoid duplication)
     (maphash
      (lambda (buffer _)
-       (ecc-auto-response--debug "Processing buffer: %s" (if (buffer-live-p buffer) (buffer-name buffer) "non-live"))
-       
-       ;; Skip if buffer is not live
-       (unless (buffer-live-p buffer)
-         (ecc-auto-response--debug "Removing non-live buffer from registered list")
-         (ecc-auto-response-unregister-buffer buffer)
-         (cl-return))
-       
-       ;; Process buffer based on mode
-       (if ecc-auto-response-default
-           ;; Buffer-local mode
-           (with-current-buffer buffer
-             (ecc-auto-response--debug "Buffer-local mode check - enabled: %s" 
-                      (or ecc-auto-response-buffer-enabled
-                          (and (boundp 'ecc-buffer-auto-response-enabled)
-                               ecc-buffer-auto-response-enabled)))
-             (when (or ecc-auto-response-buffer-enabled 
-                      ;; For backward compatibility
-                      (and (boundp 'ecc-buffer-auto-response-enabled)
-                           ecc-buffer-auto-response-enabled))
-               (ecc-auto-response--process-buffer-local buffer)))
+       ;; Skip current buffer (already processed above)
+       (unless (eq buffer (current-buffer))
+         (ecc-auto-response--debug "Processing registered buffer: %s" 
+                                  (if (buffer-live-p buffer) (buffer-name buffer) "non-live"))
          
-         ;; Global mode
-         (ecc-auto-response--debug "Processing buffer in global mode")
-         (ecc-auto-response--process-buffer-global buffer)))
+         ;; Skip if buffer is not live
+         (unless (buffer-live-p buffer)
+           (ecc-auto-response--debug "Removing non-live buffer from registered list")
+           (ecc-auto-response-unregister-buffer buffer)
+           (cl-return))
+         
+         ;; Process the buffer
+         (ecc-auto-response--process-single-buffer buffer)))
      ecc-auto-response--registered-buffers)))
+
+(defun ecc-auto-response--process-single-buffer (buffer)
+  "Process a single BUFFER for auto-response based on its configuration."
+  (ecc-auto-response--debug "Processing single buffer: %s" (buffer-name buffer))
+  
+  ;; Process buffer based on mode
+  (if ecc-auto-response-default
+      ;; Buffer-local mode
+      (with-current-buffer buffer
+        (ecc-auto-response--debug "Buffer-local mode check - enabled: %s" 
+                 (or ecc-auto-response-buffer-enabled
+                     (and (boundp 'ecc-buffer-auto-response-enabled)
+                          ecc-buffer-auto-response-enabled)))
+        (when (or ecc-auto-response-buffer-enabled 
+                 ;; For backward compatibility
+                 (and (boundp 'ecc-buffer-auto-response-enabled)
+                      ecc-buffer-auto-response-enabled))
+          (ecc-auto-response--process-buffer-local buffer)))
+    
+    ;; Global mode
+    (ecc-auto-response--debug "Processing buffer in global mode")
+    (ecc-auto-response--process-buffer-global buffer)))
 
 (defun ecc-auto-response--process-buffer-global (buffer)
   "Process BUFFER for auto-response using global settings.
@@ -704,7 +726,7 @@ Arguments:
   CONTINUE: Response for waiting prompts (default: `ecc-auto-response-buffer-continue')"
   (interactive)
   (let ((buf (or buffer (current-buffer))))
-    (ecc-auto-response--debug "Starting buffer-local auto-response for %s"
+    (message "Starting buffer-local auto-response for %s"
                              (buffer-name buf))
 
     ;; Optimize VTerm for Claude Code

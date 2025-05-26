@@ -244,10 +244,10 @@ If BUFFER is not provided, uses the current buffer."
   "Display a message about STATE in the echo area.
 If BUFFER is provided, include the buffer name in the message."
   (if buffer
-      (ecc-debug-message "[%s] Claude prompt detected: %s" 
+      (message "[%s] Claude prompt detected: %s" 
                (buffer-name buffer)
                (ecc-notification--state-description state))
-    (ecc-debug-message "Claude prompt detected: %s" 
+    (message "Claude prompt detected: %s" 
              (ecc-notification--state-description state))))
 
 ;; Core notification functions

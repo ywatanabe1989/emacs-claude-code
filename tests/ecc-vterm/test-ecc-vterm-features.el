@@ -33,17 +33,17 @@
 
 (ert-deftest test-ecc-vterm-line-numbers ()
   "Test line numbers toggling in vterm mode."
-  ;; Test default setting
-  (should (eq ecc-vterm-hide-line-numbers t))
+  ;; Arrange - no setup needed
   
-  ;; For this test, we can't actually test the toggle because display-line-numbers-mode
-  ;; is a function in a real Emacs environment, not a variable.
-  ;; Let's just verify the function exists
+  ;; Act - no action needed (testing default state)
+  
+  ;; Assert
+  (should (eq ecc-vterm-hide-line-numbers t))
   (should (fboundp 'ecc-vterm-toggle-line-numbers)))
 
 (ert-deftest test-ecc-color-themes-cycle ()
   "Test color theme cycling."
-  ;; Test theme cycle order
+  ;; Arrange & Act & Assert - testing theme cycle logic
   (let ((ecc-colors-theme 'dark))
     (should (eq 'light (pcase ecc-colors-theme
                          ('dark 'light)

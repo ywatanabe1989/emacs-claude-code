@@ -115,24 +115,34 @@
   (ecc-system-test-mock-vterm-functions)
   (unwind-protect
       (progn
-        ;; Configure auto-response
+        ;; Configure auto-response with new unified variables
         (with-current-buffer ecc-system-test-buffer-a
+          (setq-local ecc-auto-response-buffer-initial-waiting "/custom-a")
+          (setq-local ecc-auto-response-buffer-yes "a-yes")
+          (setq-local ecc-auto-response-buffer-enabled t)
+          
+          ;; Set compatibility variables
           (setq-local ecc-buffer-auto-response-initial-waiting "/custom-a")
           (setq-local ecc-buffer-auto-response-y/n "a-yes")
           (setq-local ecc-buffer-auto-response-enabled t)
           
-          ;; Detect and respond
+          ;; Detect and respond using buffer-local processor
           (should (eq (ecc-buffer-state-detect) :initial-waiting))
-          (ecc-auto-response--process-buffer-global (current-buffer)))
+          (ecc-auto-response--process-buffer-local (current-buffer)))
         
         (with-current-buffer ecc-system-test-buffer-b
+          (setq-local ecc-auto-response-buffer-initial-waiting "/custom-b")
+          (setq-local ecc-auto-response-buffer-yes "b-yes")
+          (setq-local ecc-auto-response-buffer-enabled t)
+          
+          ;; Set compatibility variables
           (setq-local ecc-buffer-auto-response-initial-waiting "/custom-b")
           (setq-local ecc-buffer-auto-response-y/n "b-yes")
           (setq-local ecc-buffer-auto-response-enabled t)
           
-          ;; Detect and respond
+          ;; Detect and respond using buffer-local processor
           (should (eq (ecc-buffer-state-detect) :y/n))
-          (ecc-auto-response--process-buffer-global (current-buffer)))
+          (ecc-auto-response--process-buffer-local (current-buffer)))
         
         ;; Verify each buffer received its own distinct response
         ;; Responses are captured in ecc-system-test-responses-sent
