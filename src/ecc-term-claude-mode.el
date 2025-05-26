@@ -47,6 +47,7 @@
   (require 'ecc-debug-utils nil t))
 
 (require 'ecc-vterm-yank-as-file)
+(require 'ecc-term-claude-state)
 
 ;;;; Customization
 
