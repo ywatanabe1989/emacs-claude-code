@@ -6,7 +6,8 @@
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-(require 'vterm)
+;; Optional dependency - vterm must be installed separately
+(require 'vterm nil t)
 
 (defgroup ecc-vterm nil
   "Customization group for Claude Code vterm mode."
@@ -41,7 +42,7 @@ Positive numbers increase size, negative numbers decrease size."
   :type 'integer
   :group 'ecc-vterm)
 
-;;;###autoload
+
 (define-minor-mode ecc-vterm-mode
   "Minor mode for optimized vterm buffers used with Claude Code.
 This mode provides performance optimizations and enhanced features
@@ -110,7 +111,7 @@ for handling high-throughput interactions with Claude."
   (advice-add 'vterm--flush-timer-callback :around
               #'ecc-vterm--gc-optimized-flush)
   
-  (message "ECC vterm mode enabled"))
+  (ecc-debug-message "ECC vterm mode enabled"))
 
 (defun ecc-vterm--disable ()
   "Disable ecc-vterm-mode and restore settings."
@@ -137,14 +138,14 @@ for handling high-throughput interactions with Claude."
   ;; Remove advice
   (advice-remove 'vterm--flush-timer-callback #'ecc-vterm--gc-optimized-flush)
   
-  (message "ECC vterm mode disabled"))
+  (ecc-debug-message "ECC vterm mode disabled"))
 
 (defun ecc-vterm--gc-optimized-flush (orig-fun &rest args)
   "Run vterm flush with optimized garbage collection."
   (let ((gc-cons-threshold (* 100 1024 1024)))  ; 100MB during flush
     (apply orig-fun args)))
 
-;;;###autoload
+
 (defun ecc-vterm-truncate-buffer ()
   "Truncate vterm buffer to recent lines for performance."
   (interactive)
@@ -156,9 +157,9 @@ for handling high-throughput interactions with Claude."
         (forward-line (- max-lines))
         (beginning-of-line)
         (delete-region (point-min) (point)))
-      (message "Buffer truncated to %d lines" max-lines))))
+      (ecc-debug-message "Buffer truncated to %d lines" max-lines))))
 
-;;;###autoload
+
 (defun ecc-vterm-toggle-optimizations ()
   "Toggle vterm optimizations on/off."
   (interactive)
@@ -166,23 +167,23 @@ for handling high-throughput interactions with Claude."
       (ecc-vterm-mode -1)
     (ecc-vterm-mode 1)))
 
-;;;###autoload
+
 (defun ecc-vterm-toggle-line-numbers ()
   "Toggle line numbers display in the current vterm buffer."
   (interactive)
   (if (bound-and-true-p display-line-numbers-mode)
       (progn 
         (display-line-numbers-mode -1)
-        (message "Line numbers disabled"))
+        (ecc-debug-message "Line numbers disabled"))
     (progn
       (display-line-numbers-mode 1)
-      (message "Line numbers enabled")))
+      (ecc-debug-message "Line numbers enabled")))
   ;; Update preference if in ecc-vterm-mode
   (when ecc-vterm-mode
     (setq-local ecc-vterm-hide-line-numbers 
                 (not (bound-and-true-p display-line-numbers-mode)))))
 
-;;;###autoload
+
 (defun ecc-vterm-increase-font-size (&optional n)
   "Increase the font size in current vterm buffer by N steps.
 If N is nil, uses `ecc-vterm-font-size-step' as the step size."
@@ -194,9 +195,9 @@ If N is nil, uses `ecc-vterm-font-size-step' as the step size."
                                       text-scale-mode-amount) 0) 
                              step))))
       (text-scale-set new-size)
-      (message "Font size: %+d" new-size))))
+      (ecc-debug-message "Font size: %+d" new-size))))
 
-;;;###autoload
+
 (defun ecc-vterm-decrease-font-size (&optional n)
   "Decrease the font size in current vterm buffer by N steps.
 If N is nil, uses `ecc-vterm-font-size-step' as the step size."
@@ -208,15 +209,15 @@ If N is nil, uses `ecc-vterm-font-size-step' as the step size."
                                       text-scale-mode-amount) 0) 
                              step))))
       (text-scale-set new-size)
-      (message "Font size: %+d" new-size))))
+      (ecc-debug-message "Font size: %+d" new-size))))
 
-;;;###autoload
+
 (defun ecc-vterm-reset-font-size ()
   "Reset the font size to default in current vterm buffer."
   (interactive)
   (when (derived-mode-p 'vterm-mode)
     (text-scale-set ecc-vterm-default-font-size)
-    (message "Font size reset to default: %+d" ecc-vterm-default-font-size)))
+    (ecc-debug-message "Font size reset to default: %+d" ecc-vterm-default-font-size)))
 
 ;; Auto-enable for Claude buffers
 (defun ecc-vterm-auto-enable ()
@@ -233,6 +234,6 @@ If N is nil, uses `ecc-vterm-font-size-step' as the step size."
 
 (when
     (not load-file-name)
-  (message "ecc-vterm-mode.el loaded."
+  (ecc-debug-message "ecc-vterm-mode.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

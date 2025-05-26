@@ -33,7 +33,7 @@ thorough detection and performance."
 
 ;; Main state detection functions
 
-;;;###autoload
+
 (defun ecc-detect-state (&optional buffer)
   "Detect Claude prompt state in BUFFER (or current buffer).
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil.
@@ -48,7 +48,7 @@ line-based detection for accuracy when available."
      ;; Fall back to basic detection if line detection finds nothing
      (ecc-detect-basic-state))))
 
-;;;###autoload
+
 (defun ecc-detect-basic-state ()
   "Basic detection of Claude prompt state using buffer content matching.
 Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -91,7 +91,7 @@ Returns :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-last-lines (&optional n-lines)
   "Detect Claude prompts in the last N-LINES of the current buffer.
 If N-LINES is nil, use `ecc-state-detection-line-count'.
@@ -139,7 +139,7 @@ Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
      
      (t nil))))
 
-;;;###autoload
+
 (defun ecc-detect-prompt-in-region (start end)
   "Detect Claude prompts in region between START and END.
 Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
@@ -189,17 +189,17 @@ Returns t if a match is found, nil otherwise."
 
 ;; Backwards compatibility functions
 
-;;;###autoload
+
 (defalias 'ecc-detect-simple-state 'ecc-detect-state
   "Alias for backwards compatibility with existing code.")
 
-;;;###autoload
+
 (defalias 'ecc-detect-enhanced-state 'ecc-detect-state
   "Alias for backwards compatibility with existing code.")
 
 ;; Notification interface
 
-;;;###autoload
+
 (defun ecc-state-notify-if-prompt-detected (buffer)
   "Check if BUFFER contains a Claude prompt and notify if appropriate.
 Returns the detected state if a prompt is found, nil otherwise."
@@ -215,7 +215,7 @@ Returns the detected state if a prompt is found, nil otherwise."
 
 ;; Utility function to get human-readable state name
 
-;;;###autoload
+
 (defun ecc-state-get-name (state)
   "Convert STATE symbol to a human-readable name."
   (cond

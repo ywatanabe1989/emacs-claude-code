@@ -1,366 +1,422 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 21:00:00>
+;;; Timestamp: <2025-05-20 23:15:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-buffer-state.el
 
 ;;; Commentary:
-;;; Enhanced buffer-local state management for Claude interactions.
+;;; Buffer-local state tracking for Claude detection and auto-response.
 ;;; 
-;;; This module provides robust state containers for managing Claude states
-;;; on a per-buffer basis, allowing multiple Claude instances to operate
-;;; independently with full state isolation.
+;;; This module provides enhanced buffer-local state tracking to ensure more
+;;; reliable and consistent state detection across different buffers. It builds
+;;; on the centralized state detection infrastructure but adds buffer-specific
+;;; tracking to prevent cross-buffer interference.
 ;;;
 ;;; Key features:
-;;; - Hash table-based state storage for efficient key-value operations
-;;; - Buffer-local state containers for multiple isolated Claude sessions
-;;; - Timestamps for tracking when states were detected
-;;; - Throttling mechanism to prevent too-frequent state responses
-;;; - Integration with the state detection system
-;;; - Predicates for checking specific states (Y/N, Y/Y/N, waiting, etc.)
-;;; - Compatibility with older state variables
-;;;
-;;; The buffer state system uses the following main state values:
-;;; - :y/n - Claude is presenting a Yes/No prompt
-;;; - :y/y/n - Claude is presenting a Yes/Yes-and/No prompt
-;;; - :waiting - Claude is waiting for user to continue
-;;; - :initial-waiting - Claude is in its initial waiting state
-;;;
-;;; Example usage:
-;;;
-;;;   ;; Initialize buffer state
-;;;   (ecc-buffer-state-init)
-;;;
-;;;   ;; Detect state and update
-;;;   (ecc-buffer-state-detect-and-update)
-;;;
-;;;   ;; Check if buffer has a Y/N prompt
-;;;   (when (ecc-buffer-state-y/n-p)
-;;;     (message "Y/N prompt detected"))
-;;;
-;;;   ;; Check if responses should be throttled
-;;;   (unless (ecc-buffer-state-throttled-p :waiting)
-;;;     (message "Can respond to waiting prompt"))
-;;;
-;;;   ;; Get debug information
-;;;   (message (ecc-buffer-state-debug-info))
+;;; - Buffer-local state tracking with history
+;;; - Independent throttling for each buffer
+;;; - Enhanced detection reliability through state persistence
+;;; - Automatic cleanup for dead buffers
+;;; - Clear API for buffer registration and state querying
 
 (require 'ecc-variables)
-(require 'ecc-buffer-local)
 (require 'ecc-state-detection)
+(require 'ecc-auto-core)
+(require 'ecc-debug-utils)
 
 ;;; Code:
 
-;; Constants for hash table keys
-(defconst ecc-buffer-state-key-prompt 'prompt-state
-  "Key for the current prompt state.")
+;; Customization options
 
-(defconst ecc-buffer-state-key-active 'active-state
-  "Key for the active state being processed.")
+(defgroup ecc-buffer-state nil
+  "Settings for buffer-local Claude state tracking."
+  :group 'ecc
+  :prefix "ecc-buffer-state-")
 
-(defconst ecc-buffer-state-key-last-detection 'last-detection-time
-  "Key for the timestamp of last state detection.")
+(defcustom ecc-buffer-state-history-size 10
+  "Number of previous states to keep in buffer history."
+  :type 'integer
+  :group 'ecc-buffer-state)
 
-(defconst ecc-buffer-state-default-throttle-time 5.0
-  "Default time in seconds to throttle repeated state responses.")
+(defcustom ecc-buffer-state-debug nil
+  "Whether to show debug messages for buffer state tracking."
+  :type 'boolean
+  :group 'ecc-buffer-state)
 
-;; Helper macro to reduce repetition of with-current-buffer pattern
-(defmacro ecc-buffer-state-with-buffer (buffer &rest body)
-  "Execute BODY in BUFFER or current buffer."
-  (declare (indent 1) (debug t))
-  `(with-current-buffer (or ,buffer (current-buffer))
-     ,@body))
+;; Buffer-local variables
 
-;; Buffer-local state container and accessors
+(defvar-local ecc-buffer-state-current nil
+  "Current Claude prompt state in this buffer.")
 
-(defvar-local ecc-buffer-state-container (make-hash-table :test 'eq)
-  "Buffer-local hash table for state information.
-Each key is a state property and value is the associated data.")
+(defvar-local ecc-buffer-state-prompt nil
+  "Current Claude prompt state (alias for ecc-buffer-state-current for test compatibility).")
 
-(defun ecc-buffer-state-get (key &optional buffer default)
-  "Get buffer-local state value for KEY in BUFFER.
-If BUFFER is nil, use current buffer.
-Return DEFAULT if key is not found."
-  (ecc-buffer-state-with-buffer buffer
-    (gethash key ecc-buffer-state-container default)))
+(defvar-local ecc-buffer-state-history nil
+  "History of Claude prompt states in this buffer.")
 
-(defun ecc-buffer-state-set (key value &optional buffer)
-  "Set buffer-local state KEY to VALUE in BUFFER.
-If BUFFER is nil, use current buffer.
-Returns VALUE."
-  (ecc-buffer-state-with-buffer buffer
-    (puthash key value ecc-buffer-state-container)))
+(defvar-local ecc-buffer-state-last-update 0
+  "Timestamp of last state update.")
 
-(defun ecc-buffer-state-has-key-p (key &optional buffer)
-  "Return non-nil if KEY exists in BUFFER state container.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-with-buffer buffer
-    (let ((default (make-symbol "ecc-buffer-state-not-found")))
-      (not (eq (gethash key ecc-buffer-state-container default) default)))))
+(defvar-local ecc-buffer-state-enabled nil
+  "Whether buffer-local state tracking is enabled.")
 
-(defun ecc-buffer-state-remove (key &optional buffer)
-  "Remove KEY from BUFFER state container.
-If BUFFER is nil, use current buffer.
-Returns non-nil if the key was present and removed."
-  (ecc-buffer-state-with-buffer buffer
-    (remhash key ecc-buffer-state-container)))
+(defvar-local ecc-buffer-state-data nil
+  "Plist storage for arbitrary buffer state data.")
 
-(defun ecc-buffer-state-clear (&optional buffer)
-  "Clear all state values in BUFFER.
-If BUFFER is nil, use current buffer.
-Returns the emptied hash table."
-  (ecc-buffer-state-with-buffer buffer
-    (clrhash ecc-buffer-state-container)))
+(defvar-local ecc-buffer-auto-response-enabled nil
+  "Whether auto-response is enabled for this buffer.")
 
-;; Enhanced state tracking functions 
+;; Internal tracking variables
 
-(defun ecc-buffer-state-update-prompt (state &optional buffer)
-  "Update buffer-local prompt STATE for BUFFER.
-STATE should be one of: :y/y/n, :y/n, :waiting, :initial-waiting.
-Also updates the timestamp and related state information.
-Returns the state that was set."
-  (ecc-buffer-state-with-buffer buffer
-    ;; Store current prompt state
-    (ecc-buffer-state-set ecc-buffer-state-key-prompt state)
-    ;; Store detection timestamp
-    (ecc-buffer-state-set ecc-buffer-state-key-last-detection (float-time))
-    ;; Update the last time this specific state was seen
-    (ecc-buffer-state-set 
-     (intern (format "last-%s-time" (symbol-name state)))
-     (float-time))
-    ;; For tracking active state being processed
-    (ecc-buffer-state-set ecc-buffer-state-key-active state)
-    ;; Return state that was set
-    state))
+(defvar ecc-buffer-state-registered-buffers nil
+  "List of buffers with active state tracking.")
 
-(defun ecc-buffer-state-get-prompt (&optional buffer)
-  "Get current buffer-local prompt state for BUFFER.
-If BUFFER is nil, use current buffer.
-Returns one of: :y/y/n, :y/n, :waiting, :initial-waiting, or nil."
-  (ecc-buffer-state-with-buffer buffer
-    (ecc-buffer-state-get ecc-buffer-state-key-prompt nil)))
+;; Core functions
 
-(defun ecc-buffer-state-clear-active (&optional buffer)
-  "Clear the active state being processed for BUFFER.
-If BUFFER is nil, use current buffer.
-Returns nil."
-  (ecc-buffer-state-with-buffer buffer
-    (ecc-buffer-state-set ecc-buffer-state-key-active nil)))
-
-(defun ecc-buffer-state-get-active (&optional buffer)
-  "Get the active state being processed for BUFFER.
-If BUFFER is nil, use current buffer.
-Returns the active state, or nil if none is active."
-  (ecc-buffer-state-with-buffer buffer
-    (ecc-buffer-state-get ecc-buffer-state-key-active nil)))
-
-;; Advanced state management
-
-(defun ecc-buffer-state--get-throttle-time ()
-  "Get the configured throttle time or default value."
-  (if (boundp 'ecc-auto-response-throttle-time)
-      ecc-auto-response-throttle-time
-    ecc-buffer-state-default-throttle-time))
-
-(defun ecc-buffer-state-duplicate-active-p (state &optional buffer)
-  "Check if STATE is a duplicate of the currently active state in BUFFER.
-Returns non-nil if it's a duplicate."
-  (ecc-buffer-state-with-buffer buffer
-    (eq state (ecc-buffer-state-get-active))))
-
-(defun ecc-buffer-state-time-throttled-p (state &optional buffer)
-  "Check if STATE is time-throttled in BUFFER.
-Uses buffer-local throttling state to determine if we've recently
-responded to this state and should wait. Returns non-nil if throttled."
-  (ecc-buffer-state-with-buffer buffer
-    (let* ((now (float-time))
-           (state-time-key (intern (format "last-%s-time" (symbol-name state))))
-           (last-time (ecc-buffer-state-get state-time-key nil 0.0))
-           (elapsed (- now last-time))
-           (throttle-time (ecc-buffer-state--get-throttle-time)))
-      (< elapsed throttle-time))))
-
-(defun ecc-buffer-state-throttled-p (state &optional buffer)
-  "Check if responses for STATE should be throttled in BUFFER.
-STATE is throttled if it's a duplicate of the active state or
-if it was recently seen within the throttle time window.
-Returns non-nil if throttling should be applied."
-  (or (ecc-buffer-state-duplicate-active-p state buffer)
-      (ecc-buffer-state-time-throttled-p state buffer)))
-
-(defun ecc-buffer-state-export-standard (&optional buffer)
-  "Export state to standard buffer-local variables for compatibility.
-If BUFFER is nil, use current buffer.
-Updates ecc-buffer-state, ecc-buffer-last-state-time, and ecc-buffer-active-state
-if they are defined."
-  (ecc-buffer-state-with-buffer buffer
-    ;; Update traditional ecc-buffer-* variables for compatibility
-    (let ((prompt-state (ecc-buffer-state-get ecc-buffer-state-key-prompt))
-          (detection-time (ecc-buffer-state-get ecc-buffer-state-key-last-detection))
-          (active-state (ecc-buffer-state-get ecc-buffer-state-key-active)))
-      
-      (when (boundp 'ecc-buffer-state)
-        (setq-local ecc-buffer-state prompt-state))
-      
-      (when (boundp 'ecc-buffer-last-state-time)
-        (setq-local ecc-buffer-last-state-time 
-                    (or detection-time 0.0)))
-      
-      (when (boundp 'ecc-buffer-active-state)
-        (setq-local ecc-buffer-active-state active-state)))))
-
-(defun ecc-buffer-state-import-standard (&optional buffer)
-  "Import state from standard buffer-local variables for compatibility.
-If BUFFER is nil, use current buffer.
-Imports from ecc-buffer-state, ecc-buffer-last-state-time, and ecc-buffer-active-state
-if they are defined and have values."
-  (ecc-buffer-state-with-buffer buffer
-    ;; Import from traditional ecc-buffer-* variables
-    (when (and (boundp 'ecc-buffer-state) ecc-buffer-state)
-      (ecc-buffer-state-set ecc-buffer-state-key-prompt ecc-buffer-state))
-    
-    (when (and (boundp 'ecc-buffer-last-state-time) 
-               ecc-buffer-last-state-time
-               (numberp ecc-buffer-last-state-time))
-      (ecc-buffer-state-set ecc-buffer-state-key-last-detection ecc-buffer-last-state-time))
-    
-    (when (and (boundp 'ecc-buffer-active-state) ecc-buffer-active-state)
-      (ecc-buffer-state-set ecc-buffer-state-key-active ecc-buffer-active-state))))
-
-;; Buffer state initialization
 
 (defun ecc-buffer-state-init (&optional buffer)
-  "Initialize the buffer state container for BUFFER.
-If BUFFER is nil, use current buffer.
-Returns the initialized hash table."
-  (ecc-buffer-state-with-buffer buffer
-    ;; Clear any existing state
-    (ecc-buffer-state-clear)
-    ;; Initialize standard state values
-    (ecc-buffer-state-set ecc-buffer-state-key-prompt nil)
-    (ecc-buffer-state-set ecc-buffer-state-key-last-detection 0.0)
-    (ecc-buffer-state-set ecc-buffer-state-key-active nil)
-    ;; Initialize timestamps for each state
-    (ecc-buffer-state-set 'last-:y/n-time 0.0)
-    (ecc-buffer-state-set 'last-:y/y/n-time 0.0)
-    (ecc-buffer-state-set 'last-:waiting-time 0.0)
-    (ecc-buffer-state-set 'last-:initial-waiting-time 0.0)
-    ;; Import existing state if available (for migration)
-    (ecc-buffer-state-import-standard)
-    ;; Return the container
-    ecc-buffer-state-container))
+  "Initialize buffer-local state tracking for BUFFER or current buffer.
+This is an alias for `ecc-buffer-state-enable' that's used in tests."
+  (interactive)
+  (ecc-buffer-state-enable buffer))
 
-;; Detect and update in one operation
 
-(defun ecc-buffer-state--in-test-p (test-name)
-  "Return non-nil if currently running TEST-NAME under ERT."
-  (and (boundp 'ert-current-test)
-       (string= (ert-test-name ert-current-test) test-name)))
+(defun ecc-buffer-state-enable (&optional buffer)
+  "Enable buffer-local state tracking for BUFFER or current buffer."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (setq ecc-buffer-state-enabled t
+          ecc-buffer-state-current nil
+          ecc-buffer-state-prompt nil
+          ecc-buffer-state-history nil
+          ecc-buffer-state-last-update 0
+          ecc-buffer-state-data nil)
+    (add-to-list 'ecc-buffer-state-registered-buffers (current-buffer))
+    (ecc-buffer-state-debug-message "Enabled buffer-local state tracking")))
 
-(defun ecc-buffer-state-detect-and-update (&optional buffer)
-  "Detect Claude state and update buffer-local state for BUFFER.
-If BUFFER is nil, use current buffer.
-Returns the detected state or nil."
-  (ecc-buffer-state-with-buffer buffer
-    ;; Make sure ecc-state-detection is available
-    (require 'ecc-state-detection)
-    ;; Detect state (with special handling for tests)
-    (let ((state (cond
-                  ;; Special case for buffer state tests
-                  ((ecc-buffer-state--in-test-p "test-buffer-state-detection")
-                   :y/n)
-                  ;; Normal operation
-                  (t (ecc-detect-state)))))
-      (when state
-        ;; Update all relevant state information
-        (ecc-buffer-state-update-prompt state)
-        (ecc-buffer-state-export-standard)
-        ;; Return the detected state
-        state))))
 
-;; Buffer state predicates for specific states
+(defun ecc-buffer-state-disable (&optional buffer)
+  "Disable buffer-local state tracking for BUFFER or current buffer."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (setq ecc-buffer-state-enabled nil)
+    (setq ecc-buffer-state-registered-buffers
+          (delq (current-buffer) ecc-buffer-state-registered-buffers))
+    (ecc-buffer-state-debug-message "Disabled buffer-local state tracking")))
 
-(defun ecc-buffer-state-has-prompt-p (expected-state &optional buffer)
-  "Check if BUFFER has EXPECTED-STATE as its prompt state.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-with-buffer buffer
-    (eq (ecc-buffer-state-get-prompt) expected-state)))
 
-(defun ecc-buffer-state-waiting-p (&optional buffer)
-  "Return non-nil if BUFFER has a waiting prompt state.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-has-prompt-p :waiting buffer))
+(defun ecc-buffer-state-update (&optional buffer force)
+  "Update buffer-local state for BUFFER or current buffer.
+When FORCE is non-nil, forces update even if throttled."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (when (or (not ecc-buffer-state-enabled)
+              (not (ecc-buffer-state-should-update-p)))
+      (ecc-buffer-state-debug-message "Skipping update due to throttling")
+      (cl-return-from ecc-buffer-state-update nil))
+    
+    ;; Detect current state
+    (let ((new-state (ecc-detect-state)))
+      (when (or new-state force (not ecc-buffer-state-current))
+        ;; Update timestamp and state
+        (setq ecc-buffer-state-last-update (float-time))
+        
+        ;; Only record if we have a new state or being forced
+        (when (or new-state force)
+          ;; Update history
+          (push new-state ecc-buffer-state-history)
+          (when (> (length ecc-buffer-state-history) ecc-buffer-state-history-size)
+            (setq ecc-buffer-state-history 
+                  (seq-take ecc-buffer-state-history ecc-buffer-state-history-size)))
+          
+          ;; Update current state
+          (setq ecc-buffer-state-current new-state)
+          
+          ;; Debug output
+          (ecc-buffer-state-debug-message "Updated state to %s" 
+                                          (ecc-state-get-name new-state))
+          
+          ;; Return the new state
+          new-state)))))
 
-(defun ecc-buffer-state-y/n-p (&optional buffer)
-  "Return non-nil if BUFFER has a Y/N prompt state.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-has-prompt-p :y/n buffer))
 
-(defun ecc-buffer-state-y/y/n-p (&optional buffer)
-  "Return non-nil if BUFFER has a Y/Y/N prompt state.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-has-prompt-p :y/y/n buffer))
 
-(defun ecc-buffer-state-initial-waiting-p (&optional buffer)
-  "Return non-nil if BUFFER has an initial waiting prompt state.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-has-prompt-p :initial-waiting buffer))
+(defun ecc-buffer-state-get-last-update (&optional buffer)
+  "Get timestamp of last state update for BUFFER or current buffer.
+Returns 0 if state tracking is not enabled."
+  (with-current-buffer (or buffer (current-buffer))
+    (if ecc-buffer-state-enabled
+        ecc-buffer-state-last-update
+      0)))
 
-;; Debugging helpers
 
-(defun ecc-buffer-state-debug-info (&optional buffer)
-  "Return debug info about buffer state for BUFFER.
-If BUFFER is nil, use current buffer."
-  (ecc-buffer-state-with-buffer buffer
-    (let* ((now (float-time))
-           (prompt-state (ecc-buffer-state-get ecc-buffer-state-key-prompt))
-           (last-detection (ecc-buffer-state-get ecc-buffer-state-key-last-detection))
-           (active-state (ecc-buffer-state-get ecc-buffer-state-key-active))
-           (last-y/n (ecc-buffer-state-get 'last-:y/n-time))
-           (last-y/y/n (ecc-buffer-state-get 'last-:y/y/n-time))
-           (last-waiting (ecc-buffer-state-get 'last-:waiting-time))
-           (last-initial (ecc-buffer-state-get 'last-:initial-waiting-time)))
-      (format "Buffer: %s
-Current State: %s
-Last Detection: %.1f seconds ago
-Active State: %s
-Last Y/N: %.1f seconds ago
-Last Y/Y/N: %.1f seconds ago
-Last Waiting: %.1f seconds ago
-Last Initial: %.1f seconds ago"
-              (buffer-name)
-              prompt-state
-              (- now (or last-detection 0.0))
-              active-state
-              (- now (or last-y/n 0.0))
-              (- now (or last-y/y/n 0.0))
-              (- now (or last-waiting 0.0))
-              (- now (or last-initial 0.0))))))
+(defun ecc-buffer-state-update-prompt (state &optional buffer)
+  "Update buffer's prompt STATE for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (setq ecc-buffer-state-current state)
+    (push state ecc-buffer-state-history)
+    (when (> (length ecc-buffer-state-history) ecc-buffer-state-history-size)
+      (setq ecc-buffer-state-history 
+            (seq-take ecc-buffer-state-history ecc-buffer-state-history-size)))
+    (setq ecc-buffer-state-last-update (float-time))
+    state))
 
-;; Public API aliases for backwards compatibility
 
-;;;###autoload
-(defalias 'ecc-buffer-state-update 'ecc-buffer-state-update-prompt
-  "Compatibility alias for updating buffer state.")
+(defun ecc-buffer-state-export-standard (&optional buffer)
+  "Export buffer's state to standard variables for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-current
+      ;; Export to standard detection variables if they exist
+      (when (boundp 'ecc-last-detected-state)
+        (setq-default ecc-last-detected-state ecc-buffer-state-current))
+      ;; Any other exports could be added here
+      )
+    ecc-buffer-state-current))
 
-;;;###autoload
-(defalias 'ecc-buffer-get-prompt-state 'ecc-buffer-state-get-prompt
-  "Compatibility alias for getting buffer prompt state.")
+(defun ecc-buffer-state-set (key value &optional buffer)
+  "Set buffer-local state KEY to VALUE for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (unless ecc-buffer-state-enabled 
+      (ecc-buffer-state-init))
+    (put 'ecc-buffer-state-current key value)
+    value))
 
-;;;###autoload
-(defalias 'ecc-buffer-state-detect 'ecc-buffer-state-detect-and-update
-  "Compatibility alias for detecting and updating buffer state.")
 
-;; Additional API functions - deprecated but kept for backward compatibility
+(defun ecc-buffer-state-get (&optional key-or-buffer buffer-if-key-provided)
+  "Get buffer-local state from BUFFER.
+If KEY-OR-BUFFER is a symbol and not a buffer, treats it as a property key.
+If KEY-OR-BUFFER is a buffer or nil, treats it as the buffer parameter.
+For backward compatibility with both calling patterns:
+  (ecc-buffer-state-get) -> get current state from current buffer
+  (ecc-buffer-state-get buffer) -> get current state from buffer
+  (ecc-buffer-state-get 'key) -> get property 'key from current buffer
+  (ecc-buffer-state-get 'key buffer) -> get property 'key from buffer"
+  (let ((key nil)
+        (buffer nil))
+    ;; Parse arguments to support both calling patterns
+    (cond
+     ;; No arguments: get current state from current buffer
+     ((null key-or-buffer)
+      (setq buffer (current-buffer)))
+     ;; First arg is a buffer: get current state from that buffer
+     ((bufferp key-or-buffer)
+      (setq buffer key-or-buffer))
+     ;; First arg is a symbol: treat as key, second arg as buffer
+     ((symbolp key-or-buffer)
+      (setq key key-or-buffer)
+      (setq buffer (or buffer-if-key-provided (current-buffer))))
+     ;; Fallback: treat first arg as buffer
+     (t
+      (setq buffer key-or-buffer)))
+    
+    (with-current-buffer buffer
+      (if key
+          ;; Get specific property key
+          (progn
+            (unless ecc-buffer-state-enabled 
+              (ecc-buffer-state-init))
+            (get 'ecc-buffer-state-current key))
+        ;; Get current state (original behavior)
+        (if ecc-buffer-state-enabled
+            ;; Return tracked state or update if needed
+            (or ecc-buffer-state-current
+                (ecc-buffer-state-update))
+          ;; Detect on demand if tracking isn't enabled
+          (ecc-detect-state))))))
 
-;;;###autoload
-(define-obsolete-function-alias 'ecc-update-buffer-state 
-  'ecc-buffer-state-update-prompt "May 2025"
-  "Update the buffer state. Use `ecc-buffer-state-update-prompt' instead.")
 
-;;;###autoload
-(define-obsolete-function-alias 'ecc-get-buffer-state 
-  'ecc-buffer-state-get-prompt "May 2025"
-  "Get the buffer state. Use `ecc-buffer-state-get-prompt' instead.")
+(defun ecc-buffer-state-get-prompt (&optional buffer)
+  "Get prompt state from BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (ecc-buffer-state-get)))
+
+
+(defun ecc-buffer-state-has-key-p (key &optional buffer)
+  "Check if buffer state has KEY in BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (and ecc-buffer-state-enabled
+         (get 'ecc-buffer-state-current key))))
+
+;; Auto-response integration
+
+
+(defun ecc-buffer-state-enable-auto-response (&optional buffer)
+  "Enable both state tracking and auto-response for BUFFER or current buffer."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    ;; Enable state tracking first
+    (ecc-buffer-state-enable)
+    
+    ;; Enable auto-response
+    (setq ecc-buffer-auto-response-enabled t)
+    
+    ;; Register with auto-core
+    (ecc-auto-core-register-buffer (current-buffer))
+    
+    (ecc-buffer-state-debug-message "Enabled auto-response with buffer-local state tracking")
+    
+    ;; Return the buffer
+    (current-buffer)))
+
+
+(defun ecc-buffer-state-disable-auto-response (&optional buffer)
+  "Disable auto-response for BUFFER or current buffer."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    ;; Disable auto-response
+    (setq ecc-buffer-auto-response-enabled nil)
+    
+    ;; Unregister from auto-core
+    (ecc-auto-core-unregister-buffer (current-buffer))
+    
+    (ecc-buffer-state-debug-message "Disabled auto-response")))
+
+;; Utility functions
+
+(defun ecc-buffer-state-should-update-p ()
+  "Return t if state should be updated based on throttling.
+This prevents too-frequent updates to improve performance."
+  (> (- (float-time) ecc-buffer-state-last-update)
+     (or (and (boundp 'ecc-auto-core-throttle-time)
+              ecc-auto-core-throttle-time)
+         1.0)))
+
+(defun ecc-buffer-state-cleanup-buffers ()
+  "Clean up the buffer registry by removing dead buffers."
+  (setq ecc-buffer-state-registered-buffers
+        (seq-filter #'buffer-live-p ecc-buffer-state-registered-buffers))
+  ecc-buffer-state-registered-buffers)
+
+(defun ecc-buffer-state-debug-message (format-string &rest args)
+  "Output a debug message if buffer state debugging is enabled.
+Uses FORMAT-STRING and ARGS like `message`."
+  (when ecc-buffer-state-debug
+    (apply #'message
+           (concat "[Buffer State] " format-string)
+           args)))
+
+;; State history and analysis
+
+
+(defun ecc-buffer-state-history (&optional buffer)
+  "Get history of Claude prompt states for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (if ecc-buffer-state-enabled
+        ecc-buffer-state-history
+      nil)))
+
+  
+(defun ecc-buffer-state-add-to-history (state &optional buffer)
+  "Add STATE to history for BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      ;; Add to front of history list
+      (push state ecc-buffer-state-history)
+      ;; Trim history to max size
+      (when (> (length ecc-buffer-state-history) ecc-buffer-state-history-size)
+        (setq ecc-buffer-state-history
+              (cl-subseq ecc-buffer-state-history 0 ecc-buffer-state-history-size))))))
+
+
+(defun ecc-buffer-state-changed-p (&optional buffer)
+  "Return t if state has changed in BUFFER or current buffer.
+Compares current state with previous state in history."
+  (with-current-buffer (or buffer (current-buffer))
+    (when (and ecc-buffer-state-enabled
+               ecc-buffer-state-history
+               (> (length ecc-buffer-state-history) 1))
+      (not (eq (nth 0 ecc-buffer-state-history)
+               (nth 1 ecc-buffer-state-history))))))
+
+;; Status reporting
+
+
+(defun ecc-buffer-state-status (&optional buffer)
+  "Return status string for buffer state tracking in BUFFER or current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (format "Buffer State Status for %s:
+  State Tracking: %s
+  Auto-Response: %s
+  Current State: %s
+  Last Update: %.2f seconds ago
+  History Size: %d states"
+            (buffer-name)
+            (if ecc-buffer-state-enabled "Enabled" "Disabled")
+            (if ecc-buffer-auto-response-enabled "Enabled" "Disabled")
+            (if ecc-buffer-state-current
+                (ecc-state-get-name ecc-buffer-state-current)
+              "None")
+            (- (float-time) ecc-buffer-state-last-update)
+            (length ecc-buffer-state-history))))
+
+
+(defun ecc-buffer-state-print-status (&optional buffer)
+  "Print status information about buffer state tracking to messages."
+  (interactive)
+  (ecc-debug-message "%s" (ecc-buffer-state-status buffer)))
+
+;; Global management
+
+
+(defun ecc-buffer-state-update-all-buffers ()
+  "Update state for all registered buffers."
+  (interactive)
+  (ecc-buffer-state-cleanup-buffers)
+  (let ((count 0))
+    (dolist (buffer ecc-buffer-state-registered-buffers)
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (when (ecc-buffer-state-update)
+            (setq count (1+ count))))))
+    (ecc-buffer-state-debug-message "Updated %d buffers" count)
+    count))
+
+
+(defun ecc-buffer-state-toggle-debug ()
+  "Toggle debug output for buffer state tracking."
+  (interactive)
+  (setq ecc-buffer-state-debug (not ecc-buffer-state-debug))
+  (ecc-debug-message "Buffer state debug %s"
+           (if ecc-buffer-state-debug "enabled" "disabled")))
+
+;; Test compatibility API functions
+;; These functions provide the interface expected by tests
+
+
+(defun ecc-buffer-state-update-prompt (state &optional buffer)
+  "Update prompt state to STATE for BUFFER or current buffer.
+This is a test-compatible wrapper around the main state tracking."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      (setq ecc-buffer-state-current state
+            ecc-buffer-state-prompt state)
+      (ecc-buffer-state-add-to-history state))))
+
+
+(defun ecc-buffer-state-get-prompt (&optional buffer)
+  "Get current prompt state for BUFFER or current buffer.
+This is a test-compatible function that returns the stored prompt state."
+  (with-current-buffer (or buffer (current-buffer))
+    (if ecc-buffer-state-enabled
+        ecc-buffer-state-current
+      nil)))
+
+  
+(defun ecc-buffer-state-set (key value &optional buffer)
+  "Set arbitrary state KEY to VALUE for BUFFER or current buffer.
+This provides a generic key-value store for buffer state."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      ;; Store in a simple plist structure
+      (setq ecc-buffer-state-data
+            (plist-put (or ecc-buffer-state-data nil) key value)))))
+
+
+(defun ecc-buffer-state-get (key &optional buffer)
+  "Get value for state KEY from BUFFER or current buffer.
+This retrieves values from the generic key-value store."
+  (with-current-buffer (or buffer (current-buffer))
+    (when ecc-buffer-state-enabled
+      (plist-get ecc-buffer-state-data key))))
 
 (provide 'ecc-buffer-state)
 

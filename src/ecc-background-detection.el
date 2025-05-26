@@ -76,15 +76,21 @@ Returns the detected state or nil."
             ;; Detect using the entire buffer
             (let ((state (ecc-detect-state)))
               (when state
-                ;; Update buffer-local state tracking
-                (ecc-buffer-state-update-prompt state)
+                ;; Update buffer-local state through consolidated interface if available
+                (when (fboundp 'ecc-state-update-buffer-state)
+                  (ecc-state-update-buffer-state buffer state))
+                
+                ;; Legacy support - Update buffer-local state tracking
+                (when (fboundp 'ecc-buffer-state-update-prompt)
+                  (ecc-buffer-state-update-prompt state))
                 ;; Also update traditional variables for compatibility
-                (ecc-buffer-state-export-standard)
+                (when (fboundp 'ecc-buffer-state-export-standard)
+                  (ecc-buffer-state-export-standard))
                 ;; Return detected state
                 state))))
       (error
        (when ecc-background-detection-debug
-         (message "Error in background detection for %s: %s"
+         (ecc-debug-message "Error in background detection for %s: %s"
                   (buffer-name buffer) (error-message-string err)))
        nil))))
 
@@ -99,7 +105,7 @@ Returns the detected state or nil."
               (funcall ecc-background-detection-callback buffer state)
             (error
              (when ecc-background-detection-debug
-               (message "Error in background detection callback: %s"
+               (ecc-debug-message "Error in background detection callback: %s"
                         (error-message-string err))))))
         state))))
 
@@ -132,7 +138,7 @@ Checks each buffer for Claude prompt states and updates state tracking."
       
       ;; Optional debug output
       (when (and ecc-background-detection-debug (> buffers-checked 0))
-        (message "Background detection processed %d buffers, found states in %d"
+        (ecc-debug-message "Background detection processed %d buffers, found states in %d"
                  buffers-checked buffers-with-states)))
     
     ;; Clear processing flag
@@ -192,7 +198,7 @@ Returns the buffer if registered, nil otherwise."
 
 ;; Public API
 
-;;;###autoload
+
 (defun ecc-background-detection-start (&optional callback)
   "Start background detection with optional CALLBACK function.
 The callback should take two arguments: buffer and detected state.
@@ -202,13 +208,13 @@ If CALLBACK is nil, detection runs but no actions are taken."
     (setq ecc-background-detection-active t)
     (setq ecc-background-detection-callback callback)
     (ecc-background-detection-timer-start)
-    (message "Background detection started"))
+    (ecc-debug-message "Background detection started"))
   
   ;; Try to register current buffer if interactive
   (when (called-interactively-p 'any)
     (ecc-background-detection-register-buffer (current-buffer))))
 
-;;;###autoload
+
 (defun ecc-background-detection-stop ()
   "Stop background detection system."
   (interactive)
@@ -216,9 +222,9 @@ If CALLBACK is nil, detection runs but no actions are taken."
     (setq ecc-background-detection-active nil)
     (setq ecc-background-detection-callback nil)
     (ecc-background-detection-timer-stop)
-    (message "Background detection stopped")))
+    (ecc-debug-message "Background detection stopped")))
 
-;;;###autoload
+
 (defun ecc-background-detection-toggle (&optional callback)
   "Toggle background detection with optional CALLBACK function."
   (interactive)
@@ -226,7 +232,7 @@ If CALLBACK is nil, detection runs but no actions are taken."
       (ecc-background-detection-stop)
     (ecc-background-detection-start callback)))
 
-;;;###autoload
+
 (defun ecc-background-detection-add-buffer (&optional buffer)
   "Add BUFFER to background detection.
 If BUFFER is nil, use current buffer."
@@ -234,10 +240,10 @@ If BUFFER is nil, use current buffer."
   (let ((buf (or buffer (current-buffer))))
     (when (ecc-background-detection-register-buffer buf)
       (when (called-interactively-p 'any)
-        (message "Added buffer %s to background detection" (buffer-name buf)))
+        (ecc-debug-message "Added buffer %s to background detection" (buffer-name buf)))
       buf)))
 
-;;;###autoload
+
 (defun ecc-background-detection-remove-buffer (&optional buffer)
   "Remove BUFFER from background detection.
 If BUFFER is nil, use current buffer."
@@ -245,19 +251,19 @@ If BUFFER is nil, use current buffer."
   (let ((buf (or buffer (current-buffer))))
     (ecc-background-detection-unregister-buffer buf)
     (when (called-interactively-p 'any)
-      (message "Removed buffer %s from background detection" (buffer-name buf)))))
+      (ecc-debug-message "Removed buffer %s from background detection" (buffer-name buf)))))
 
 ;; Debugging helpers
 
-;;;###autoload
+
 (defun ecc-background-detection-debug-toggle ()
   "Toggle debug output for background detection."
   (interactive)
   (setq ecc-background-detection-debug (not ecc-background-detection-debug))
-  (message "Background detection debug %s"
+  (ecc-debug-message "Background detection debug %s"
            (if ecc-background-detection-debug "enabled" "disabled")))
 
-;;;###autoload
+
 (defun ecc-background-detection-status ()
   "Display status information about background detection."
   (interactive)
@@ -282,7 +288,7 @@ If BUFFER is nil, use current buffer."
                  ecc-background-detection-idle-delay
                  ecc-background-detection-chunk-size)))
     (if (called-interactively-p 'any)
-        (message "%s" status-msg)
+        (ecc-debug-message "%s" status-msg)
       status-msg)))
 
 (provide 'ecc-background-detection)

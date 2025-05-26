@@ -1,7 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 22:00:00>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/ecc-state/test-background-detection.el
+;;; Timestamp: <2025-05-24 20:54:08>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/ecc-state/test-background-detection.el
+
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 ;;; Commentary:
 ;;; Tests for the background detection system.
@@ -13,11 +16,19 @@
 (require 'ecc-background-detection)
 
 ;; Test fixtures
+
 (defvar ecc-background-test-buffer-a nil "First test buffer.")
+
 (defvar ecc-background-test-buffer-b nil "Second test buffer.")
-(defvar ecc-background-test-callback-called nil "Whether callback was called.")
-(defvar ecc-background-test-callback-buffer nil "Buffer passed to callback.")
-(defvar ecc-background-test-callback-state nil "State detected in callback.")
+
+(defvar ecc-background-test-callback-called nil
+  "Whether callback was called.")
+
+(defvar ecc-background-test-callback-buffer nil
+  "Buffer passed to callback.")
+
+(defvar ecc-background-test-callback-state nil
+  "State detected in callback.")
 
 (defun ecc-background-test-setup ()
   "Set up test buffers for background detection tests."
@@ -25,27 +36,31 @@
   (setq ecc-background-test-callback-called nil)
   (setq ecc-background-test-callback-buffer nil)
   (setq ecc-background-test-callback-state nil)
-  
+
   ;; Create test buffers
-  (setq ecc-background-test-buffer-a (generate-new-buffer "*ecc-bg-test-a*"))
-  (setq ecc-background-test-buffer-b (generate-new-buffer "*ecc-bg-test-b*"))
-  
+  (setq ecc-background-test-buffer-a
+        (generate-new-buffer "*ecc-bg-test-a*"))
+  (setq ecc-background-test-buffer-b
+        (generate-new-buffer "*ecc-bg-test-b*"))
+
   ;; Initialize buffer state
   (with-current-buffer ecc-background-test-buffer-a
     (ecc-buffer-state-init))
   (with-current-buffer ecc-background-test-buffer-b
     (ecc-buffer-state-init))
-  
+
   ;; Fill with different content
   (with-current-buffer ecc-background-test-buffer-a
     (erase-buffer)
     (insert "Some content here\n")
-    (insert "│ > Try \n"))  ;; initial-waiting pattern
-  
+    (insert "│ > Try "))
+  ;; initial-waiting pattern - exact match
+
   (with-current-buffer ecc-background-test-buffer-b
     (erase-buffer)
     (insert "Other content\n")
-    (insert "[Y/n]\n")))  ;; y/n pattern
+    (insert "[Y/n]\n")))
+;; y/n pattern
 
 (defun ecc-background-test-teardown ()
   "Clean up test environment."
@@ -53,13 +68,13 @@
   (when (and (boundp 'ecc-background-detection-active)
              ecc-background-detection-active)
     (ecc-background-detection-stop))
-  
+
   ;; Kill test buffers
   (when (buffer-live-p ecc-background-test-buffer-a)
     (kill-buffer ecc-background-test-buffer-a))
   (when (buffer-live-p ecc-background-test-buffer-b)
     (kill-buffer ecc-background-test-buffer-b))
-  
+
   ;; Reset variables
   (setq ecc-background-test-buffer-a nil)
   (setq ecc-background-test-buffer-b nil)
@@ -81,27 +96,32 @@ Stores BUFFER and STATE for inspection."
       (progn
         ;; Ensure clean state
         (setq ecc-background-detection-registered-buffers nil)
-        
+
         ;; Test registration
         (should (eq (ecc-background-detection-register-buffer
                      ecc-background-test-buffer-a)
                     ecc-background-test-buffer-a))
-        (should (= (length ecc-background-detection-registered-buffers) 1))
-        
+        (should
+         (= (length ecc-background-detection-registered-buffers) 1))
+
         ;; Test multiple registrations
-        (ecc-background-detection-register-buffer ecc-background-test-buffer-b)
-        (should (= (length ecc-background-detection-registered-buffers) 2))
-        (should (member ecc-background-test-buffer-a 
-                       ecc-background-detection-registered-buffers))
+        (ecc-background-detection-register-buffer
+         ecc-background-test-buffer-b)
+        (should
+         (= (length ecc-background-detection-registered-buffers) 2))
+        (should (member ecc-background-test-buffer-a
+                        ecc-background-detection-registered-buffers))
         (should (member ecc-background-test-buffer-b
-                       ecc-background-detection-registered-buffers))
-        
+                        ecc-background-detection-registered-buffers))
+
         ;; Test unregistration
-        (ecc-background-detection-unregister-buffer ecc-background-test-buffer-a)
-        (should (= (length ecc-background-detection-registered-buffers) 1))
+        (ecc-background-detection-unregister-buffer
+         ecc-background-test-buffer-a)
+        (should
+         (= (length ecc-background-detection-registered-buffers) 1))
         (should-not (member ecc-background-test-buffer-a
-                           ecc-background-detection-registered-buffers))
-        
+                            ecc-background-detection-registered-buffers))
+
         ;; Test getting registered buffers
         (let ((buffers (ecc-background-detection-registered-buffers)))
           (should (= (length buffers) 1))
@@ -114,24 +134,29 @@ Stores BUFFER and STATE for inspection."
   (unwind-protect
       (progn
         ;; Set up callback
-        (setq ecc-background-detection-callback #'ecc-background-test-callback)
-        
+        (setq ecc-background-detection-callback
+              #'ecc-background-test-callback)
+
         ;; Test detection without cursor
         (with-current-buffer ecc-background-test-buffer-a
           ;; Move cursor to beginning (away from prompt)
           (goto-char (point-min))
-          
+
           ;; Should still detect state
           (should (eq (ecc-background-detect-state-in-buffer
                        ecc-background-test-buffer-a)
                       :initial-waiting)))
-        
+
         ;; Test callback
-        (ecc-background-detection-check-buffer ecc-background-test-buffer-a)
+        (ecc-background-detection-check-buffer
+         ecc-background-test-buffer-a)
         (should ecc-background-test-callback-called)
-        (should (eq ecc-background-test-callback-buffer ecc-background-test-buffer-a))
-        (should (eq ecc-background-test-callback-state :initial-waiting))
-        
+        (should
+         (eq ecc-background-test-callback-buffer
+             ecc-background-test-buffer-a))
+        (should
+         (eq ecc-background-test-callback-state :initial-waiting))
+
         ;; Test state tracking was updated
         (with-current-buffer ecc-background-test-buffer-a
           (should (eq (ecc-buffer-state-get-prompt) :initial-waiting))))
@@ -145,23 +170,31 @@ Stores BUFFER and STATE for inspection."
         ;; Set flags for testing
         (setq ecc-background-detection-active t)
         (setq ecc-background-detection-processing nil)
-        (setq ecc-background-detection-callback #'ecc-background-test-callback)
+        (setq ecc-background-detection-callback
+              #'ecc-background-test-callback)
         (setq ecc-background-detection-registered-buffers nil)
-        
+
         ;; Register both buffers
-        (ecc-background-detection-register-buffer ecc-background-test-buffer-a)
-        (ecc-background-detection-register-buffer ecc-background-test-buffer-b)
-        
+        (ecc-background-detection-register-buffer
+         ecc-background-test-buffer-a)
+        (ecc-background-detection-register-buffer
+         ecc-background-test-buffer-b)
+
         ;; Process buffers
         (ecc-background-detection-process-buffers)
-        
+
         ;; Check that the callback was called for at least one buffer
         (should ecc-background-test-callback-called)
-        (should (or (eq ecc-background-test-callback-buffer ecc-background-test-buffer-a)
-                   (eq ecc-background-test-callback-buffer ecc-background-test-buffer-b)))
-        (should (or (eq ecc-background-test-callback-state :initial-waiting)
-                   (eq ecc-background-test-callback-state :y/n)))
-        
+        (should (or
+                 (eq ecc-background-test-callback-buffer
+                     ecc-background-test-buffer-a)
+                 (eq ecc-background-test-callback-buffer
+                     ecc-background-test-buffer-b)))
+        (should (or
+                 (eq ecc-background-test-callback-state
+                     :initial-waiting)
+                 (eq ecc-background-test-callback-state :y/n)))
+
         ;; Check that both buffers have stored states
         (with-current-buffer ecc-background-test-buffer-a
           (should (eq (ecc-buffer-state-get-prompt) :initial-waiting)))
@@ -177,12 +210,12 @@ Stores BUFFER and STATE for inspection."
         ;; Ensure timers are cleared
         (setq ecc-background-detection-timer nil)
         (setq ecc-background-detection-idle-timer nil)
-        
+
         ;; Start timer
         (ecc-background-detection-timer-start)
         (should (timerp ecc-background-detection-timer))
         (should (timerp ecc-background-detection-idle-timer))
-        
+
         ;; Stop timer
         (ecc-background-detection-timer-stop)
         (should-not ecc-background-detection-timer)
@@ -197,28 +230,33 @@ Stores BUFFER and STATE for inspection."
         ;; Test start function
         (ecc-background-detection-start #'ecc-background-test-callback)
         (should ecc-background-detection-active)
-        (should (eq ecc-background-detection-callback #'ecc-background-test-callback))
+        (should
+         (eq ecc-background-detection-callback
+             #'ecc-background-test-callback))
         (should (timerp ecc-background-detection-timer))
-        
+
         ;; Test stop function
         (ecc-background-detection-stop)
         (should-not ecc-background-detection-active)
         (should-not ecc-background-detection-callback)
         (should-not ecc-background-detection-timer)
-        
+
         ;; Test toggle function
-        (ecc-background-detection-toggle #'ecc-background-test-callback)
+        (ecc-background-detection-toggle
+         #'ecc-background-test-callback)
         (should ecc-background-detection-active)
         (ecc-background-detection-toggle)
         (should-not ecc-background-detection-active)
-        
+
         ;; Test buffer API
-        (ecc-background-detection-add-buffer ecc-background-test-buffer-a)
+        (ecc-background-detection-add-buffer
+         ecc-background-test-buffer-a)
         (should (member ecc-background-test-buffer-a
-                       ecc-background-detection-registered-buffers))
-        (ecc-background-detection-remove-buffer ecc-background-test-buffer-a)
+                        ecc-background-detection-registered-buffers))
+        (ecc-background-detection-remove-buffer
+         ecc-background-test-buffer-a)
         (should-not (member ecc-background-test-buffer-a
-                           ecc-background-detection-registered-buffers)))
+                            ecc-background-detection-registered-buffers)))
     (ecc-background-test-teardown)))
 
 (ert-deftest ecc-test-background-detection-integration ()
@@ -231,16 +269,19 @@ Stores BUFFER and STATE for inspection."
           (ecc-buffer-state-init))
         (with-current-buffer ecc-background-test-buffer-b
           (ecc-buffer-state-init))
-        
+
         ;; Register buffers
-        (ecc-background-detection-register-buffer ecc-background-test-buffer-a)
-        (ecc-background-detection-register-buffer ecc-background-test-buffer-b)
-        
+        (ecc-background-detection-register-buffer
+         ecc-background-test-buffer-a)
+        (ecc-background-detection-register-buffer
+         ecc-background-test-buffer-b)
+
         ;; Test detection updates state correctly
-        (ecc-background-detect-state-in-buffer ecc-background-test-buffer-a)
+        (ecc-background-detect-state-in-buffer
+         ecc-background-test-buffer-a)
         (with-current-buffer ecc-background-test-buffer-a
           (should (eq (ecc-buffer-state-get-prompt) :initial-waiting)))
-        
+
         ;; Change buffer content and test detection again
         (with-current-buffer ecc-background-test-buffer-a
           (erase-buffer)
@@ -248,13 +289,21 @@ Stores BUFFER and STATE for inspection."
           (insert "[Y/y/n]\n")  ;; y/y/n pattern
           ;; Move cursor away from prompt
           (goto-char (point-min)))
-        
+
         ;; Should still detect new state
-        (ecc-background-detect-state-in-buffer ecc-background-test-buffer-a)
+        (ecc-background-detect-state-in-buffer
+         ecc-background-test-buffer-a)
         (with-current-buffer ecc-background-test-buffer-a
           (should (eq (ecc-buffer-state-get-prompt) :y/y/n))))
     (ecc-background-test-teardown)))
 
+;;; test-background-detection.el ends here
+
+
 (provide 'test-background-detection)
 
-;;; test-background-detection.el ends here
+(when
+    (not load-file-name)
+  (message "test-background-detection.el loaded."
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))

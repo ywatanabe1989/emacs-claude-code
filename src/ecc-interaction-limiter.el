@@ -71,7 +71,7 @@ Returns t if auto-response is allowed, nil otherwise."
       (when (and (not count-limit-reached)
                  (>= ecc-interaction-counter 
                      (* ecc-interaction-limit-count ecc-interaction-limit-warn-threshold)))
-        (message "Warning: Approaching interaction limit (%d/%d)" 
+        (ecc-debug-message "Warning: Approaching interaction limit (%d/%d)" 
                  ecc-interaction-counter ecc-interaction-limit-count))
       
       ;; Handle count limit
@@ -115,7 +115,7 @@ Returns whether to allow the auto-response to proceed."
                      ('count "session")
                      ('time "hourly")
                      (_ "unknown"))))
-    (message "Claude auto-response %s limit reached: %d/%d" 
+    (ecc-debug-message "Claude auto-response %s limit reached: %d/%d" 
              type-str current-count limit)))
 
 (defun ecc-interaction-prompt-for-override (limit-type current-count)
@@ -149,43 +149,43 @@ Returns t if limit reached, nil otherwise."
                             ecc-interaction-timestamps)))
     (length recent-timestamps)))
 
-;;;###autoload
+
 (defun ecc-toggle-interaction-limits ()
   "Toggle auto-response limits on/off."
   (interactive)
   (setq ecc-interaction-limit-enabled (not ecc-interaction-limit-enabled))
-  (message "Claude auto-response limits %s (max: %d per session, %s)"
+  (ecc-debug-message "Claude auto-response limits %s (max: %d per session, %s)"
            (if ecc-interaction-limit-enabled "enabled" "disabled")
            ecc-interaction-limit-count
            (if ecc-interaction-limit-per-time-enabled
                (format "max: %d per hour" ecc-interaction-limit-per-hour)
              "no hourly limit")))
 
-;;;###autoload
+
 (defun ecc-set-interaction-limit (count)
   "Set the maximum number of allowed auto-responses to COUNT."
   (interactive "nMax auto-responses: ")
   (setq ecc-interaction-limit-count count)
-  (message "Claude auto-response limit set to %d %s"
+  (ecc-debug-message "Claude auto-response limit set to %d %s"
            count
            (if ecc-interaction-limit-enabled "auto-responses (enabled)" "auto-responses (currently disabled)")))
 
-;;;###autoload
+
 (defun ecc-toggle-time-based-limits ()
   "Toggle time-based auto-response limits on/off."
   (interactive)
   (setq ecc-interaction-limit-per-time-enabled 
         (not ecc-interaction-limit-per-time-enabled))
-  (message "Time-based auto-response limits %s (max: %d per hour)"
+  (ecc-debug-message "Time-based auto-response limits %s (max: %d per hour)"
            (if ecc-interaction-limit-per-time-enabled "enabled" "disabled")
            ecc-interaction-limit-per-hour))
 
-;;;###autoload
+
 (defun ecc-set-hourly-interaction-limit (count)
   "Set the maximum number of allowed auto-responses per hour to COUNT."
   (interactive "nMax auto-responses per hour: ")
   (setq ecc-interaction-limit-per-hour count)
-  (message "Hourly auto-response limit set to %d %s"
+  (ecc-debug-message "Hourly auto-response limit set to %d %s"
            count
            (if ecc-interaction-limit-per-time-enabled 
                "auto-responses (enabled)" 

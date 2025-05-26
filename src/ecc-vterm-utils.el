@@ -36,13 +36,13 @@ the user's reading position."
   :type 'integer
   :group 'ecc-vterm-utils)
 
-(defcustom ecc-vterm-utils-delay 0.2
+(defcustom ecc-vterm-utils-delay 1.0
   "Delay in seconds between vterm commands for stability.
 A small delay helps ensure commands are processed correctly by the terminal."
   :type 'number
   :group 'ecc-vterm-utils)
 
-;;;###autoload
+
 (defun ecc-vterm-utils-send-string (buffer response &optional debug-fn)
   "Send RESPONSE string to vterm in BUFFER.
 Preserves cursor position if user is reading earlier content.
@@ -55,7 +55,7 @@ string and arguments for debug output."
       (let ((distance-from-end (- (point-max) (point)))
             ;; Use provided debug-fn or create a standard one if needed
             (debug-function (or debug-fn 
-                               (ecc-debug-utils-make-debug-fn buffer))))
+                               (ecc-debug-make-debug-fn buffer))))
         
         ;; Send debug messages
         (when debug-function
@@ -90,7 +90,7 @@ string and arguments for debug output."
         (when debug-function
           (funcall debug-function "Send complete. Final point: %d" (point)))))))
 
-;;;###autoload
+
 (defun ecc-vterm-utils-send-command (buffer command &optional debug-fn)
   "Send COMMAND to vterm in BUFFER.
 Always sends the command at the end of the buffer, preserving
@@ -101,7 +101,7 @@ taking a format string and arguments for debug output."
     (with-current-buffer buffer
       ;; Set up debug function
       (let ((debug-function (or debug-fn 
-                               (ecc-debug-utils-make-debug-fn buffer))))
+                               (ecc-debug-make-debug-fn buffer))))
         ;; Always preserve position for commands
         (save-excursion
           ;; Debug output
@@ -119,7 +119,7 @@ taking a format string and arguments for debug output."
         (when debug-function
           (funcall debug-function "Command sent. Buffer: %s" (buffer-name)))))))
 
-;;;###autoload
+
 (defun ecc-vterm-utils-buffer-p (&optional buffer)
   "Check if BUFFER (or current buffer) is a vterm buffer.
 Returns non-nil if the buffer has vterm-mode or supports vterm operations."
@@ -127,7 +127,7 @@ Returns non-nil if the buffer has vterm-mode or supports vterm operations."
     (and (derived-mode-p 'vterm-mode)
          (fboundp 'vterm-send-string))))
 
-;;;###autoload
+
 (defun ecc-vterm-utils-prepare-shell ()
   "Prepare the current vterm buffer for command input.
 Makes sure the cursor is positioned properly and the buffer is

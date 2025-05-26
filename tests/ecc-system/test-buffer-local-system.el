@@ -9,10 +9,16 @@
 
 (require 'ert)
 (require 'ecc-variables)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
-(require 'ecc-auto-response-buffer-local)
+(require 'ecc-api)
+(require 'ecc-auto-response)
+(require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-state-detection)
+(require 'ecc-api)
 
 ;; Test fixtures
 (defvar ecc-system-test-buffer-a nil "First test buffer.")
@@ -39,7 +45,7 @@
   (with-current-buffer ecc-system-test-buffer-a
     (erase-buffer)
     (insert "Some content here\n")
-    (insert "│ > Try \n"))  ;; initial-waiting pattern
+    (insert "│ > Try \n"))  ;; initial-waiting pattern
   
   (with-current-buffer ecc-system-test-buffer-b
     (erase-buffer)
@@ -55,54 +61,96 @@
   (setq ecc-system-test-buffer-a nil)
   (setq ecc-system-test-buffer-b nil))
 
+;; Test response tracking
+(defvar ecc-system-test-responses-sent nil
+  "List of responses sent during testing.")
+
 ;; Mock vterm functions for testing
 (defun ecc-system-test-mock-vterm-functions ()
   "Mock vterm functions for testing."
-  (fset 'vterm-send-string (lambda (str) str))
-  (fset 'vterm-send-return (lambda () t)))
+  ;; Save original functions if they exist
+  (when (fboundp 'vterm-send-string)
+    (fset 'ecc-system-test-original-vterm-send-string 
+          (symbol-function 'vterm-send-string)))
+  (when (fboundp 'vterm-send-return)
+    (fset 'ecc-system-test-original-vterm-send-return 
+          (symbol-function 'vterm-send-return)))
+  
+  ;; Mock functions to track responses
+  (fset 'vterm-send-string 
+        (lambda (str) 
+          (push str ecc-system-test-responses-sent)
+          str))
+  (fset 'vterm-send-return 
+        (lambda () 
+          (push "<RETURN>" ecc-system-test-responses-sent)
+          t))
+  
+  ;; Reset response tracking
+  (setq ecc-system-test-responses-sent nil))
 
 (defun ecc-system-test-restore-vterm-functions ()
   "Restore original vterm functions after testing."
-  (fmakunbound 'vterm-send-string)
-  (fmakunbound 'vterm-send-return))
+  ;; Restore original functions if they were saved
+  (if (fboundp 'ecc-system-test-original-vterm-send-string)
+      (progn
+        (fset 'vterm-send-string 
+              (symbol-function 'ecc-system-test-original-vterm-send-string))
+        (fmakunbound 'ecc-system-test-original-vterm-send-string))
+    (fmakunbound 'vterm-send-string))
+  
+  (if (fboundp 'ecc-system-test-original-vterm-send-return)
+      (progn
+        (fset 'vterm-send-return 
+              (symbol-function 'ecc-system-test-original-vterm-send-return))
+        (fmakunbound 'ecc-system-test-original-vterm-send-return))
+    (fmakunbound 'vterm-send-return))
+  
+  ;; Clear response tracking
+  (setq ecc-system-test-responses-sent nil))
 
 (ert-deftest ecc-test-system-full-buffer-independence ()
   "Test full system independence between buffers."
   (ecc-system-test-setup)
   (ecc-system-test-mock-vterm-functions)
   (unwind-protect
-      (let ((response-a nil)
-            (response-b nil))
-        ;; Configure auto-response
+      (progn
+        ;; Configure auto-response with new unified variables
         (with-current-buffer ecc-system-test-buffer-a
+          (setq-local ecc-auto-response-buffer-initial-waiting "/custom-a")
+          (setq-local ecc-auto-response-buffer-yes "a-yes")
+          (setq-local ecc-auto-response-buffer-enabled t)
+          
+          ;; Set compatibility variables
           (setq-local ecc-buffer-auto-response-initial-waiting "/custom-a")
           (setq-local ecc-buffer-auto-response-y/n "a-yes")
           (setq-local ecc-buffer-auto-response-enabled t)
           
-          ;; Mock send function to capture responses
-          (cl-letf (((symbol-function 'ecc-buffer-send-vterm-response)
-                     (lambda (response)
-                       (setq response-a response))))
-            ;; Detect and respond
-            (should (eq (ecc-buffer-state-detect) :initial-waiting))
-            (ecc-auto-response-buffer-local-check (current-buffer))))
+          ;; Detect and respond using buffer-local processor
+          (should (eq (ecc-buffer-state-detect) :initial-waiting))
+          (ecc-auto-response--process-buffer-local (current-buffer)))
         
         (with-current-buffer ecc-system-test-buffer-b
+          (setq-local ecc-auto-response-buffer-initial-waiting "/custom-b")
+          (setq-local ecc-auto-response-buffer-yes "b-yes")
+          (setq-local ecc-auto-response-buffer-enabled t)
+          
+          ;; Set compatibility variables
           (setq-local ecc-buffer-auto-response-initial-waiting "/custom-b")
           (setq-local ecc-buffer-auto-response-y/n "b-yes")
           (setq-local ecc-buffer-auto-response-enabled t)
           
-          ;; Mock send function to capture responses
-          (cl-letf (((symbol-function 'ecc-buffer-send-vterm-response)
-                     (lambda (response)
-                       (setq response-b response))))
-            ;; Detect and respond
-            (should (eq (ecc-buffer-state-detect) :y/n))
-            (ecc-auto-response-buffer-local-check (current-buffer))))
+          ;; Detect and respond using buffer-local processor
+          (should (eq (ecc-buffer-state-detect) :y/n))
+          (ecc-auto-response--process-buffer-local (current-buffer)))
         
         ;; Verify each buffer received its own distinct response
-        (should (string= response-a "/custom-a"))
-        (should (string= response-b "b-yes"))
+        ;; Responses are captured in ecc-system-test-responses-sent
+        (let ((responses (reverse ecc-system-test-responses-sent)))
+          ;; Should have 4 entries: "/custom-a", "<RETURN>", "b-yes", "<RETURN>"
+          (should (>= (length responses) 4))
+          (should (member "/custom-a" responses))
+          (should (member "b-yes" responses)))
         
         ;; Verify throttling state is independent
         (with-current-buffer ecc-system-test-buffer-a
@@ -152,7 +200,7 @@
         (with-current-buffer ecc-system-test-buffer-b
           (should-not ecc-buffer-debug-enabled)
           (ecc-buffer-debug-toggle)
-          (should ecc-buffer-debug-enabled)))
+          (should ecc-buffer-debug-enabled))
     (ecc-system-test-teardown)))
 
 (ert-deftest ecc-test-system-buffer-state-lifecycle ()

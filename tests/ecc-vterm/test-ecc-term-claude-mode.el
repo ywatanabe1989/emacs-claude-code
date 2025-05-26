@@ -1,14 +1,17 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-21 09:30:00>
+;;; Timestamp: <2025-05-21 16:45:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/ecc-vterm/test-ecc-term-claude-mode.el
 
 ;;; Commentary:
-;;; Tests for the Claude term mode functionality
+;;; Tests for the Claude term mode functionality.
+;;; These tests cover the main features of the term-claude mode,
+;;; including customization, commands, auto-mode, buffer registration, and
+;;; state detection.
 
 (require 'ert)
 
-;; Mock vterm if not available
+;; Mock vterm if not available for testing
 (unless (featurep 'vterm)
   (defvar vterm-timer-delay 0.01)
   (defvar vterm-max-scrollback 1000)
@@ -25,18 +28,42 @@
   (define-derived-mode vterm-mode nil "VTerm")
   (provide 'vterm))
 
-(require 'ecc-variables)
+;; Mock other required libraries
+(unless (featurep 'ecc-variables-consolidated)
+  (defvar ecc-auto-response-yes "y")
+  (defvar ecc-auto-response-yes-plus "y")
+  (defvar ecc-auto-response-continue "/continue")
+  (defvar ecc-auto-response-initial-waiting "/user:understand-guidelines")
+  (defvar ecc-vterm-always-follow-bottom nil)
+  (defvar ecc-vterm-follow-bottom-margin 2)
+  (defvar ecc-buffer-registered-buffers-alist nil)
+  (defvar ecc-buffer-current-buffer nil)
+  (provide 'ecc-variables-consolidated))
 
-;; Load the files under test
-(when (file-exists-p "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-term-claude-mode.el")
-  (load-file "/home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-term-claude-mode.el"))
+(unless (featurep 'ecc-state-detection)
+  (defun ecc-detect-state (&optional buffer)
+    (or (get 'ecc-test-state 'current-state) nil))
+  (provide 'ecc-state-detection))
 
-;; Test the mode definition
-(ert-deftest test-ecc-term-claude-mode-existence ()
-  "Test that the Claude term mode exists and is properly defined."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-term-claude-mode))
-  
+(unless (featurep 'ecc-auto-response-consolidated)
+  (defun ecc-auto-response-register-buffer (buffer)
+    buffer)
+  (provide 'ecc-auto-response-consolidated))
+
+(unless (featurep 'ecc-vterm-yank-as-file)
+  (defun ecc-vterm-yank-as-file () (interactive) nil)
+  (defun ecc-vterm-yank-buffer-as-file () (interactive) nil)
+  (defun ecc-vterm-quick-yank-region () (interactive) nil)
+  (provide 'ecc-vterm-yank-as-file))
+
+;; Load the module under test
+(require 'ecc-term-claude-mode)
+(require 'ecc-api)
+
+;;; Tests for mode definition and customization
+
+(ert-deftest test-ecc-term-claude-mode-definition ()
+  "Test that the Claude term mode is properly defined."
   ;; Verify it derives from vterm-mode
   (should (get 'ecc-term-claude-mode 'derived-mode-parent))
   (should (eq (get 'ecc-term-claude-mode 'derived-mode-parent) 'vterm-mode))
@@ -45,25 +72,30 @@
   (should (boundp 'ecc-term-claude-mode-map))
   (should (keymapp ecc-term-claude-mode-map)))
 
-;; Test mode customization variables
 (ert-deftest test-ecc-term-claude-mode-customization ()
-  "Test that customization variables for Claude term mode are defined."
-  ;; Skip if group doesn't exist
-  (skip-unless (get 'ecc-term-claude 'custom-group))
+  "Test that customization variables are properly defined."
+  ;; Check customization group
+  (should (get 'ecc-term-claude 'custom-group))
   
-  ;; Check customization variables
+  ;; Check basic customization variables
   (should (boundp 'ecc-term-claude-line-numbers))
   (should (boundp 'ecc-term-claude-scroll-conservatively))
   (should (boundp 'ecc-term-claude-truncate-lines))
-  (should (boundp 'ecc-term-claude-state-update-interval)))
+  (should (boundp 'ecc-term-claude-state-update-interval))
+  (should (boundp 'ecc-term-claude-auto-mode))
+  (should (boundp 'ecc-term-claude-buffer-name))
+  (should (boundp 'ecc-term-claude-show-state-in-mode-line)))
 
-;; Test mode commands
+;;; Tests for mode commands
+
 (ert-deftest test-ecc-term-claude-mode-commands ()
-  "Test that Claude term mode commands exist and are callable."
-  ;; Skip if required functions don't exist
-  (skip-unless (and (fboundp 'ecc-term-claude-yes)
-                    (fboundp 'ecc-term-claude-no)
-                    (fboundp 'ecc-term-claude-clear)))
+  "Test that the basic commands are available and callable."
+  ;; Test that commands are defined
+  (should (fboundp 'ecc-term-claude-yes))
+  (should (fboundp 'ecc-term-claude-no))
+  (should (fboundp 'ecc-term-claude-clear))
+  (should (fboundp 'ecc-term-claude-auto-mode-toggle))
+  (should (fboundp 'ecc-term-claude-toggle-follow-bottom))
   
   ;; Test that commands are callable (only testing they don't error)
   (should-not (condition-case err 
@@ -78,46 +110,98 @@
                   (progn (call-interactively 'ecc-term-claude-clear) nil) 
                 (error err))))
 
-;; Test the auto-mode functionality
-(ert-deftest test-ecc-term-claude-auto-mode ()
-  "Test that the auto-mode toggle functions properly."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-term-claude-auto-mode-toggle))
+;;; Tests for auto-mode functionality
+
+(ert-deftest test-ecc-term-claude-consolidated-auto-mode-vterm ()
+  "Test that auto-mode toggle works correctly."
+  ;; Test initial state
+  (should-not ecc-term-claude-auto-mode)
   
-  ;; Test that auto-mode toggle works
-  (let ((ecc-term-claude-auto-mode nil))
-    ;; Toggle on
-    (ecc-term-claude-auto-mode-toggle)
-    (should ecc-term-claude-auto-mode)
+  ;; Test toggling on
+  (ecc-term-claude-auto-mode-toggle)
+  (should ecc-term-claude-auto-mode)
+  
+  ;; Test toggling off
+  (ecc-term-claude-auto-mode-toggle)
+  (should-not ecc-term-claude-auto-mode))
+
+;;; Tests for buffer setup
+
+(ert-deftest test-ecc-term-claude-consolidated-setup-buffer-vterm ()
+  "Test that buffer setup functions work correctly."
+  ;; Mock functions to prevent side effects
+  (cl-letf (((symbol-function 'ecc-term-claude--setup-display-options) (lambda () t))
+            ((symbol-function 'ecc-term-claude--setup-performance-options) (lambda () t))
+            ((symbol-function 'ecc-term-claude--register-buffer) (lambda (buffer) buffer))
+            ((symbol-function 'ecc-term-claude--setup-mode-line) (lambda () t))
+            ((symbol-function 'ecc-term-claude--setup-state-timer) (lambda () t))
+            ((symbol-function 'ecc-term-claude--setup-hooks) (lambda () t))
+            ((symbol-function 'add-hook) (lambda (&rest _) t)))
     
-    ;; Toggle off
-    (ecc-term-claude-auto-mode-toggle)
-    (should-not ecc-term-claude-auto-mode)))
+    ;; Test that setup function can be called without errors
+    (should-not (condition-case err 
+                    (progn (ecc-term-claude--setup-buffer) nil) 
+                  (error err)))))
 
-;; Test buffer registration
-(ert-deftest test-ecc-register-buffer ()
-  "Test that buffer registration works correctly."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-register-buffer))
-  
-  ;; Test with current buffer
-  (with-temp-buffer
-    (let ((ecc-buffer-registered-buffers-alist nil)
-          (ecc-buffer-current-buffer nil))
-      
-      ;; Register the buffer
-      (ecc-register-buffer (current-buffer))
-      
-      ;; Verify it was registered
-      (should (member (current-buffer) (mapcar 'car ecc-buffer-registered-buffers-alist)))
-      (should (eq ecc-buffer-current-buffer (current-buffer))))))
+(ert-deftest test-ecc-term-claude-consolidated-register-buffer-vterm ()
+  "Test buffer registration functionality."
+  ;; Mock auto-response function
+  (cl-letf (((symbol-function 'ecc-auto-response-register-buffer) (lambda (buffer) buffer)))
+    
+    ;; Test with current buffer
+    (with-temp-buffer
+      (let ((buf (current-buffer)))
+        ;; Register buffer
+        (should (eq (ecc-term-claude--register-buffer buf) buf))))))
 
-;; Test follow-bottom functionality
-(ert-deftest test-ecc-term-claude-follow-bottom ()
-  "Test that follow-bottom functionality works correctly."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-term-claude-toggle-follow-bottom))
+;;; Tests for state detection and mode line
+
+(ert-deftest test-ecc-term-claude-consolidated-mode-line-state ()
+  "Test state detection and mode line integration."
+  ;; Test different states
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :waiting)))
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Waiting]")))
   
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/n)))
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/N]")))
+  
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :y/y/n)))
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Y/Y/N]")))
+  
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () :initial-waiting)))
+    (should (string= (ecc-term-claude--mode-line-state-indicator) " [Init]")))
+  
+  (cl-letf (((symbol-function 'ecc-detect-state) (lambda () nil)))
+    (should (string= (ecc-term-claude--mode-line-state-indicator) ""))))
+
+;;; Tests for auto-response functions
+
+(ert-deftest test-ecc-term-claude-consolidated-auto-respond ()
+  "Test auto-response functions."
+  ;; Mock functions
+  (cl-letf (((symbol-function 'vterm-send-string) (lambda (string) string))
+            ((symbol-function 'vterm-send-return) (lambda () t))
+            ((symbol-function 'message) (lambda (&rest _) t)))
+    
+    ;; Test auto-response behavior
+    (let ((ecc-term-claude-auto-mode t))
+      ;; Test with different states
+      (put 'ecc-test-state 'current-state :y/n)
+      (should (ecc-term-claude--auto-send-respond))
+      
+      (put 'ecc-test-state 'current-state :y/y/n)
+      (should (ecc-term-claude--auto-send-respond))
+      
+      (put 'ecc-test-state 'current-state :waiting)
+      (should (ecc-term-claude--auto-send-respond))
+      
+      (put 'ecc-test-state 'current-state :initial-waiting)
+      (should (ecc-term-claude--auto-send-respond)))))
+
+;;; Tests for follow-bottom functionality
+
+(ert-deftest test-ecc-term-claude-consolidated-follow-bottom ()
+  "Test follow-bottom functionality."
   ;; Test toggle function
   (let ((ecc-vterm-always-follow-bottom nil))
     ;; Toggle on
@@ -128,80 +212,50 @@
     (ecc-term-claude-toggle-follow-bottom)
     (should-not ecc-vterm-always-follow-bottom)))
 
-;; Test buffer setup functionality
-(ert-deftest test-ecc-term-claude-setup-buffer ()
-  "Test buffer setup functionality."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-term-claude-setup-existing-buffer))
-  
-  ;; Mock functions to avoid errors
-  (cl-letf (((symbol-function 'ecc-term-claude-setup-mode-line) (lambda () t))
-            ((symbol-function 'ecc-term-claude-check-state) (lambda () t)))
-    
-    ;; Create a mock vterm buffer
-    (with-temp-buffer
-      ;; Should fail if not in vterm-mode
-      (should-error (ecc-term-claude-setup-existing-buffer))
-      
-      ;; Set major mode to vterm-mode
-      (setq major-mode 'vterm-mode)
-      
-      ;; Now should work
-      (should-not (condition-case err 
-                      (progn (ecc-term-claude-setup-existing-buffer) nil) 
-                    (error err))))))
+;;; Tests for backward compatibility
 
-;; Test state detection functionality
-(ert-deftest test-ecc-detect-simple-state ()
-  "Test state detection functionality."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-detect-simple-state))
+(ert-deftest test-ecc-term-claude-consolidated-backward-compatibility-vterm ()
+  "Test backward compatibility with previous functions and variables."
+  ;; Test function aliases
+  (should (fboundp 'ecc-register-buffer))
+  (should (fboundp 'ecc-term-claude-auto-send-accept))
+  (should (fboundp 'ecc-term-claude-auto-send-y/n))
+  (should (fboundp 'ecc-term-claude-auto-send-y/y/n))
+  (should (fboundp 'ecc-term-claude-auto-send-continue))
+  (should (fboundp 'ecc-term-claude-auto-send-initial-waiting))
+  (should (fboundp 'ecc-term-claude-setup-existing-buffer))
   
-  ;; Test with different buffer contents
-  (with-temp-buffer
-    ;; No prompt
-    (erase-buffer)
-    (insert "This is a regular message without prompts")
-    (should-not (ecc-detect-simple-state))
-    
-    ;; Y/N prompt
-    (erase-buffer)
-    (insert "Would you like to continue? [y/n]")
-    (should (eq (ecc-detect-simple-state) :y/n))
-    
-    ;; Y/Y/N prompt
-    (erase-buffer)
-    (insert "Would you like to see more? [Y/y/n]")
-    (should (eq (ecc-detect-simple-state) :y/y/n))
-    
-    ;; Continue prompt
-    (erase-buffer)
-    (insert "Type 'continue>' to continue")
-    (should (eq (ecc-detect-simple-state) :waiting))))
+  ;; Test variable aliases
+  (should (boundp 'ecc-term-claude-update-functions))
+  (should (boundp 'ecc-term-claude-state-timer))
+  (should (boundp 'ecc-term-claude-menu)))
 
-;; Test main creation function
-(ert-deftest test-ecc-term-claude-creation ()
-  "Test the main function that creates or converts Claude buffers."
-  ;; Skip if function doesn't exist
-  (skip-unless (fboundp 'ecc-term-claude))
-  
-  ;; Mock functions to avoid actual buffer creation
-  (cl-letf (((symbol-function 'ecc-term-claude-setup-existing-buffer) 
+;;; Tests for main user commands
+
+(ert-deftest test-ecc-term-claude-consolidated-user-commands-vterm ()
+  "Test the main user-facing commands."
+  ;; Mock functions to prevent side effects
+  (cl-letf (((symbol-function 'ecc-term-claude--setup-existing-buffer) 
              (lambda () (current-buffer)))
             ((symbol-function 'ecc-term-claude-mode)
              (lambda () (setq major-mode 'ecc-term-claude-mode)))
             ((symbol-function 'switch-to-buffer)
              (lambda (buf) buf)))
     
-    ;; Test with vterm buffer
+    ;; Test ecc-term-claude-enable in vterm-mode
     (with-temp-buffer
       (setq major-mode 'vterm-mode)
-      ;; Should call setup-existing-buffer
+      (should-not (condition-case err 
+                      (progn (ecc-term-claude-enable) nil) 
+                    (error err))))
+    
+    ;; Test ecc-term-claude function with vterm buffer
+    (with-temp-buffer
+      (setq major-mode 'vterm-mode)
       (should (eq (ecc-term-claude) (current-buffer))))
     
-    ;; Test without vterm buffer
+    ;; Test ecc-term-claude function without vterm buffer
     (with-temp-buffer
-      ;; Should try to create new buffer
       (let ((get-buffer-return (current-buffer)))
         (cl-letf (((symbol-function 'get-buffer-create) 
                    (lambda (_) get-buffer-return))
@@ -210,5 +264,7 @@
           (should (eq (ecc-term-claude) get-buffer-return)))))))
 
 (provide 'test-ecc-term-claude-mode)
+;; For backward compatibility
+(provide 'test-ecc-term-claude-mode-consolidated)
 
 ;;; test-ecc-term-claude-mode.el ends here

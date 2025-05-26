@@ -1,4 +1,5 @@
 # Local config/settings
+.claude
 **/.claude/settings.local.json
 .env/
 .env
@@ -26,6 +27,10 @@ buffer-test-report-*.org
 buffer-test-report-*.pdf
 buffer-test-report-*.tex
 test_logs/
+.passed_tests.txt
+.test_file_mapping.txt
+.test_info.el
+.test_output_clean.txt
 
 # Temporary directories
 tmp/

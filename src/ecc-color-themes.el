@@ -81,7 +81,7 @@ Possible values are 'dark, 'light, and 'gray."
                                   :foreground ecc-colors-gray-foreground))
         (_ nil))))) ; Do nothing for unknown themes
 
-;;;###autoload
+
 (defun ecc-colors-toggle-theme ()
   "Toggle between dark, light, and gray themes for the current Claude buffer."
   (interactive)
@@ -102,9 +102,9 @@ Possible values are 'dark, 'light, and 'gray."
     ;; Apply new theme
     (ecc-colors-apply-theme ecc-colors-theme (current-buffer))
     
-    (message "Claude theme set to %s" ecc-colors-theme)))
+    (ecc-debug-message "Claude theme set to %s" ecc-colors-theme)))
 
-;;;###autoload
+
 (defun ecc-colors-init-buffer ()
   "Initialize the current buffer with the chosen color theme."
   (when (and (or (derived-mode-p 'vterm-mode)

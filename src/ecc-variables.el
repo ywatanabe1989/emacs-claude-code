@@ -1,15 +1,72 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-20 11:02:41>
+;;; Timestamp: <2025-05-25 00:27:37>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-variables.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
 ;;; Commentary:
-;;; Global variables for emacs-claude-code.
+;;; Global variables and customization options for emacs-claude-code.
+;;; This file provides a centralized and organized location for all
+;;; configuration variables and customization options.
+;;;
+;;; This module defines variables used throughout the Claude Code package,
+;;; organized into logical groups with proper customization support.
 
-;; Core variables
+;;; Code:
+
+;; Customization groups
+
+(defgroup emacs-claude-code nil
+  "Settings for the Emacs Claude Code package."
+  :prefix "ecc-"
+  :group 'applications)
+
+(defgroup ecc-buffers nil
+  "Settings for Claude buffer management and naming."
+  :group 'emacs-claude-code
+  :prefix "ecc-buffer-")
+
+(defgroup ecc-auto-response nil
+  "Settings for Claude auto-response system."
+  :group 'emacs-claude-code
+  :prefix "ecc-auto-response-")
+
+(defgroup ecc-state-detection nil
+  "Settings for Claude prompt detection."
+  :group 'emacs-claude-code
+  :prefix "ecc-state-")
+
+(defgroup ecc-vterm nil
+  "Settings for Claude vterm integration."
+  :group 'emacs-claude-code
+  :prefix "ecc-vterm-")
+
+(defgroup ecc-notification nil
+  "Settings for Claude notification system."
+  :group 'emacs-claude-code
+  :prefix "ecc-notification-")
+
+(defgroup ecc-debug nil
+  "Settings for Claude debugging functionality."
+  :group 'emacs-claude-code
+  :prefix "ecc-debug-")
+
+;; Buffer management variables
+
+(defcustom ecc-buffer-prefix "*CLAUDE-VTERM-"
+  "Prefix for Claude vterm buffer names."
+  :type 'string
+  :group 'ecc-buffers)
+
+(defcustom ecc-buffer-suffix "*"
+  "Suffix for Claude vterm buffer names."
+  :type 'string
+  :group 'ecc-buffers)
+
+(defvar ecc-buffer-counter 1
+  "Counter for creating new numbered Claude vterm buffers.")
 
 (defvar ecc-buffer-registered-buffers-alist nil
   "Alist of registered Claude buffers and their properties.")
@@ -17,80 +74,139 @@
 (defvar ecc-buffer-current-buffer nil
   "Current active Claude buffer.")
 
-(defvar ecc-buffer-auto-response-enabled nil
-  "Whether auto-response is enabled.")
+(defvar ecc-buffers nil
+  "List of all Claude vterm buffers (both dedicated and converted).")
+
+;; Buffer-local auto-response settings
+
+(defvar-local ecc-buffer-auto-response-enabled nil
+  "Whether auto-response is enabled for the current buffer.")
 
 ;; Auto-response variables
 
-(defvar ecc-auto-response-initial-waiting
+(defcustom ecc-auto-response-throttle-time 5.0
+  "Minimum seconds between auto-responses to the same state.
+Prevents rapid consecutive auto-responses to waiting prompts."
+  :type 'float
+  :group 'ecc-auto-response)
+
+(defcustom ecc-auto-response-timer-interval 0.5
+  "Interval in seconds for auto-response timer checks."
+  :type 'float
+  :group 'ecc-auto-response)
+
+(defcustom ecc-auto-response-check-on-output t
+  "Whether to check for prompts whenever new output appears."
+  :type 'boolean
+  :group 'ecc-auto-response)
+
+(defcustom ecc-auto-response-initial-waiting
   "/user:understand-guidelines"
-  "Response to send for initial waiting state.")
+  "Response to send for initial waiting state."
+  :type 'string
+  :group 'ecc-auto-response)
 
-(defvar ecc-auto-response-y/n "1"
-  "Response to send for Y/N prompts.")
+(defcustom ecc-auto-response-y/n "1"
+  "Response to send for Y/N prompts."
+  :type 'string
+  :group 'ecc-auto-response)
 
-(defvar ecc-auto-response-y/y/n "2"
-  "Response to send for Y/Y/N prompts.")
+(defcustom ecc-auto-response-y/y/n "2"
+  "Response to send for Y/Y/N prompts."
+  :type 'string
+  :group 'ecc-auto-response)
 
-(defvar ecc-auto-response-waiting "/auto"
-  "Response to send for waiting state.")
+(defcustom ecc-auto-response-waiting "/user:auto"
+  "Response to send for waiting state."
+  :type 'string
+  :group 'ecc-auto-response)
 
 (defvar ecc-auto-response-timer nil
   "Timer for checking and responding to Claude prompts.")
 
-(defvar ecc-auto-notify-on-claude-prompt t
-  "Whether to notify when claude ask user response.")
+(defvar ecc-auto-response-last-time-alist
+  '((:y/n . 0.0)
+    (:y/y/n . 0.0)
+    (:waiting . 0.0)
+    (:initial-waiting . 0.0))
+  "Alist tracking last time each type of response was sent.")
 
-(defvar ecc-auto-notify-completions t
-  "Whether to notify when auto-response completes.")
+(defvar ecc-auto-response-active-state nil
+  "The currently active Claude prompt state being processed.
+Used to prevent duplicate responses to the same prompt.")
+
+(defvar ecc-auto-response-hooks nil
+  "Hooks to run after an auto-response is sent.")
 
 ;; State detection variables
+
+(defcustom ecc-state-detection-buffer-size 2000
+  "Number of characters to check from the end of buffer for basic prompt detection."
+  :type 'integer
+  :group 'ecc-state-detection)
+
+(defcustom ecc-state-detection-line-count 256
+  "Number of lines to check from the end of buffer for line-based prompt detection.
+A larger number increases detection accuracy but may impact performance
+with very large buffers. The default value of 256 is a balance between
+thorough detection and performance."
+  :type 'integer
+  :group 'ecc-state-detection)
 
 (defcustom ecc-state-prompt-initial-waiting
   "│ > Try "
   "Pattern that matches the waiting prompt shown in Claude interface.
-` ` is the correct expression so do not change to space."
+` ` is not Regular space (U+0020, decimal 32) but Non-breaking space (U+00A0, decimal 160)."
   :type 'string
-  :group 'emacs-claude-state)
+  :group 'ecc-state-detection)
 
 (defcustom ecc-state-prompt-waiting
   "│ >                            "
   "Pattern that matches the waiting prompt shown in Claude interface.
-` ` is the correct expression so do not change to space."
+` ` is not Regular space (U+0020, decimal 32) but Non-breaking space (U+00A0, decimal 160)."
   :type 'string
-  :group 'emacs-claude-state)
+  :group 'ecc-state-detection)
 
 (defcustom ecc-state-prompt-y/n "❯ 1. Yes"
   "Y/n prompt pattern to match when Claude asks for confirmation."
   :type 'string
-  :group 'emacs-claude-state)
+  :group 'ecc-state-detection)
 
 (defcustom ecc-state-prompt-y/y/n " 2. Yes, and"
   "y/Y/n prompt pattern to match when Claude asks for confirmation."
   :type 'string
-  :group 'emacs-claude-state)
+  :group 'ecc-state-detection)
+
+(defcustom ecc-state-prompt-initial-waiting-alternatives
+  '("Claude is ready" "Ready for your request" "How can I help")
+  "Alternative patterns that might indicate Claude's initial waiting state.
+These are used as fallbacks if the primary pattern doesn't match."
+  :type '(repeat string)
+  :group 'ecc-state-detection)
 
 ;; VTerm variables
 
-(defvar ecc-vterm-always-follow-bottom t
-  "Whether to always follow bottom in vterm buffers.")
+(defcustom ecc-vterm-always-follow-bottom t
+  "Whether to always follow bottom in vterm buffers."
+  :type 'boolean
+  :group 'ecc-vterm)
 
-(defvar ecc-vterm-follow-bottom-margin 5
-  "Number of lines to keep as margin when following bottom.")
+(defcustom ecc-vterm-follow-bottom-margin 5
+  "Number of lines to keep as margin when following bottom."
+  :type 'integer
+  :group 'ecc-vterm)
 
-;; Claude buffer naming variables
+;; Notification variables
 
-(defvar ecc-buffer-counter 1
-  "Counter for creating new numbered Claude vterm buffers.")
+(defcustom ecc-auto-notify-on-claude-prompt t
+  "Whether to notify when claude asks for user response."
+  :type 'boolean
+  :group 'ecc-notification)
 
-(defvar ecc-buffer-prefix "*CLAUDE-VTERM-"
-  "Prefix for Claude vterm buffer names.")
-
-(defvar ecc-buffer-suffix "*"
-  "Suffix for Claude vterm buffer names.")
-
-(defvar ecc-claude-buffers nil
-  "List of all Claude vterm buffers (both dedicated and converted).")
+(defcustom ecc-auto-notify-completions t
+  "Whether to notify when auto-response completes."
+  :type 'boolean
+  :group 'ecc-notification)
 
 ;; Interaction tracking variables
 
@@ -100,44 +216,55 @@
 (defvar ecc-interaction-timestamps nil
   "List of timestamps for Claude interactions.")
 
-;; Additional initial waiting patterns for fallback detection
-(defvar ecc-state-prompt-initial-waiting-alternatives
-  '("Claude is ready" "Ready for your request" "How can I help")
-  "Alternative patterns that might indicate Claude's initial waiting state.
-These are used as fallbacks if the primary pattern doesn't match.")
+;; Version information
 
-;; Debugging variables
+(defconst ecc-version "1.0.0"
+  "Current version of the emacs-claude-code package.")
 
-(defvar ecc-debug-enabled nil
-  "Whether to enable debugging output.
-When non-nil, debug messages will be printed to the *Messages* buffer.
-Set this to t during development and nil in production.
+;; Backward compatibility variables (for older code)
 
-To toggle debugging interactively, use the command `ecc-toggle-debug'.")
+;; Old variable names for prompt patterns
 
-(defmacro ecc-debug-message (format-string &rest args)
-  "Output a debug message if debugging is enabled.
-Only prints the message when `ecc-debug-enabled' is non-nil.
-Accepts the same arguments as `message': FORMAT-STRING and ARGS."
-  `(when (and (boundp 'ecc-debug-enabled) ecc-debug-enabled)
-     (message ,format-string ,@args)))
+(defvar ecc-prompt-pattern-initial-waiting
+  ecc-state-prompt-initial-waiting
+  "Backward compatibility alias for `ecc-state-prompt-initial-waiting'.")
 
-;;;###autoload
-(defun ecc-toggle-debug ()
-  "Toggle debug message output.
-When enabled, debug messages will be shown in the *Messages* buffer.
-This is useful for troubleshooting auto-response and other functionality."
-  (interactive)
-  (setq ecc-debug-enabled (not ecc-debug-enabled))
-  (message "Claude debug messages %s" 
-           (if ecc-debug-enabled "enabled" "disabled")))
+(defvar ecc-prompt-pattern-waiting ecc-state-prompt-waiting
+  "Backward compatibility alias for `ecc-state-prompt-waiting'.")
+
+(defvar ecc-prompt-pattern-y/n ecc-state-prompt-y/n
+  "Backward compatibility alias for `ecc-state-prompt-y/n'.")
+
+(defvar ecc-prompt-pattern-y/y/n ecc-state-prompt-y/y/n
+  "Backward compatibility alias for `ecc-state-prompt-y/y/n'.")
+
+;; Old variable names for auto response
+
+(defvar ecc-auto-interval-sec ecc-auto-response-timer-interval
+  "Backward compatibility alias for `ecc-auto-response-timer-interval'.")
+
+(defvar ecc-auto-timer ecc-auto-response-timer
+  "Backward compatibility alias for `ecc-auto-response-timer'.")
+
+;; Old variable names for buffers
+
+(defvaralias 'ecc-buffer-name 'ecc-buffer-prefix
+  "Backward compatibility alias for buffer prefix.")
+
+(defvaralias 'ecc-buffer 'ecc-buffer-current-buffer
+  "Backward compatibility alias for current buffer.")
+
+;; The ecc-debug variables are now handled by ecc-debug-utils-consolidated.el
+
+;; Provide both the consolidated name and the original name for backward compatibility
+
+;;; ecc-variables.el ends here
+
 
 (provide 'ecc-variables)
 
 (when
     (not load-file-name)
-  (message "ecc-variables.el loaded."
+  (ecc-debug-message "ecc-variables.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))
-
-;;; ecc-variables.el ends here

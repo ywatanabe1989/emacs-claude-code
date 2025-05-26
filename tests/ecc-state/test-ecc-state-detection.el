@@ -122,7 +122,7 @@
         (notification-state nil))
     
     ;; Mock the notification function
-    (cl-letf (((symbol-function 'ecc-auto-notify-check-state)
+    (cl-letf (((symbol-function 'ecc-notification-check-state)
                (lambda (state) 
                  (setq notification-called t
                        notification-state state))))
@@ -162,8 +162,8 @@
     (insert "Would you like to continue? [y/n]\n")
     
     ;; Test aliases
-    (should (eq (ecc-detect-simple-state) :y/n))
-    (should (eq (ecc-detect-enhanced-state) :y/n))
+    (should (eq (ecc-detect-state) :y/n))
+    (should (eq (ecc-detect-state) :y/n))
     (should (eq (ecc-detect-prompt-state) :y/n))))
 
 (provide 'test-ecc-state-detection)

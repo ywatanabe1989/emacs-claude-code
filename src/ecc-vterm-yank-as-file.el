@@ -64,7 +64,7 @@ If no specific type is detected, defaults to "txt"."
     (dolist (entry ecc-vterm-yank-extension-alist)
       (when (string-match-p (cdr entry) content)
         (throw 'found (car entry))))
-    "txt"))  ; Default to txt if no matches
+    "txt"))
 
 (defun ecc-vterm-generate-file-from-region (start end filename)
   "Generate a file named FILENAME from the region between START and END.
@@ -78,7 +78,7 @@ based on content type and current timestamp.
 
 When the file already exists, prompts for confirmation before overwriting.
 
-Returns the full path to the created file.
+Returns the full path to the created file."
   (let* ((content (buffer-substring-no-properties start end))
          (file-type (ecc-vterm-detect-file-type content))
          (dir (or ecc-vterm-yank-default-dir default-directory))
@@ -103,10 +103,10 @@ Returns the full path to the created file.
       (insert content))
     
     ;; Return the full path
-    (message "Wrote %s (%d bytes)" full-path (length content))
+    (ecc-debug-message "Wrote %s (%d bytes)" full-path (length content))
     full-path))
 
-;;;###autoload
+
 (defun ecc-vterm-yank-as-file (start end filename)
   "Yank the region between START and END to a file named FILENAME.
 Extracts the selected region from the buffer and saves it to a file,
@@ -142,7 +142,7 @@ Auto-detects the file type based on content if no extension is provided.
                (y-or-n-p "Open file in a new buffer? "))
       (find-file file-path))))
 
-;;;###autoload
+
 (defun ecc-vterm-yank-buffer-as-file (filename)
   "Yank the entire vterm buffer content to a file named FILENAME.
 Saves the complete buffer content to a file, auto-detecting the
@@ -176,7 +176,7 @@ Auto-detects the file type based on content if no extension is provided.
                (y-or-n-p "Open file in a new buffer? "))
       (find-file file-path))))
 
-;;;###autoload
+
 (defun ecc-vterm-quick-yank-region ()
   "Quickly yank the active region to an auto-named file based on content.
 Provides a streamlined workflow for rapidly saving selected text to files

@@ -1,6 +1,6 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# Timestamp: "2025-05-13 02:52:54 (ywatanabe)"
+# Timestamp: "2025-05-25 00:36:50 (ywatanabe)"
 # File: ./run_tests.sh
 
 THIS_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
@@ -167,12 +167,6 @@ EOF
 
   # Load top-level test files
   for test_file in $(find "$THIS_DIR/tests" -maxdepth 1 -name "test-*.el" 2>/dev/null | sort | grep -v .old); do
-    # Skip old top-level tests that may be incompatible
-    if [[ "$test_file" == *test-ecc.el ]] || [[ "$test_file" == *test-ecc-variables.el ]]; then
-      echo_info "Skipping obsolete test file: $test_file"
-      continue
-    fi
-    
     if $VERBOSE; then
       echo_info "Loading $test_file"
     fi
@@ -182,19 +176,7 @@ EOF
   # Load test files from subdirectories
   for test_dir in $(find "$THIS_DIR/tests" -mindepth 1 -type d 2>/dev/null | sort | grep -v .old); do
     for test_file in $(find "$test_dir" -maxdepth 1 -name "test-*.el" 2>/dev/null | sort); do
-      # Skip all tests from old directory structure
-      # We only want to run tests for our new streamlined codebase
-      if [[ "$test_file" == *tests/ecc-auto/test-ecc-auto.el ]] || 
-         [[ "$test_file" == *tests/ecc-auto/test-ecc-toggle.el ]] || 
-         [[ "$test_file" == *tests/ecc-buffer/* ]] || 
-         [[ "$test_file" == *tests/ecc-repository/* ]] || 
-         [[ "$test_file" == *tests/ecc-template/* ]] || 
-         [[ "$test_file" == *tests/ecc-ui/* ]] || 
-         [[ "$test_file" == *tests/ecc-state/test-ecc-detect-prompt.el ]]; then
-        echo_info "Skipping obsolete test file: $test_file"
-        continue
-      fi
-      
+
       if $VERBOSE; then
         echo_info "Loading $test_file"
       fi
@@ -214,7 +196,7 @@ EOF
   if $SKIP_FAIL; then
     echo_warning "Skipping intentional failing tests..."
     # Use ERT's test selector to exclude tests with "fail" in their name
-    TEST_SELECTOR="'(not (name . \".*fail.*\"))"
+    TEST_SELECTOR="'(satisfies (lambda (test) (not (string-match-p \\\"fail\\\" (symbol-name (ert-test-name test))))))"
   fi
 
   # # Display what selector we're using
@@ -484,6 +466,7 @@ if ! $VERBOSE && ! $DEBUG; then
 fi
 
 echo_info "Logged to: $LOG_PATH"
+echo_info "Please read ./docs/to_claude/guidelines/guidelines-programming-Elisp-Rules.md as well"
 exit $TEST_EXIT_CODE
 
 # EOF

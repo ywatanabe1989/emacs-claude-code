@@ -63,7 +63,7 @@ This is a buffer-local variable used to prevent duplicate responses.")
 
 ;; Initialization functions
 
-;;;###autoload
+
 (defun ecc-buffer-local-init (&optional buffer)
   "Initialize buffer-local variables for BUFFER or current buffer.
 This sets up the necessary buffer-local state tracking for Claude."
@@ -113,7 +113,7 @@ This sets up the necessary buffer-local state tracking for Claude."
 
 ;; Buffer registration with local configuration
 
-;;;###autoload
+
 (defun ecc-buffer-register-with-local-config (buffer)
   "Register BUFFER as a Claude buffer with buffer-local configuration.
 Returns the buffer that was registered."
@@ -125,7 +125,7 @@ Returns the buffer that was registered."
     ;; Register the buffer
     (unless (assoc buf ecc-buffer-registered-buffers-alist)
       (push (cons buf nil) ecc-buffer-registered-buffers-alist)
-      (message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
+      (ecc-debug-message "Buffer '%s' registered as Claude buffer" (buffer-name buf)))
     
     ;; Initialize buffer-local variables
     (ecc-buffer-local-init buf)
@@ -136,7 +136,7 @@ Returns the buffer that was registered."
 
 ;; State tracking with buffer-local values
 
-;;;###autoload
+
 (defun ecc-buffer-local-update-state (state &optional buffer)
   "Update the buffer-local state tracking for STATE in BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -144,7 +144,7 @@ If BUFFER is nil, use the current buffer."
     (setq-local ecc-buffer-state state)
     (setq-local ecc-buffer-last-state-time (float-time))))
 
-;;;###autoload
+
 (defun ecc-buffer-local-state (&optional buffer)
   "Get the current buffer-local state for BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -153,7 +153,7 @@ If BUFFER is nil, use the current buffer."
 
 ;; Throttling with buffer-local tracking
 
-;;;###autoload
+
 (defun ecc-buffer-local-throttled-p (state &optional buffer)
   "Check if auto-response for STATE should be throttled in BUFFER.
 Returns t if we responded to this state recently and should wait.
@@ -172,7 +172,7 @@ If BUFFER is nil, use the current buffer."
        ;; Check if we need to throttle based on time
        (< elapsed throttle-time)))))
 
-;;;###autoload
+
 (defun ecc-buffer-local-update-time (state &optional buffer)
   "Update the last response time for STATE in BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -182,7 +182,7 @@ If BUFFER is nil, use the current buffer."
 
 ;; Debug messaging with buffer-local control
 
-;;;###autoload
+
 (defun ecc-buffer-local-debug-message (format-string &rest args)
   "Output a debug message if debugging is enabled for current buffer.
 Only prints the message when `ecc-buffer-debug-enabled' is non-nil.

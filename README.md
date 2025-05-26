@@ -1,162 +1,97 @@
+<!-- ---
+!-- Timestamp: 2025-05-26 10:54:45
+!-- Author: ywatanabe
+!-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
+!-- --- -->
+
 # Emacs Claude Code
+This repository provides a comprehensive Claude Code interface for Emacs with intelligent auto-response capabilities, advanced vterm integration, and productivity enhancements.
 
-A streamlined Emacs interface for Claude AI coding assistance.
+![Demo](./docs/emacs-claude-code-demo.gif)
 
-## Overview
+## Architecture
 
-Emacs Claude Code (ECC) enhances your workflow by seamlessly integrating Claude's AI capabilities directly into Emacs. The package provides:
-
-- Optimized VTERM mode for high-performance Claude interaction
-- Automatic response handling with state detection
-- Smart paste functionality for large text (yank-as-file)
-- Visual aids for Claude prompts
-- Notification bell for prompt alerts
-- Auto-scroll to follow Claude's output
+```mermaid
+graph TD
+    subgraph "Entry Point"
+        A[emacs-claude-code.el]
+    end
+    
+    subgraph "Core Components"
+        B[ecc-vterm-mode.el]
+        C[ecc-auto-response.el]
+        D[ecc-state-detection.el]
+        E[ecc-term-claude-mode.el]
+    end
+    
+    subgraph "Advanced Features"
+        F[ecc-vterm-yank-as-file.el]
+        G[ecc-auto-notify.el]
+        H[ecc-visual-aid.el]
+        I[ecc-interaction-tracker.el]
+    end
+    
+    subgraph "Utilities"
+        J[ecc-variables.el]
+        K[ecc-debug-utils.el]
+        L[ecc-convenience-commands.el]
+    end
+    
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    B --> F
+    C --> G
+    D --> H
+    E --> I
+    B --> J
+    C --> K
+    D --> L
+    
+    classDef entry fill:#e1f5fe
+    classDef core fill:#fff3e0
+    classDef advanced fill:#f3e5f5
+    classDef utility fill:#e8f5e8
+    
+    class A entry
+    class B,C,D,E core
+    class F,G,H,I advanced
+    class J,K,L utility
+```
 
 ## Installation
+Installation guide is available at [`./docs/installation.md`](./docs/installation.md)
 
-### Requirements
-
-- Emacs 28+
-- vterm package
-- Claude CLI (Anthropic)
-
-### Setup
-
-1. Clone this repository:
-   ```
-   git clone https://github.com/ywatanabe/emacs-claude-code.git ~/.emacs.d/lisp/emacs-claude-code
-   ```
-
-2. Add to your Emacs configuration:
-   ```elisp
-   (add-to-list 'load-path "~/.emacs.d/lisp/emacs-claude-code")
-   (require 'emacs-claude-code)
-   ```
-
-## Usage
-
-Global key bindings for quick access:
-
-- `C-c c v` - Start a new Claude vterm session
-- `C-c c o` - Optimize current vterm for Claude
-- `C-c c a` - Enable auto-response for Claude prompts
-- `C-c c t` - Toggle visual aids for Claude interaction
-
-### Quick Start
-
+## Quick Start
 ```elisp
-M-x ecc-claude-vterm       ; Start a new optimized Claude vterm buffer
-M-x ecc-claude-auto-respond ; Enable auto-response for the current buffer
+;; Add to your init.el
+(add-to-list 'load-path "~/.emacs.d/lisp/emacs-claude-code")
+(require 'emacs-claude-code)
+
+;; Start Claude terminal
+(ecc-vterm)
+
+;; Toggle auto-response mode globally
+(ecc-auto-response-toggle)
+
+;; Toggle auto-response for current buffer only
+(ecc-auto-response-buffer-local-toggle)
+
+;; Yank vterm content as file with auto-detection
+(ecc-vterm-yank-as-file)
 ```
 
-### Interactive Demo
-
-Try the comprehensive demo that showcases all features:
-
-```elisp
-(require 'claude-integrated-demo)
-M-x claude-demo-all-features
-```
-
-## Key Features
-
-### Optimized VTerm Mode
-
-Significantly enhances vterm performance for Claude's high-output interaction:
-
-- Increased process output buffer (1MB default)
-- GC optimizations during buffer updates
-- Disabled bidirectional text processing
-- Reduced visual effects (line numbers, font variations)
-- Buffer truncation to manage memory usage
-
-### Auto-Response Mode
-
-Automatically handles Claude's interactive prompts:
-
-- Detects y/n and continuation prompts
-- Sends customizable responses
-- Notifies about auto-responses
-- Timer-based checking for prompt detection
-- ESC key instantly disables auto-response
-- Smart throttling prevents duplicate responses
-- Configurable interaction limits to prevent runaway responses
-
-### Smart Yank (Paste-as-File)
-
-Prevents terminal overflow with large content:
-
-- Saves large clipboard content to temporary files
-- Inserts `cat` commands instead of raw content
-- Threshold-based decision (1000 chars by default)
-- Automatic cleanup of temporary files
-
-### Visual Aids
-
-Makes Claude's state clearly visible:
-
-- Highlighting of detected prompts
-- State indicators displayed in the buffer
-- Frame highlighting for active prompts
-- Mode line state indicators
-
-### Notification Bell
-
-Get alerted when Claude is waiting for input:
-
-- Audio bell notifications
-- Mode line flashing for visual feedback
-- State-based notification timing
-
-### Follow Bottom
-
-Keeps Claude's output visible:
-
-- Auto-scrolls to show new output
-- Preserves margins for readability
-- Detects manual scrolling to pause auto-scrolling
-
-## Customization
-
-Configure the behavior with these variables:
-
-```elisp
-;; Auto-response settings
-(setq ecc-auto-response-y/n "1")       ; Response for y/n prompts
-(setq ecc-auto-response-y/y/n "2")     ; Response for y/y/n prompts
-(setq ecc-auto-response-waiting "/auto") ; Response for continue prompts
-(setq ecc-auto-response-throttle-time 5.0) ; Seconds between identical responses
-(setq ecc-auto-response-esc-disables t)    ; ESC key disables auto-response
-
-;; Auto-response limits
-(setq ecc-interaction-limit-enabled nil)   ; Enable/disable interaction limits
-(setq ecc-interaction-limit-count 50)      ; Max auto-responses per session
-(setq ecc-interaction-limit-per-time-enabled nil) ; Enable hourly limits
-(setq ecc-interaction-limit-per-hour 20)   ; Max auto-responses per hour
-
-;; VTerm optimization settings
-(setq vterm-max-scrollback 10000)      ; Increase scrollback buffer
-
-;; Yank-as-file settings
-(setq ecc-vterm-yank-threshold 2000)   ; Character threshold for file-based yanking
-```
-
-## Examples
-
-The `examples/simplified/` directory contains easy-to-understand examples:
-
-- `simplified-usage.el` - Core functionality demonstration
-- `simplified-usage-interactive.el` - Interactive commands
-- `vterm-optimization-usage.el` - VTerm performance enhancements
-- `vterm-yank-file-usage.el` - Smart paste functionality
-- `vterm-comprehensive-demo.el` - Complete feature showcase
-- `claude-integrated-demo.el` - Interactive demo script
-
-## Simplified Implementation
-
-This release focuses on a streamlined, modular implementation. For more details, see the [src/README.md](src/README.md) file.
+## Details
+- Core features and vterm integration [`./docs/core-features.md`](./docs/core-features.md)
+- Auto-response system (global and buffer-local) [`./docs/auto-response.md`](./docs/auto-response.md)
+- Visual aids and color themes [`./docs/visual-enhancements.md`](./docs/visual-enhancements.md)
+- State detection and interaction tracking [`./docs/state-detection.md`](./docs/state-detection.md)
+- Configuration and customization [`./docs/configuration.md`](./docs/configuration.md)
+- Testing and development workflow [`./docs/testing.md`](./docs/testing.md)
+- Debug utilities and troubleshooting [`./docs/debug-usage.md`](./docs/debug-usage.md)
 
 ## Contact
-
 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
+<!-- EOF -->

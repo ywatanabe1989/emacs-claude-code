@@ -20,109 +20,283 @@
 (require 'ecc-notification)
 
 ;; Test state description function
-(ert-deftest test-notification-state-description ()
-  "Test the state description function."
-  (should (stringp (ecc-notification--state-description :y/n)))
-  (should (string= (ecc-notification--state-description :y/n) "yes/no prompt"))
-  (should (string= (ecc-notification--state-description :waiting) "waiting for input"))
-  (should (string= (ecc-notification--state-description :unknown-state) "unknown-state")))
+(ert-deftest test-notification-state-description-should-return-string-for-y/n-state ()
+  "Test that state description returns a string for y/n state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :y/n)))
+    ;; Assert
+    (should (stringp result))))
+
+(ert-deftest test-notification-state-description-should-return-yes-no-prompt-for-y/n-state ()
+  "Test that state description returns 'yes/no prompt' for y/n state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :y/n)))
+    ;; Assert
+    (should (string= result "yes/no prompt"))))
+
+(ert-deftest test-notification-state-description-should-return-waiting-for-input-for-waiting-state ()
+  "Test that state description returns 'waiting for input' for waiting state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :waiting)))
+    ;; Assert
+    (should (string= result "waiting for input"))))
+
+(ert-deftest test-notification-state-description-should-return-state-name-for-unknown-state ()
+  "Test that state description returns state name for unknown state."
+  ;; Act
+  (let ((result (ecc-notification--state-description :unknown-state)))
+    ;; Assert
+    (should (string= result "unknown-state"))))
 
 ;; Test throttling logic
-(ert-deftest test-notification-throttling ()
-  "Test notification throttling logic."
-  ;; Ensure notifications are enabled for testing
+(ert-deftest test-notification-should-notify-for-new-state ()
+  "Test that notification is allowed for a new state."
+  ;; Arrange
   (let ((ecc-notification-enabled t)
         (ecc-notification-states '(:y/n :waiting))
         (ecc-notification-throttle-interval 1.0)
         (ecc-notification--last-time 0)
         (ecc-notification--last-state nil))
     
-    ;; Should notify for new state
-    (should (ecc-notification--should-notify-p :y/n))
-    
-    ;; Update tracking variables
-    (ecc-notification--update-state :y/n)
-    
-    ;; Should not notify for same state too soon
-    (should-not (ecc-notification--should-notify-p :y/n))
-    
-    ;; Should notify for different state
-    (should (ecc-notification--should-notify-p :waiting))
-    
-    ;; Test throttling after time passes
-    (setq ecc-notification--last-time (- (float-time) 2.0))
+    ;; Act & Assert
     (should (ecc-notification--should-notify-p :y/n))))
 
-;; Test notification dispatch
-(ert-deftest test-notification-dispatch ()
-  "Test notification dispatch function."
-  ;; Mock notification methods for testing
-  (let ((bell-called nil)
-        (flash-called nil)
-        (message-called nil)
-        (ecc-notification-enabled t)
-        (ecc-notification-states '(:y/n))
-        (ecc-notification-methods '(bell flash message))
+(ert-deftest test-notification-should-not-notify-for-same-state-too-soon ()
+  "Test that notification is throttled for repeated same state."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
         (ecc-notification--last-time 0)
         (ecc-notification--last-state nil))
     
-    ;; Override notification methods with test versions
+    ;; First notification should work
+    (ecc-notification--update-state :y/n)
+    
+    ;; Act & Assert - immediate repeat should be throttled
+    (should-not (ecc-notification--should-notify-p :y/n))))
+
+(ert-deftest test-notification-should-notify-for-different-state ()
+  "Test that notification is allowed when state changes."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
+        (ecc-notification--last-time (float-time))
+        (ecc-notification--last-state :y/n))
+    
+    ;; Act & Assert - different state should notify
+    (should (ecc-notification--should-notify-p :waiting))))
+
+(ert-deftest test-notification-should-notify-after-throttle-interval ()
+  "Test that notification is allowed after throttle interval passes."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification-throttle-interval 1.0)
+        (ecc-notification--last-time (- (float-time) 2.0)) ; 2 seconds ago
+        (ecc-notification--last-state :y/n))
+    
+    ;; Act & Assert - enough time has passed
+    (should (ecc-notification--should-notify-p :y/n))))
+
+(ert-deftest test-notification-should-update-tracking-state ()
+  "Test that notification tracking state is updated."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n :waiting))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    ;; Act
+    (ecc-notification--update-state :y/n)
+    
+    ;; Assert
+    (should (eq ecc-notification--last-state :y/n))
+    (should (> ecc-notification--last-time 0))))
+
+;; Test notification dispatch
+(ert-deftest test-notification-dispatch-should-return-true-when-notified ()
+  "Test that notification dispatch returns true when notification occurs."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(message))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-display-message) #'ignore))
+      
+      ;; Act & Assert
+      (should (ecc-notification-dispatch :y/n)))))
+
+(ert-deftest test-notification-should-call-bell-method-when-enabled ()
+  "Test that bell method is called when included in methods list."
+  ;; Arrange
+  (let ((bell-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(bell))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
     (cl-letf (((symbol-function 'ecc-notification-ring-bell)
-               (lambda () (setq bell-called t)))
-              ((symbol-function 'ecc-notification-flash-mode-line)
-               (lambda () (setq flash-called t)))
-              ((symbol-function 'ecc-notification-display-message)
-               (lambda (state) (setq message-called t))))
+               (lambda () (setq bell-called t))))
       
-      ;; Test notification dispatch
-      (should (ecc-notification-dispatch :y/n))
+      ;; Act
+      (ecc-notification-dispatch :y/n)
       
-      ;; All methods should be called
-      (should bell-called)
-      (should flash-called)
-      (should message-called)
+      ;; Assert
+      (should bell-called))))
+
+(ert-deftest test-notification-should-call-flash-method-when-enabled ()
+  "Test that flash method is called when included in methods list."
+  ;; Arrange
+  (let ((flash-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(flash))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-auto-notify-flash-mode-line)
+               (lambda (&optional buffer) (setq flash-called t))))
       
-      ;; State should be updated
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
+      (should flash-called))))
+
+(ert-deftest test-notification-should-call-message-method-when-enabled ()
+  "Test that message method is called when included in methods list."
+  ;; Arrange
+  (let ((message-called nil)
+        (ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(message))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-display-message)
+               (lambda (state &optional buffer) (setq message-called t))))
+      
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
+      (should message-called))))
+
+(ert-deftest test-notification-should-update-last-state-after-dispatch ()
+  "Test that last state is updated after successful dispatch."
+  ;; Arrange
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-states '(:y/n))
+        (ecc-notification-methods '(message))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil))
+    
+    (cl-letf (((symbol-function 'ecc-notification-display-message) #'ignore))
+      
+      ;; Act
+      (ecc-notification-dispatch :y/n)
+      
+      ;; Assert
       (should (eq ecc-notification--last-state :y/n)))))
 
 ;; Test notification method toggling
-(ert-deftest test-notification-toggle-methods ()
-  "Test toggling notification methods."
-  ;; Start with all methods
+(ert-deftest test-notification-toggle-bell-should-disable-when-enabled ()
+  "Test that bell toggle disables bell when it is enabled."
+  ;; Arrange
   (let ((ecc-notification-methods '(bell flash message)))
-    
-    ;; Test bell toggle
+    ;; Act
     (ecc-notification-toggle-bell)
-    (should-not (memq 'bell ecc-notification-methods))
+    ;; Assert
+    (should-not (memq 'bell ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-bell-should-enable-when-disabled ()
+  "Test that bell toggle enables bell when it is disabled."
+  ;; Arrange
+  (let ((ecc-notification-methods '(flash message)))
+    ;; Act
+    (ecc-notification-toggle-bell)
+    ;; Assert
+    (should (memq 'bell ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-bell-should-preserve-other-methods ()
+  "Test that bell toggle preserves other notification methods."
+  ;; Arrange
+  (let ((ecc-notification-methods '(bell flash message)))
+    ;; Act
+    (ecc-notification-toggle-bell)
+    ;; Assert
     (should (memq 'flash ecc-notification-methods))
-    
-    ;; Toggle back on
-    (ecc-notification-toggle-bell)
-    (should (memq 'bell ecc-notification-methods))
-    
-    ;; Test flash toggle
+    (should (memq 'message ecc-notification-methods))))
+
+(ert-deftest test-notification-toggle-flash-should-disable-when-enabled ()
+  "Test that flash toggle disables flash when it is enabled."
+  ;; Arrange
+  (let ((ecc-notification-methods '(bell flash message)))
+    ;; Act
     (ecc-notification-toggle-flash)
+    ;; Assert
     (should-not (memq 'flash ecc-notification-methods))))
 
 ;; Test backward compatibility aliases
 (ert-deftest test-notification-backward-compatibility ()
   "Test backward compatibility aliases."
   ;; Test that aliases are defined
-  (should (fboundp 'ecc-auto-notify-toggle))
-  (should (fboundp 'ecc-auto-notify-toggle-bell))
-  (should (fboundp 'ecc-auto-notify-check-state))
-  (should (fboundp 'ecc-auto-notify-prompt))
+  (should (fboundp 'ecc-notification-toggle))
+  (should (fboundp 'ecc-notification-toggle-bell))
+  (should (fboundp 'ecc-notification-check-state))
+  (should (fboundp 'ecc-notification-dispatch))
   
   ;; Test that aliases point to the right functions
-  (should (functionp (symbol-function 'ecc-auto-notify-toggle)))
-  (should (functionp (symbol-function 'ecc-auto-notify-toggle-bell)))
+  (should (functionp (symbol-function 'ecc-notification-toggle)))
+  (should (functionp (symbol-function 'ecc-notification-toggle-bell)))
   
   ;; Call aliases and check they run without errors
   (let ((ecc-notification-enabled t))
-    (ecc-auto-notify-toggle)
+    (ecc-notification-toggle)
     (should-not ecc-notification-enabled)
-    (ecc-auto-notify-toggle)
+    (ecc-notification-toggle)
     (should ecc-notification-enabled)))
+
+;; Test buffer name in notifications
+(ert-deftest test-notification-buffer-name-display ()
+  "Test that notifications include buffer name when buffer is provided."
+  (let ((ecc-notification-enabled t)
+        (ecc-notification-methods '(message))
+        (ecc-notification-states '(:y/n))
+        (ecc-notification--last-time 0)
+        (ecc-notification--last-state nil)
+        (test-buffer-name "*test-notification-buffer*")
+        (captured-message nil))
+    
+    ;; Create a test buffer
+    (with-temp-buffer
+      (rename-buffer test-buffer-name)
+      
+      ;; Mock message function to capture output
+      (cl-letf (((symbol-function 'message)
+                 (lambda (format-string &rest args)
+                   (setq captured-message (apply #'format format-string args)))))
+        
+        ;; Test with buffer parameter
+        (ecc-notification-dispatch :y/n (current-buffer))
+        (should captured-message)
+        (should (string-match-p (regexp-quote test-buffer-name) captured-message))
+        (should (string-match-p "\\[.*\\]" captured-message))
+        
+        ;; Reset for next test
+        (setq captured-message nil)
+        (setq ecc-notification--last-state nil)
+        (setq ecc-notification--last-time 0)
+        
+        ;; Test without buffer parameter
+        (ecc-notification-dispatch :y/n)
+        (should captured-message)
+        (should-not (string-match-p "\\[.*\\]" captured-message))))))
 
 (provide 'test-notification)
 

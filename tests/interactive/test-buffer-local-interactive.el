@@ -9,9 +9,13 @@
 ;;; correctly in a real-world environment.
 
 (require 'ecc-variables)
+(require 'ecc-api)
 (require 'ecc-buffer-local)
+(require 'ecc-api)
 (require 'ecc-buffer-api)
+(require 'ecc-api)
 (require 'ecc-auto-response-buffer-local)
+(require 'ecc-api)
 
 ;;;###autoload
 (defun ecc-interactive-test-setup ()
@@ -163,7 +167,7 @@ STATE should be one of: y/n, y/y/n, waiting, initial-waiting, none."
             ((string= state "waiting")
              "Claude content with continue> prompt")
             ((string= state "initial-waiting")
-             "Claude initial content with │ > Try  prompt")
+             "Claude initial content with │ > Try  prompt")
             ((string= state "none")
              "Regular Claude content without any prompt")
             (t "Unknown state"))))
