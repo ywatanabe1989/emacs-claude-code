@@ -1,0 +1,48 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Author ywatanabe
+    Version 1.0
+    Description Emacs CI testing environment for emacs-claude-code
+
+%post
+    # Prevent interactive prompts
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # Update and install packages
+    apt-get update
+    apt-get install -y \
+        emacs \
+        emacs-nox \
+        git \
+        curl \
+        make \
+        build-essential
+    
+    # Clean up
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+    
+    # Create directories for binding
+    mkdir -p /workspace
+    mkdir -p /home/runner
+
+%environment
+    export LC_ALL=C
+    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+%runscript
+    cd /workspace
+    if [ -f "./run_tests.sh" ]; then
+        exec ./run_tests.sh "$@"
+    else
+        echo "Error: run_tests.sh not found in /workspace"
+        echo "Make sure to bind mount your project directory:"
+        echo "  apptainer run --bind \$(pwd):/workspace emacs-ci.sif"
+        exit 1
+    fi
+
+%test
+    emacs --version
+    echo "Emacs is installed and working"

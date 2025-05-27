@@ -1,0 +1,34 @@
+# Local testing workflow that can be run with act
+# Install act: https://github.com/nektos/act
+# Run: act -j test
+
+name: test-local
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs_version: [27.1, 28.2, 29.1]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Emacs ${{ matrix.emacs_version }}
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.emacs_version }}" == "27.1" ]]; then
+            sudo apt-get install -y emacs
+          else
+            # For newer versions, we'd need to add PPA or build from source
+            sudo add-apt-repository -y ppa:kelleyk/emacs
+            sudo apt-get update
+            sudo apt-get install -y emacs28
+          fi
+          
+      - name: Show Emacs version
+        run: emacs --version
+        
+      - name: Run tests
+        run: ./run-tests.sh

@@ -1,0 +1,13 @@
+# Ignore test outputs
+*.log
+*.org
+TEST-REPORT-*
+
+# Ignore cache
+.apptainer-cache/
+*.sif
+
+# Ignore temp files
+.old/
+*~
+\#*\#

@@ -1,0 +1,28 @@
+# Minimal Dockerfile that mimics GitHub Actions ubuntu-latest
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Emacs and basic tools (similar to GitHub Actions)
+RUN apt-get update && apt-get install -y \
+    emacs \
+    git \
+    curl \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (like GitHub Actions runner)
+RUN useradd -m -s /bin/bash runner
+USER runner
+WORKDIR /home/runner/work
+
+# Copy project with correct ownership
+COPY --chown=runner:runner . /home/runner/work/emacs-claude-code
+
+WORKDIR /home/runner/work/emacs-claude-code
+
+# Ensure test script is executable
+RUN chmod +x run_tests.sh || true
+
+# Default command runs tests
+CMD ["./run_tests.sh"]

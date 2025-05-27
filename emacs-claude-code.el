@@ -1,13 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-25 01:27:37>
+;;; Timestamp: <2025-05-28 05:43:59>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/emacs-claude-code.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
-
-;;; Commentary:
-;;; Main entry point for emacs-claude-code package.
 
 (require 'cl-lib)
 
@@ -17,72 +14,28 @@
                     (or load-file-name buffer-file-name)))
          (src-dir (expand-file-name "src" base-dir))
          (tests-dir (expand-file-name "tests" base-dir)))
-
-    ;; Function to add directory and its subdirectories recursively
     (cl-labels ((add-dir-recursively
                   (dir)
                   (when (file-directory-p dir)
-                    ;; Add the directory itself
                     (add-to-list 'load-path dir)
-                    ;; Add subdirectories
-                    (dolist (subdir (directory-files dir t "\\`[^.]"))
+                    (dolist (subdir (directory-files dir t))
                       (when (and (file-directory-p subdir)
                                  (not
-                                  (string-match-p "/\\.\\|/\\.\\."
+                                  (string-match-p "/\\.$\\|/\\.\\.$"
                                                   subdir))
                                  (not
-                                  (string-match-p "contrib\\|.old"
-                                                  subdir)))
+                                  (string-match-p
+                                   "contrib\\|.old\\|old"
+                                   subdir)))
                         (add-dir-recursively subdir))))))
-
-      ;; Add src and tests directories recursively
       (when (file-directory-p src-dir)
         (add-dir-recursively src-dir))
       (when (file-directory-p tests-dir)
         (add-dir-recursively tests-dir)))))
 
-;; Initialize load pathe
 (--ecc-add-all-to-loadpath)
 
-;; Core functionality
-(require 'ecc-variables)
-(require 'ecc-debug-utils)
-(require 'ecc-state-detection)
-
-;; VTerm integration
-(require 'vterm)
-(require 'ecc-vterm-mode)
-(require 'ecc-vterm-yank-as-file)
-(require 'ecc-vterm-grayscale)
-
-;; Terminal Claude mode
-(require 'ecc-term-claude-mode)
-(require 'ecc-term-visual-aid)
-
-;; Auto-response functionality
-(require 'ecc-auto-response)
-(require 'ecc-auto-notify)
-(require 'ecc-interaction-tracker)
-(require 'ecc-interaction-limiter)
-
-;; UI enhancements
-(require 'ecc-color-themes)
-(require 'ecc-eye-friendly)
-(require 'ecc-convenience-commands)
-
-;; Note: ecc-mode is not enabled automatically
-;; Users should call (ecc-mode 1) in their init file to enable keybindings
-
-;;;###autoload
-(defun ecc-setup ()
-  "Setup emacs-claude-code with recommended settings.
-Enables the ecc-mode minor mode to activate keybindings."
-  (interactive)
-  (ecc-mode 1)
-  (message "Emacs Claude Code mode enabled. Use C-c c h for help."))
-
-;;; emacs-claude-code.el ends here)
-(global-set-key (kbd "C-c c a") 'ecc-auto-response-buffer-toggle)
+(require 'ecc)
 
 
 (provide 'emacs-claude-code)

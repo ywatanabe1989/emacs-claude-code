@@ -1,0 +1,56 @@
+# Dockerfile that closely mimics GitHub Actions ubuntu-latest environment
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install dependencies similar to GitHub Actions runner
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    wget \
+    software-properties-common \
+    libgnutls30 \
+    libncurses5-dev \
+    libxml2 \
+    libgpm2 \
+    libdbus-1-3 \
+    libm17n-0 \
+    libotf1 \
+    libsystemd0 \
+    libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user similar to GitHub Actions
+RUN useradd -m -s /bin/bash runner
+USER runner
+WORKDIR /home/runner/work
+
+# Install Emacs versions using the same method as purcell/setup-emacs
+# This downloads pre-built Emacs binaries
+RUN mkdir -p /home/runner/.local/bin && \
+    cd /home/runner/.local/bin && \
+    # Emacs 27.1
+    curl -L https://github.com/npostavs/emacs-travis/releases/download/bins/emacs-27.1-x86_64.tar.gz | tar xzf - && \
+    mv emacs-27.1-x86_64 emacs-27.1 && \
+    # Emacs 28.2
+    curl -L https://github.com/npostavs/emacs-travis/releases/download/bins/emacs-28.2-x86_64.tar.gz | tar xzf - && \
+    mv emacs-28.2-x86_64 emacs-28.2 && \
+    # Emacs 29.1
+    curl -L https://github.com/npostavs/emacs-travis/releases/download/bins/emacs-29.1-x86_64.tar.gz | tar xzf - && \
+    mv emacs-29.1-x86_64 emacs-29.1
+
+# Add Emacs to PATH
+ENV PATH="/home/runner/.local/bin/emacs-${EMACS_VERSION}/bin:${PATH}"
+
+# Copy project files
+COPY --chown=runner:runner . /home/runner/work/emacs-claude-code/emacs-claude-code
+
+WORKDIR /home/runner/work/emacs-claude-code/emacs-claude-code
+
+# Default Emacs version
+ARG EMACS_VERSION=28.2
+
+# Run tests
+CMD ["/bin/bash", "-c", "./run-tests.sh"]
