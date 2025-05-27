@@ -49,7 +49,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (local-variable-p 'ecc-buffer-state--last-update))))
+    (should (local-variable-p 'ecc-buffer-state-last-update))))
 
 (ert-deftest test-buffer-state-should-initialize-data-as-hash-table ()
   "Test that buffer state data is initialized as a hash table."
@@ -58,7 +58,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (hash-table-p ecc-buffer-state--data))))
+    (should (hash-table-p ecc-buffer-state-data))))
 
 
 (ert-deftest test-buffer-state-should-initialize-last-update-as-nil ()
@@ -68,7 +68,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Assert
-    (should (null ecc-buffer-state--last-update))))
+    (should (equal 0 ecc-buffer-state-last-update))))
 
 (ert-deftest test-buffer-state-should-initialize-prompt-state-as-nil ()
   "Test that prompt state is initially nil after buffer state init."
@@ -329,7 +329,7 @@ If CONTENT is nil, creates an empty buffer."
           (insert "Human: test\n\n[y/n]")
           
           ;; Act
-          (let ((state (ecc-state-detection-get-state)))
+          (let ((state (ecc-detect-state)))
             
             ;; Assert
             (should (eq state 'y-n))))
@@ -345,7 +345,7 @@ If CONTENT is nil, creates an empty buffer."
           (insert "Human:\n\nAssistant:")
           
           ;; Act
-          (let ((state (ecc-state-detection-get-state)))
+          (let ((state (ecc-detect-state)))
             
             ;; Assert
             (should (eq state 'waiting))))
@@ -369,7 +369,7 @@ If CONTENT is nil, creates an empty buffer."
           
           ;; Assert - Buffer1 still has y/n state
           (with-current-buffer buffer1
-            (should (eq (ecc-state-detection-get-state) 'y-n))))
+            (should (eq (ecc-detect-state) 'y-n))))
       (kill-buffer buffer1)
       (kill-buffer buffer2))))
 
@@ -390,7 +390,7 @@ If CONTENT is nil, creates an empty buffer."
           
           ;; Act & Assert - Buffer2 has its own state
           (with-current-buffer buffer2
-            (should (eq (ecc-state-detection-get-state) 'waiting))))
+            (should (eq (ecc-detect-state) 'waiting))))
       (kill-buffer buffer1)
       (kill-buffer buffer2))))
 

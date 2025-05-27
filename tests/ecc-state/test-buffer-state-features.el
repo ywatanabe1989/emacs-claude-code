@@ -171,7 +171,7 @@ If CONTENT is nil, creates an empty buffer."
     
     ;; Test throttling with actual state detection
     (insert "[y/n]")
-    (let ((state (ecc-state-detection-get-state)))
+    (let ((state (ecc-detect-state)))
       (should (eq state 'y-n))
       
       ;; First notification should work
@@ -184,7 +184,7 @@ If CONTENT is nil, creates an empty buffer."
       ;; Change content, different state should work
       (erase-buffer)
       (insert "Human:\n\nAssistant:")
-      (let ((new-state (ecc-state-detection-get-state)))
+      (let ((new-state (ecc-detect-state)))
         (should (eq new-state 'waiting))
         (should (ecc-buffer-state-update-allowed-p new-state))))))
 

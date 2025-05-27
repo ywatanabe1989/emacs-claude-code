@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-25 07:03:33>
+;;; Timestamp: <2025-05-27 08:34:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-convenience-commands.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -85,7 +85,8 @@ default settings but using '/user:auto' for the continue prompt."
   (interactive)
   (if (fboundp 'ecc-display-interaction-stats)
       (ecc-display-interaction-stats)
-    (ecc-debug-message "Interaction tracking functionality not available")))
+    (ecc-debug-message
+     "Interaction tracking functionality not available")))
 
 (defun ecc-toggle-periodic-cmds ()
   "Toggle sending periodic commands to Claude."
@@ -142,11 +143,15 @@ default settings but using '/user:auto' for the continue prompt."
     (if (fboundp 'ecc-auto-response-buffer-stop)
         (progn
           (ecc-auto-response-buffer-stop)
-          (let ((msg (format "Buffer-local auto-response STOPPED in %s" (buffer-name))))
+          (let
+              ((msg
+                (format "Buffer-local auto-response STOPPED in %s"
+                        (buffer-name))))
             (ecc-debug-message msg)
             (when (fboundp 'display-message-or-buffer)
               (display-message-or-buffer msg "*Claude Auto Control*"))))
-      (ecc-debug-message "Buffer-local auto-response functionality not available")))
+      (ecc-debug-message
+       "Buffer-local auto-response functionality not available")))
    ;; Global mode: stop globally
    ((fboundp 'ecc-auto-response-stop)
     (ecc-auto-response-stop)
@@ -156,6 +161,216 @@ default settings but using '/user:auto' for the continue prompt."
         (display-message-or-buffer msg "*Claude Auto Control*"))))
    (t
     (ecc-debug-message "Auto-response functionality not available"))))
+
+;; Buffer list mode for Claude buffers
+
+(defvar ecc-buffer-list-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") 'ecc-buffer-list-select)
+    (define-key map (kbd "SPC") 'ecc-buffer-list-select)
+    (define-key map (kbd "q") 'quit-window)
+    (define-key map (kbd "g") 'ecc-list-buffers)
+    (define-key map (kbd "a") 'ecc-buffer-list-toggle-auto-response)
+    (define-key map (kbd "n") 'next-line)
+    (define-key map (kbd "p") 'previous-line)
+    map)
+  "Keymap for ecc-buffer-list-mode.")
+
+(define-derived-mode ecc-buffer-list-mode special-mode
+  "Claude-Buffers"
+  "Major mode for browsing Claude buffers with auto-response status.
+\\{ecc-buffer-list-mode-map}"
+  (setq buffer-read-only t)
+  (setq truncate-lines t))
+
+(defvar-local ecc-buffer-list-data nil
+  "Buffer-local variable storing buffer information for navigation.")
+
+(defun ecc-buffer-list-get-buffer-name ()
+  "Get the buffer name from the current line in the buffer list."
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^\\([^[:space:]]+\\)")
+      (match-string 1))))
+
+(defun ecc-buffer-list-select ()
+  "Select the buffer on the current line."
+  (interactive)
+  (let ((buffer-name (ecc-buffer-list-get-buffer-name)))
+    (when buffer-name
+      (let ((buffer (get-buffer buffer-name)))
+        (if buffer
+            (progn
+              (switch-to-buffer buffer)
+              (message "Switched to buffer: %s" buffer-name))
+          (message "Buffer %s no longer exists" buffer-name))))))
+
+(defun ecc-buffer-list-toggle-auto-response ()
+  "Toggle auto-response for the buffer on the current line."
+  (interactive)
+  (let ((buffer-name (ecc-buffer-list-get-buffer-name)))
+    (when buffer-name
+      (let ((buffer (get-buffer buffer-name)))
+        (if buffer
+            (progn
+              (with-current-buffer buffer
+                (when (fboundp 'ecc-auto-response-buffer-toggle)
+                  (ecc-auto-response-buffer-toggle)))
+              ;; Refresh the buffer list
+              (ecc-list-buffers))
+          (message "Buffer %s no longer exists" buffer-name))))))
+
+(defun ecc-list-buffers ()
+  "Display a list of vterm buffers with their auto-response status.
+Shows only vterm-mode buffers (Claude interaction buffers) with their
+auto-response status and registration information.
+
+In the buffer list:
+- RET/SPC: Jump to buffer
+- a: Toggle auto-response for buffer
+- g: Refresh list
+- q: Quit"
+  (interactive)
+  (let ((buffer-info '())
+        (global-enabled (and (boundp 'ecc-auto-response-enabled)
+                             ecc-auto-response-enabled))
+        (registered-buffers (when
+                                (fboundp
+                                 'ecc-auto-response-get-registered-buffers)
+                              (ecc-auto-response-get-registered-buffers))))
+
+    ;; Collect information about all buffers
+    (dolist (buffer (buffer-list))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (let* ((buffer-name (buffer-name buffer))
+                 (buffer-local-enabled (or (and
+                                            (boundp
+                                             'ecc-auto-response-buffer-enabled)
+                                            ecc-auto-response-buffer-enabled)
+                                           (and
+                                            (boundp
+                                             'ecc-buffer-auto-response-enabled)
+                                            ecc-buffer-auto-response-enabled)))
+                 (is-registered (and registered-buffers
+                                     (memq buffer registered-buffers)))
+                 (auto-status (cond
+                               (buffer-local-enabled "Buffer-Local")
+                               ((and global-enabled is-registered)
+                                "Global")
+                               (is-registered "Registered")
+                               (t "Disabled")))
+                 (buffer-mode (symbol-name major-mode))
+                 (is-vterm (derived-mode-p 'vterm-mode)))
+
+            ;; Only show vterm buffers - these are the Claude interaction buffers
+            (when is-vterm
+              (push
+               (list buffer-name auto-status buffer-mode is-vterm
+                     is-registered buffer)
+               buffer-info))))))
+
+    ;; Create or switch to the buffer list buffer
+    (let ((list-buffer (get-buffer-create "*Claude Buffers*")))
+      (with-current-buffer list-buffer
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+
+          (insert "Claude Auto-Response Buffer Status\n")
+          (insert "====================================\n\n")
+
+          (insert (format "Global Auto-Response: %s\n"
+                          (if global-enabled "Enabled" "Disabled")))
+          (insert (format "Registered Buffers: %d\n\n"
+                          (length (or registered-buffers '()))))
+
+          (if buffer-info
+              (progn
+                (insert (format "%-25s %-15s %-20s %-6s %s\n"
+                                "Buffer Name" "Auto-Response" "Mode"
+                                "VTerm" "Registered"))
+                (insert (format "%-25s %-15s %-20s %-6s %s\n"
+                                "───────────" "─────────────" "────"
+                                "─────" "──────────"))
+
+                ;; Sort by auto-response status (enabled first)
+                (setq buffer-info (sort buffer-info
+                                        (lambda (a b)
+                                          (let ((status-a (nth 1 a))
+                                                (status-b (nth 1 b)))
+                                            (cond
+                                             ((and
+                                               (string= status-a
+                                                        "Buffer-Local")
+                                               (not
+                                                (string= status-b
+                                                         "Buffer-Local")))
+                                              t)
+                                             ((and
+                                               (string= status-a
+                                                        "Global")
+                                               (not
+                                                (member status-b
+                                                        '("Buffer-Local"
+                                                          "Global"))))
+                                              t)
+                                             (t
+                                              (string< (nth 0 a)
+                                                       (nth 0 b))))))))
+
+                (dolist (info buffer-info)
+                  (let ((name (nth 0 info))
+                        (status (nth 1 info))
+                        (mode (nth 2 info))
+                        (is-vterm (nth 3 info))
+                        (is-registered (nth 4 info)))
+                    (insert (format "%-25s %-15s %-20s %-6s %s\n"
+                                    (if (> (length name) 24)
+                                        (concat (substring name 0 21)
+                                                "...")
+                                      name)
+                                    status
+                                    (if (> (length mode) 19)
+                                        (concat (substring mode 0 16)
+                                                "...")
+                                      mode)
+                                    (if is-vterm "Yes" "No")
+                                    (if is-registered "Yes" "No"))))))
+            (insert "No relevant buffers found.\n"))
+
+          (insert "\nLegend:\n")
+          (insert
+           "  Buffer-Local: Auto-response enabled for this buffer only\n")
+          (insert "  Global:       Auto-response via global system\n")
+          (insert
+           "  Registered:   Buffer is registered but auto-response disabled\n")
+          (insert "  Disabled:     No auto-response configured\n\n")
+
+          (insert "Commands:\n")
+          (insert "  RET/SPC       Jump to buffer\n")
+          (insert "  a             Toggle auto-response for buffer\n")
+          (insert "  g             Refresh buffer list\n")
+          (insert "  q             Quit buffer list\n")
+          (insert "  n/p           Next/previous line\n\n")
+          (insert "Global Commands:\n")
+          (insert
+           "  C-c c a       Toggle buffer-local auto-response\n")
+          (insert "  C-c c s       Stop auto-response immediately\n")
+          (insert "  C-c c h       Show help\n")
+
+          ;; Store buffer info for navigation
+          (setq-local ecc-buffer-list-data buffer-info))
+
+        ;; Enable the mode and position cursor
+        (ecc-buffer-list-mode)
+        (goto-char (point-min))
+        ;; Move to first buffer line (skip headers)
+        (when (search-forward "───────────" nil t)
+          (forward-line 1)))
+
+      ;; Display the buffer
+      (display-buffer list-buffer)
+      (select-window (get-buffer-window list-buffer)))))
 
 (defun ecc-help ()
   "Display help about Claude mode commands and keybindings."
@@ -204,6 +419,10 @@ default settings but using '/user:auto' for the continue prompt."
      "C-c c p      ecc-toggle-periodic     Toggle periodic commands\n")
     (princ
      "C-c c c      ecc-add-periodic-cmd    Add a new periodic command\n")
+
+    ;; Buffer management
+    (princ
+     "C-c c l      ecc-list-buffers        List buffers with auto-response status\n")
 
     ;; Help
     (princ "C-c c h      ecc-help                Show this help\n\n")
@@ -335,6 +554,9 @@ default settings but using '/user:auto' for the continue prompt."
     (define-key map (kbd "C-c c p") 'ecc-toggle-periodic-cmds)
     (define-key map (kbd "C-c c c") 'ecc-add-periodic-cmd)
 
+    ;; Buffer management
+    (define-key map (kbd "C-c c l") 'ecc-list-buffers)
+
     ;; Help
     (define-key map (kbd "C-c c h") 'ecc-help)
     map)
@@ -352,6 +574,6 @@ When enabled, provides keybindings for Claude interaction commands."
 
 (when
     (not load-file-name)
-  (ecc-debug-message "ecc-convenience-commands.el loaded."
+  (message "ecc-convenience-commands.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

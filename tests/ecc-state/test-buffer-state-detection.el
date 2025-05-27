@@ -31,25 +31,25 @@ If CONTENT is nil, creates an empty buffer."
   "Test that lowercase [y/n] prompt is detected as y-n state."
   (with-temp-buffer-fixture "[y/n]"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'y-n))))
+    (should (eq (ecc-detect-state) 'y-n))))
 
 (ert-deftest test-buffer-state-should-detect-uppercase-yn-prompt ()
   "Test that uppercase [Y/N] prompt is detected as y-n state."
   (with-temp-buffer-fixture "[Y/N]"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'y-n))))
+    (should (eq (ecc-detect-state) 'y-n))))
 
 (ert-deftest test-buffer-state-should-detect-human-assistant-as-waiting ()
   "Test that Human/Assistant pattern is detected as waiting state."
   (with-temp-buffer-fixture "Human:\n\nAssistant:"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'waiting))))
+    (should (eq (ecc-detect-state) 'waiting))))
 
 (ert-deftest test-buffer-state-should-detect-typing-as-initial-waiting ()
   "Test that Assistant typing pattern is detected as initial-waiting state."
   (with-temp-buffer-fixture "Human:\n\nAssistant: (typing"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'initial-waiting))))
+    (should (eq (ecc-detect-state) 'initial-waiting))))
 
 (ert-deftest test-buffer-state-detection-name-formatting ()
   "Test buffer name formatting in state detection."
@@ -63,13 +63,13 @@ If CONTENT is nil, creates an empty buffer."
   "Test that [Continue?] prompt is detected in multiline content."
   (with-temp-buffer-fixture "Some content\n[Continue?]"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'continue))))
+    (should (eq (ecc-detect-state) 'continue))))
 
 (ert-deftest test-buffer-state-should-detect-yyn-prompt-in-multiline ()
   "Test that [y/y/n] prompt is detected in multiline content."
   (with-temp-buffer-fixture "Multiple lines\nof content\n[y/y/n]"
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'y-y-n))))
+    (should (eq (ecc-detect-state) 'y-y-n))))
 
 (ert-deftest test-buffer-state-should-detect-first-custom-pattern ()
   "Test that first custom pattern is detected as initial-waiting."
@@ -77,7 +77,7 @@ If CONTENT is nil, creates an empty buffer."
          '("\\[CUSTOM\\]" "\\[PATTERN\\]")))
     (with-temp-buffer-fixture "[CUSTOM]"
       ;; Act & Assert
-      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))))
+      (should (eq (ecc-detect-state) 'initial-waiting)))))
 
 (ert-deftest test-buffer-state-should-detect-second-custom-pattern ()
   "Test that second custom pattern is detected as initial-waiting."
@@ -85,7 +85,7 @@ If CONTENT is nil, creates an empty buffer."
          '("\\[CUSTOM\\]" "\\[PATTERN\\]")))
     (with-temp-buffer-fixture "[PATTERN]"
       ;; Act & Assert
-      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))))
+      (should (eq (ecc-detect-state) 'initial-waiting)))))
 
 (ert-deftest test-buffer-state-detection-notification ()
   "Test notification integration with state detection."
@@ -107,7 +107,7 @@ If CONTENT is nil, creates an empty buffer."
     (ecc-buffer-state-init (current-buffer))
     
     ;; Act
-    (let ((detected-state (ecc-state-detection-get-state)))
+    (let ((detected-state (ecc-detect-state)))
       
       ;; Assert
       (should (eq detected-state 'y-n)))))
@@ -117,7 +117,7 @@ If CONTENT is nil, creates an empty buffer."
   (with-temp-buffer-fixture "[y/n] prompt"
     ;; Arrange
     (ecc-buffer-state-init (current-buffer))
-    (let ((detected-state (ecc-state-detection-get-state)))
+    (let ((detected-state (ecc-detect-state)))
       
       ;; Act
       (ecc-buffer-state-update-prompt-state detected-state)
@@ -132,7 +132,7 @@ If CONTENT is nil, creates an empty buffer."
     (goto-char (point-min))
     
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'y-n))))
+    (should (eq (ecc-detect-state) 'y-n))))
 
 (ert-deftest test-buffer-state-should-detect-state-with-cursor-at-end ()
   "Test that state is detected correctly with cursor at buffer end."
@@ -141,7 +141,7 @@ If CONTENT is nil, creates an empty buffer."
     (goto-char (point-max))
     
     ;; Act & Assert
-    (should (eq (ecc-state-detection-get-state) 'y-n))))
+    (should (eq (ecc-detect-state) 'y-n))))
 
 (ert-deftest test-buffer-state-independence ()
   "Test state independence across multiple buffers."
@@ -152,11 +152,11 @@ If CONTENT is nil, creates an empty buffer."
           (with-current-buffer buffer1
             (insert "[y/n]")
             (ecc-buffer-state-init (current-buffer))
-            (should (eq (ecc-state-detection-get-state) 'y-n)))
+            (should (eq (ecc-detect-state) 'y-n)))
           (with-current-buffer buffer2
             (insert "Human:\n\nAssistant:")
             (ecc-buffer-state-init (current-buffer))
-            (should (eq (ecc-state-detection-get-state) 'waiting))))
+            (should (eq (ecc-detect-state) 'waiting))))
       (kill-buffer buffer1)
       (kill-buffer buffer2))))
 
@@ -228,31 +228,31 @@ If CONTENT is nil, creates an empty buffer."
   "Test snapshot with y/n prompt."
   (with-temp-buffer-fixture 
       "Human: Should I proceed with this?\n\nAssistant: [y/n]"
-    (should (eq (ecc-state-detection-get-state) 'y-n))))
+    (should (eq (ecc-detect-state) 'y-n))))
 
 (ert-deftest ecc-test-snapshot-y-y-n ()
   "Test snapshot with y/y/n prompt."
   (with-temp-buffer-fixture
       "Human: Confirm?\n\nAssistant: [y/y/n]"
-    (should (eq (ecc-state-detection-get-state) 'y-y-n))))
+    (should (eq (ecc-detect-state) 'y-y-n))))
 
 (ert-deftest ecc-test-snapshot-waiting ()
   "Test snapshot with waiting state."
   (with-temp-buffer-fixture
       "Human: What is the weather?\n\nAssistant:"
-    (should (eq (ecc-state-detection-get-state) 'waiting))))
+    (should (eq (ecc-detect-state) 'waiting))))
 
 (ert-deftest ecc-test-snapshot-initial-waiting ()
   "Test snapshot with initial waiting state."
   (with-temp-buffer-fixture
       "Human: Hello\n\nAssistant: (typing"
-    (should (eq (ecc-state-detection-get-state) 'initial-waiting))))
+    (should (eq (ecc-detect-state) 'initial-waiting))))
 
 (ert-deftest ecc-test-snapshot-regular-content ()
   "Test snapshot with regular content (no special state)."
   (with-temp-buffer-fixture
       "Just some regular text without any prompts"
-    (should (null (ecc-state-detection-get-state)))))
+    (should (null (ecc-detect-state)))))
 
 (ert-deftest ecc-test-snapshots-with-buffer-specific-patterns ()
   "Test snapshots with buffer-specific patterns."
@@ -260,7 +260,7 @@ If CONTENT is nil, creates an empty buffer."
     (with-temp-buffer-fixture "[SPECIAL]"
       ;; This would need buffer-specific pattern implementation
       ;; For now, test that it doesn't match standard patterns
-      (should-not (memq (ecc-state-detection-get-state) 
+      (should-not (memq (ecc-detect-state) 
                         '(y-n y-y-n waiting initial-waiting))))))
 
 (ert-deftest ecc-test-snapshot-with-alternative-patterns ()
@@ -268,9 +268,9 @@ If CONTENT is nil, creates an empty buffer."
   (let ((ecc-state-prompt-initial-waiting-alternatives
          '("/user:auto" "/user:continue")))
     (with-temp-buffer-fixture "Human: test\n\n/user:auto"
-      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))
+      (should (eq (ecc-detect-state) 'initial-waiting)))
     (with-temp-buffer-fixture "Human: test\n\n/user:continue"
-      (should (eq (ecc-state-detection-get-state) 'initial-waiting)))))
+      (should (eq (ecc-detect-state) 'initial-waiting)))))
 
 (provide 'test-buffer-state-detection)
 ;;; test-buffer-state-detection.el ends here

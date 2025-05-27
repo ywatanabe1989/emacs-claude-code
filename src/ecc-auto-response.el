@@ -400,6 +400,9 @@ Example:
   (interactive)
   (ecc-auto-response--debug "ecc-auto-response-start called")
   (ecc-auto-response--debug "Starting auto-response system")
+
+  ;; Register the current buffer
+  (ecc-auto-response-register-buffer (current-buffer))
   
   ;; Update response values if provided
   (when yes (setq ecc-auto-response-yes yes))
@@ -434,6 +437,10 @@ Example:
 Cancels the timer and disables automatic responses to Claude prompts."
   (interactive)
   (ecc-auto-response--debug "Stopping auto-response system")
+
+  ;; Unregister the current buffer
+  ;; (ecc-auto-response-unregister-buffer (current-buffer))
+  (ecc-auto-response-unregister-buffer (current-buffer))
   
   ;; Disable auto-response
   (setq ecc-auto-response-enabled nil)
@@ -457,10 +464,8 @@ If not already started, initializes with default settings."
   (ecc-auto-response--debug "ecc-auto-response-toggle called. Current state: %s" ecc-auto-response-enabled)
   (if ecc-auto-response-enabled
       (ecc-auto-response-stop)
-    ;; When starting, ensure we have a registered buffer
     (progn
       (ecc-auto-response--debug "Registering current buffer before starting")
-      (ecc-auto-response-register-buffer (current-buffer))
       (ecc-auto-response-start))))
 
 
@@ -473,8 +478,6 @@ Useful to apply new settings or clear state."
   (ecc-auto-response-start))
 
 ;;;; Buffer Management
-
-
 (defun ecc-auto-response-register-buffer (buffer)
   "Register BUFFER for auto-response.
 Registered buffers will be checked for Claude prompts when auto-response is enabled."
@@ -548,23 +551,26 @@ Checks current buffer first, then other registered buffers for Claude prompts."
   "Process a single BUFFER for auto-response based on its configuration."
   (ecc-auto-response--debug "Processing single buffer: %s" (buffer-name buffer))
   
-  ;; Process buffer based on mode
-  (if ecc-auto-response-default
-      ;; Buffer-local mode
-      (with-current-buffer buffer
-        (ecc-auto-response--debug "Buffer-local mode check - enabled: %s" 
-                 (or ecc-auto-response-buffer-enabled
-                     (and (boundp 'ecc-buffer-auto-response-enabled)
-                          ecc-buffer-auto-response-enabled)))
-        (when (or ecc-auto-response-buffer-enabled 
-                 ;; For backward compatibility
-                 (and (boundp 'ecc-buffer-auto-response-enabled)
-                      ecc-buffer-auto-response-enabled))
-          (ecc-auto-response--process-buffer-local buffer)))
-    
-    ;; Global mode
-    (ecc-auto-response--debug "Processing buffer in global mode")
-    (ecc-auto-response--process-buffer-global buffer)))
+  ;; Check if buffer has buffer-local auto-response enabled
+  (with-current-buffer buffer
+    (let ((buffer-local-enabled (or ecc-auto-response-buffer-enabled
+                                   ;; For backward compatibility
+                                   (and (boundp 'ecc-buffer-auto-response-enabled)
+                                        ecc-buffer-auto-response-enabled))))
+      (cond
+       ;; Buffer has explicit buffer-local auto-response enabled
+       (buffer-local-enabled
+        (ecc-auto-response--debug "Buffer-local mode check - enabled: %s" buffer-local-enabled)
+        (ecc-auto-response--process-buffer-local buffer))
+       
+       ;; Use global mode if global is enabled and buffer doesn't have local config
+       (ecc-auto-response-enabled
+        (ecc-auto-response--debug "Processing buffer in global mode")
+        (ecc-auto-response--process-buffer-global buffer))
+       
+       ;; Neither mode is active
+       (t
+        (ecc-auto-response--debug "No auto-response active for buffer %s" (buffer-name buffer)))))))
 
 (defun ecc-auto-response--process-buffer-global (buffer)
   "Process BUFFER for auto-response using global settings.
@@ -729,8 +735,9 @@ Arguments:
     (message "Starting buffer-local auto-response for %s"
                              (buffer-name buf))
 
-    ;; Optimize VTerm for Claude Code
-    (ecc-optimize-vterm)
+    ;; Optimize VTerm for Claude Code (if available)
+    (when (fboundp 'ecc-optimize-vterm)
+      (ecc-optimize-vterm))
 
     ;; Register buffer if not already registered
     (ecc-auto-response-register-buffer buf)
@@ -757,12 +764,8 @@ Arguments:
       (setq-local ecc-auto-response-buffer-last-state nil)
       (setq-local ecc-auto-response-buffer-last-response-time 0))
     
-    ;; Enable global auto-response system if not already enabled
-    (unless ecc-auto-response-enabled
-      (setq ecc-auto-response-enabled t)
-      (ecc-auto-response--debug "Enabled global auto-response system"))
-    
-    ;; Start global timer if not already running
+    ;; Start global timer if not already running (needed for both modes)
+    ;; The timer processes all registered buffers regardless of mode
     (unless ecc-auto-response--timer
       (setq ecc-auto-response--timer
             (run-with-timer 0 ecc-auto-response-check-interval
@@ -780,7 +783,7 @@ Disables automatic responses to Claude prompts in the specific buffer.
 The buffer remains registered but won't receive auto-responses."
   (interactive)
   (let ((buf (or buffer (current-buffer))))
-    (ecc-auto-response--debug "Stopping buffer-local auto-response for %s"
+    (message "Stopping buffer-local auto-response for %s"
                              (buffer-name buf))
     
     ;; Disable buffer-local auto-response
@@ -801,13 +804,14 @@ Always operates on buffer-local state regardless of global settings."
   (interactive)
   (let ((buf (or buffer (current-buffer))))
     (with-current-buffer buf
-      ;; Always use buffer-local mode
-      (if ecc-auto-response-buffer-enabled
-          (ecc-auto-response-buffer-stop buf)
-        ;; When starting, ensure buffer is registered
-        (progn
-          (ecc-auto-response-register-buffer buf)
-          (ecc-auto-response-buffer-start buf))))))
+      ;; Force buffer-local mode for this toggle
+      (let ((ecc-auto-response-default t))  ; Force buffer-local mode
+        (if ecc-auto-response-buffer-enabled
+            (ecc-auto-response-buffer-stop buf)
+          ;; When starting, ensure buffer is registered
+          (progn
+            (ecc-auto-response-register-buffer buf)
+            (ecc-auto-response-buffer-start buf)))))))
 
 (defun ecc-auto-response--process-buffer-local (buffer)
   "Process BUFFER for auto-response using buffer-local settings."

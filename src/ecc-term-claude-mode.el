@@ -425,7 +425,8 @@ Key bindings:
     ;; Yank-as-file functions
     (local-set-key (kbd "C-c C-f") 'ecc-vterm-yank-as-file)
     (local-set-key (kbd "C-c C-b") 'ecc-vterm-yank-buffer-as-file)
-    (local-set-key (kbd "C-c C-q") 'ecc-vterm-quick-yank-region)))
+    (local-set-key (kbd "C-c C-q") 'ecc-vterm-quick-yank-region)
+    ))
 
 ;;;; State Detection
 
