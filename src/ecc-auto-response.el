@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 06:37:40>
+;;; Timestamp: <2025-05-28 07:03:43>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -17,8 +17,13 @@
 ;; 2. Configuration
 ;; ----------------------------------------
 
-(defcustom --ecc-auto-response-interval 1.0
+(defcustom --ecc-auto-response-interval 3.0
   "Interval in seconds for auto-response timer checks."
+  :type 'float
+  :group 'ecc)
+
+(defcustom --ecc-auto-response-safe-interval 1.0
+  "Safety delay in seconds before and after sending responses."
   :type 'float
   :group 'ecc)
 
@@ -276,7 +281,9 @@ Each element is (POSITION . TIMESTAMP).")
     (cond
      ((derived-mode-p 'vterm-mode)
       (when (fboundp 'vterm-send-string)
+        (sit-for --ecc-auto-response-safe-interval)        
         (vterm-send-string text)
+        (sit-for --ecc-auto-response-safe-interval)
         (vterm-send-return)))
      ((derived-mode-p 'comint-mode)
       (goto-char (point-max))
@@ -288,7 +295,7 @@ Each element is (POSITION . TIMESTAMP).")
   (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
                        text)
   ;; Allow buffer to update before next check
-  (sit-for 0.1))
+  (sit-for --ecc-auto-response-safe-interval))
 
 
 (provide 'ecc-auto-response)
