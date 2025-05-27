@@ -1,252 +1,224 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-27 08:53:30>
+;;; Timestamp: <2025-05-28 05:49:48>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-mode.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 
-;; Optional dependency - vterm must be installed separately
+;; 1. Dependencies
+;; ----------------------------------------
+(require 'ecc-debug)
+(require 'ecc-state-detection)
+(require 'ecc-auto-response)
+(require 'ecc-notification)
+(require 'ecc-vterm-utils)
 (require 'vterm nil t)
 
-(defgroup ecc-vterm nil
-  "Customization group for Claude Code vterm mode."
-  :group 'ecc
-  :prefix "ecc-vterm-")
 
-(defcustom ecc-vterm-hide-line-numbers t
-  "Whether to hide line numbers in ecc-vterm-mode.
-When non-nil, line numbers will be disabled in vterm buffers with ecc-vterm-mode."
+;; 2. Configuration
+;; ----------------------------------------
+(defcustom --ecc-vterm-mode-buffer-name "*CLAUDE-VTERM*"
+  "Default buffer name for Claude vterm buffers."
+  :type 'string
+  :group 'ecc)
+
+(defcustom --ecc-vterm-mode-show-state-in-mode-line t
+  "Whether to show Claude state in the mode line."
   :type 'boolean
-  :group 'ecc-vterm)
+  :group 'ecc)
 
-(defcustom ecc-vterm-default-font-size 0
-  "Default font size adjustment for ecc-vterm buffers.
-This is the text-scale-mode adjustment, not an absolute size.
-Positive numbers increase size, negative numbers decrease size."
-  :type 'integer
-  :group 'ecc-vterm)
+(defcustom --ecc-vterm-mode-auto-mode-color "#4a5d23"
+  "Background color for modeline when auto-mode is enabled."
+  :type 'color
+  :group 'ecc)
 
-(defcustom ecc-vterm-font-size-step 1
-  "Step size for font size adjustments in ecc-vterm buffers."
-  :type 'integer
-  :group 'ecc-vterm)
 
-(defcustom ecc-vterm-min-font-size -5
-  "Minimum font size adjustment allowed for ecc-vterm buffers."
-  :type 'integer
-  :group 'ecc-vterm)
+;; 3. Variables
+;; ----------------------------------------
+(defvar-local --ecc-vterm-mode--auto-mode-active nil
+  "Whether auto-mode is active for this buffer.")
 
-(defcustom ecc-vterm-max-font-size 10
-  "Maximum font size adjustment allowed for ecc-vterm buffers."
-  :type 'integer
-  :group 'ecc-vterm)
+(defvar-local --ecc-vterm-mode--state-timer nil
+  "Timer for updating Claude state.")
 
-(define-minor-mode ecc-vterm-mode
-  "Minor mode for optimized vterm buffers used with Claude Code.
-This mode provides performance optimizations and enhanced features
-for handling high-throughput interactions with Claude."
-  :lighter " ECC-VT"
-  :keymap (let ((map (make-sparse-keymap)))
-            ;; Buffer management
-            (define-key map (kbd "C-c C-t") 'ecc-vterm-truncate-buffer)
-            (define-key map (kbd "C-c C-o")
-                        'ecc-vterm-toggle-optimizations)
+(defvar --ecc-vterm-mode-map
+  (let ((map (make-sparse-keymap)))
+    (when (boundp 'vterm-mode-map)
+      (set-keymap-parent map vterm-mode-map))
+    (define-key map (kbd "C-c C-y") '--ecc-vterm-mode-yes)
+    (define-key map (kbd "C-c C-n") '--ecc-vterm-mode-no)
+    (define-key map (kbd "C-c C-a") '--ecc-vterm-mode-toggle-auto)
+    (define-key map (kbd "C-c C-f")
+                '--ecc-vterm-utils-yank-region-to-file)
+    (define-key map (kbd "C-c C-b")
+                '--ecc-vterm-utils-yank-buffer-to-file)
+    (define-key map (kbd "C-c C-q")
+                '--ecc-vterm-utils-quick-yank-region)
+    map)
+  "Keymap for Claude vterm mode.")
 
-            ;; Visual settings
-            (define-key map (kbd "C-c C-l")
-                        'ecc-vterm-toggle-line-numbers)
 
-            ;; Font size adjustment
-            (define-key map (kbd "C-c C-+")
-                        'ecc-vterm-increase-font-size)
-            (define-key map (kbd "C-c C-=")
-                        'ecc-vterm-increase-font-size)
-                                        ; Alternative binding
-            (define-key map (kbd "C-c C--")
-                        'ecc-vterm-decrease-font-size)
-            (define-key map (kbd "C-c C-0") 'ecc-vterm-reset-font-size)
+;; 4. Main Entry Points
+;; ----------------------------------------
+(when (featurep 'vterm)
+  (define-derived-mode --ecc-vterm-mode vterm-mode
+    "Claude-VTerm"
+    "Major mode for optimized Claude interaction in vterm."
+    (--ecc-vterm-mode--setup-buffer)))
 
-            ;; Mouse wheel bindings for font size
-            (define-key map (vector (list 'control 'mouse-4))
-                        'ecc-vterm-increase-font-size)
-            (define-key map (vector (list 'control 'mouse-5))
-                        'ecc-vterm-decrease-font-size)
+(defun --ecc-vterm-mode-create (&optional buffer)
+  "Create a new Claude vterm buffer or convert BUFFER to ecc-vterm-mode."
+  (interactive)
+  (let ((target-buffer (or buffer (current-buffer))))
+    (cond
+     ((eq (buffer-local-value 'major-mode target-buffer) 'vterm-mode)
+      (--ecc-debug-message
+       "Converting vterm buffer to ecc-vterm-mode: %s"
+       (buffer-name target-buffer))
+      (with-current-buffer target-buffer
+        (--ecc-vterm-mode))
+      target-buffer)
+     (t
+      (--ecc-debug-message "Creating new Claude vterm buffer: %s"
+                           --ecc-vterm-mode-buffer-name)
+      (let
+          ((new-buffer
+            (get-buffer-create --ecc-vterm-mode-buffer-name)))
+        (with-current-buffer new-buffer
+          (unless (eq major-mode '--ecc-vterm-mode)
+            (--ecc-debug-message "Initializing --ecc-vterm-mode")
+            (--ecc-vterm-mode)))
+        (switch-to-buffer new-buffer)
+        new-buffer)))))
 
-            map)
-  (if ecc-vterm-mode
-      (ecc-vterm--enable)
-    (ecc-vterm--disable)))
+(defun --ecc-vterm-mode-toggle-auto ()
+  "Toggle auto-response mode."
+  (interactive)
+  (setq-local --ecc-vterm-mode--auto-mode-active
+              (not --ecc-vterm-mode--auto-mode-active))
+  (if --ecc-vterm-mode--auto-mode-active
+      (--ecc-auto-response-enable-buffer)
+    (--ecc-auto-response-disable-buffer))
+  (--ecc-debug-message "Auto-mode %s"
+                       (if --ecc-vterm-mode--auto-mode-active
+                           "enabled"
+                         "disabled"))
+  (force-mode-line-update))
 
-(defvar-local ecc-vterm--saved-config nil
-  "Saved configuration before enabling optimizations.")
 
-(defun ecc-vterm--enable ()
-  "Enable ecc-vterm-mode optimizations."
-  ;; Save current configuration
-  (setq ecc-vterm--saved-config
-        (list :read-process-output-max read-process-output-max
-              :vterm-timer-delay vterm-timer-delay
-              :vterm-max-scrollback vterm-max-scrollback
-              :font-lock-mode font-lock-mode
-              :line-numbers display-line-numbers-mode
-              :text-scale (if (boundp 'text-scale-mode-amount)
-                              text-scale-mode-amount
-                            0)))
+;; 5. Core Functions
+;; ----------------------------------------
+(defun --ecc-vterm-mode--setup-buffer ()
+  "Set up current buffer for Claude vterm mode."
+  (--ecc-debug-message "Setting up Claude vterm buffer: %s"
+                       (buffer-name))
+  (--ecc-vterm-mode--optimize-buffer)
+  (--ecc-auto-response-enable-buffer)
+  (when --ecc-vterm-mode-show-state-in-mode-line
+    (setq mode-line-process
+          '(:eval (--ecc-vterm-mode--mode-line-indicator))))
+  (--ecc-vterm-mode--setup-state-timer)
+  (add-hook 'kill-buffer-hook '--ecc-vterm-mode--cleanup-buffer nil t))
 
-  ;; Apply optimizations
-  (setq read-process-output-max (* 1 1024 1024))  ; 1MB
-  (setq vterm-timer-delay 0.1)
-  (setq vterm-max-scrollback 4096)
-  (setq vterm-disable-bold-font t)
-  (setq vterm-disable-underline t)
-
-  ;; Local optimizations
-  (setq-local bidi-display-reordering nil)
-  (setq-local bidi-paragraph-direction 'left-to-right)
-  (setq-local inhibit-field-text-motion t)
-  (setq-local line-move-visual nil)
-  (setq-local font-lock-mode nil)
-
-  ;; UI optimizations
-  (when ecc-vterm-hide-line-numbers
+(defun --ecc-vterm-mode--optimize-buffer ()
+  "Apply performance optimizations to current buffer."
+  (--ecc-debug-message "Optimizing buffer performance settings")
+  (setq-local scroll-conservatively 101
+              scroll-margin 0
+              scroll-step 1
+              fast-but-imprecise-scrolling t
+              auto-window-vscroll nil
+              truncate-lines t
+              line-move-visual t
+              inhibit-field-text-motion t
+              jit-lock-defer-time 0.05
+              redisplay-skip-fontification-on-input t
+              redisplay-dont-pause t)
+  (when (and (boundp 'display-line-numbers-mode)
+             display-line-numbers-mode)
+    (--ecc-debug-message "Disabling line numbers for performance")
     (display-line-numbers-mode -1))
+  (buffer-disable-undo)
+  (--ecc-debug-message "Buffer optimization complete"))
 
-  ;; Apply default font size for ecc-vterm
-  (text-scale-set ecc-vterm-default-font-size)
+(defun --ecc-vterm-mode--setup-state-timer ()
+  "Set up timer for checking Claude state."
+  (--ecc-debug-message "Setting up state timer for buffer: %s"
+                       (buffer-name))
+  (when --ecc-vterm-mode--state-timer
+    (cancel-timer --ecc-vterm-mode--state-timer)
+    (--ecc-debug-message "Cancelled existing state timer"))
+  (let ((buffer (current-buffer)))
+    (setq --ecc-vterm-mode--state-timer
+          (run-with-timer 0 1.0
+                          (lambda ()
+                            (when (buffer-live-p buffer)
+                              (with-current-buffer buffer
+                                (force-mode-line-update)))))))
+  (--ecc-debug-message "State timer started"))
 
-  ;; Add GC optimization advice
-  (advice-add 'vterm--flush-timer-callback :around
-              #'ecc-vterm--gc-optimized-flush)
+(defun --ecc-vterm-mode--cleanup-buffer ()
+  "Clean up when buffer is killed."
+  (--ecc-debug-message "Cleaning up buffer: %s" (buffer-name))
+  (when --ecc-vterm-mode--state-timer
+    (cancel-timer --ecc-vterm-mode--state-timer)
+    (setq --ecc-vterm-mode--state-timer nil)
+    (--ecc-debug-message "State timer cancelled")))
 
-  ;; Color to Grayscale
-  (ignore-errors (vterm-mode))
 
-  (ecc-debug-message "ECC vterm mode enabled"))
+;; 6. Helper/Utility Functions
+;; ----------------------------------------
+(defun --ecc-vterm-mode--mode-line-indicator ()
+  "Return mode line indicator for current Claude state."
+  (let ((state (--ecc-state-detection-detect))
+        (auto-indicator (if --ecc-vterm-mode--auto-mode-active
+                            (propertize " [AUTO] "
+                                        'face `(:background
+                                                ,--ecc-vterm-mode-auto-mode-color
+                                                :foreground "#ffffff"
+                                                :weight bold))
+                          "")))
+    (concat auto-indicator
+            (cond
+             ((eq state :waiting) " [Waiting]")
+             ((eq state :y/n) " [Y/N]")
+             ((eq state :y/y/n) " [Y/Y/N]")
+             ((eq state :initial-waiting) " [Init]")
+             ((eq state :running) " [Running]")
+             (t "")))))
 
-(defun ecc-vterm--disable ()
-  "Disable ecc-vterm-mode and restore settings."
-  ;; Restore saved configuration
-  (when ecc-vterm--saved-config
-    (setq read-process-output-max
-          (plist-get ecc-vterm--saved-config :read-process-output-max))
-    (setq vterm-timer-delay
-          (plist-get ecc-vterm--saved-config :vterm-timer-delay))
-    (setq vterm-max-scrollback
-          (plist-get ecc-vterm--saved-config :vterm-max-scrollback))
-    (font-lock-mode
-     (if (plist-get ecc-vterm--saved-config :font-lock-mode) 1 -1))
 
-    ;; Only restore line numbers if they were enabled before
-    (when (and (not ecc-vterm-hide-line-numbers)
-               (plist-get ecc-vterm--saved-config :line-numbers))
-      (display-line-numbers-mode 1))
+;; Note: The following functions are commented out in the original file
+;; (defun --ecc-vterm-mode-yes ()
+;;   "Send 'y' response to Claude prompt."
+;;   (--ecc-debug-message "Sending 'y' response")
+;;   (when (fboundp 'vterm-send-string)
+;;     (vterm-send-string "y")
+;;     (vterm-send-return)
+;;     (--ecc-debug-message "'y' response sent")))
 
-    ;; Restore original text scale
-    (let
-        ((saved-scale (plist-get ecc-vterm--saved-config :text-scale)))
-      (when saved-scale
-        (text-scale-set saved-scale))))
+;; (defun --ecc-vterm-mode-no ()
+;;   "Send 'n' response to Claude prompt."
+;;   (--ecc-debug-message "Sending 'n' response")
+;;   (when (fboundp 'vterm-send-string)
+;;     (vterm-send-string "n")
+;;     (vterm-send-return)
+;;     (--ecc-debug-message "'n' response sent")))
 
-  ;; Remove advice
-  (advice-remove 'vterm--flush-timer-callback
-                 #'ecc-vterm--gc-optimized-flush)
-
-  (ecc-debug-message "ECC vterm mode disabled"))
-
-(defun ecc-vterm--gc-optimized-flush (orig-fun &rest args)
-  "Run vterm flush with optimized garbage collection."
-  (let ((gc-cons-threshold (* 100 1024 1024)))
-                                        ; 100MB during flush
-    (apply orig-fun args)))
-
-(defun ecc-vterm-truncate-buffer ()
-  "Truncate vterm buffer to recent lines for performance."
-  (interactive)
-  (when (eq major-mode 'vterm-mode)
-    (let ((inhibit-read-only t)
-          (max-lines (or vterm-max-scrollback 4096)))
-      (save-excursion
-        (goto-char (point-max))
-        (forward-line (- max-lines))
-        (beginning-of-line)
-        (delete-region (point-min) (point)))
-      (ecc-debug-message "Buffer truncated to %d lines" max-lines))))
-
-(defun ecc-vterm-toggle-optimizations ()
-  "Toggle vterm optimizations on/off."
-  (interactive)
-  (if ecc-vterm-mode
-      (ecc-vterm-mode -1)
-    (ecc-vterm-mode 1)))
-
-(defun ecc-vterm-toggle-line-numbers ()
-  "Toggle line numbers display in the current vterm buffer."
-  (interactive)
-  (if (bound-and-true-p display-line-numbers-mode)
-      (progn
-        (display-line-numbers-mode -1)
-        (ecc-debug-message "Line numbers disabled"))
-    (progn
-      (display-line-numbers-mode 1)
-      (ecc-debug-message "Line numbers enabled")))
-  ;; Update preference if in ecc-vterm-mode
-  (when ecc-vterm-mode
-    (setq-local ecc-vterm-hide-line-numbers
-                (not (bound-and-true-p display-line-numbers-mode)))))
-
-(defun ecc-vterm-increase-font-size (&optional n)
-  "Increase the font size in current vterm buffer by N steps.
-If N is nil, uses `ecc-vterm-font-size-step' as the step size."
-  (interactive "P")
-  (when (derived-mode-p 'vterm-mode)
-    (let* ((step (or n ecc-vterm-font-size-step))
-           (new-size (min ecc-vterm-max-font-size
-                          (+ (or (and (boundp 'text-scale-mode-amount)
-                                      text-scale-mode-amount)
-                                 0)
-                             step))))
-      (text-scale-set new-size)
-      (ecc-debug-message "Font size: %+d" new-size))))
-
-(defun ecc-vterm-decrease-font-size (&optional n)
-  "Decrease the font size in current vterm buffer by N steps.
-If N is nil, uses `ecc-vterm-font-size-step' as the step size."
-  (interactive "P")
-  (when (derived-mode-p 'vterm-mode)
-    (let* ((step (or n ecc-vterm-font-size-step))
-           (new-size (max ecc-vterm-min-font-size
-                          (- (or (and (boundp 'text-scale-mode-amount)
-                                      text-scale-mode-amount)
-                                 0)
-                             step))))
-      (text-scale-set new-size)
-      (ecc-debug-message "Font size: %+d" new-size))))
-
-(defun ecc-vterm-reset-font-size ()
-  "Reset the font size to default in current vterm buffer."
-  (interactive)
-  (when (derived-mode-p 'vterm-mode)
-    (text-scale-set ecc-vterm-default-font-size)
-    (ecc-debug-message "Font size reset to default: %+d"
-                       ecc-vterm-default-font-size)))
-
-;; Auto-enable for Claude buffers
-
-(defun ecc-vterm-auto-enable ()
-  "Automatically enable ecc-vterm-mode for Claude buffers."
-  (when (and (derived-mode-p 'vterm-mode)
-             (string-match-p "\\*CLAUDE.*\\*" (buffer-name)))
-    (ecc-vterm-mode 1)))
-
-;; Default hook for all vterm buffers that look like Claude buffers
-(add-hook 'vterm-mode-hook #'ecc-vterm-auto-enable)
-
-(when
-    (not load-file-name)
-  (ecc-debug-message "ecc-vterm-mode.el loaded."
-                     (file-name-nondirectory
-                      (or load-file-name buffer-file-name))))
+;; (defun --ecc-vterm-mode-create (&optional buffer)
+;;   "Create a new Claude vterm buffer."
+;;   (interactive)
+;;   (--ecc-debug-message "Creating new Claude vterm buffer: %s"
+;;                        --ecc-vterm-mode-buffer-name)
+;;   (let ((buffer (get-buffer-create --ecc-vterm-mode-buffer-name)))
+;;     (with-current-buffer buffer
+;;       (unless (eq major-mode '--ecc-vterm-mode)
+;;         (--ecc-debug-message "Initializing --ecc-vterm-mode")
+;;         (--ecc-vterm-mode)))
+;;     (switch-to-buffer buffer)
+;;     (--ecc-debug-message "Switched to buffer: %s" (buffer-name buffer))
+;;     buffer))
 
 
 (provide 'ecc-vterm-mode)
