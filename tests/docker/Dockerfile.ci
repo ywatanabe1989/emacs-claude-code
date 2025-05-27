@@ -21,5 +21,8 @@ COPY --chown=runner:runner . /home/runner/work/emacs-claude-code
 
 WORKDIR /home/runner/work/emacs-claude-code
 
+# Ensure test script is executable
+RUN chmod +x run_tests.sh || true
+
 # Default command runs tests
-CMD ["./run-tests.sh"]
+CMD ["./run_tests.sh"]

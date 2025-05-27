@@ -34,10 +34,10 @@ From: ubuntu:22.04
 
 %runscript
     cd /workspace
-    if [ -f "./run-tests.sh" ]; then
-        exec ./run-tests.sh "$@"
+    if [ -f "./run_tests.sh" ]; then
+        exec ./run_tests.sh "$@"
     else
-        echo "Error: run-tests.sh not found in /workspace"
+        echo "Error: run_tests.sh not found in /workspace"
         echo "Make sure to bind mount your project directory:"
         echo "  apptainer run --bind \$(pwd):/workspace emacs-ci.sif"
         exit 1
