@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 07:03:43>
+;;; Timestamp: <2025-05-28 08:28:55>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -25,6 +25,11 @@
 (defcustom --ecc-auto-response-safe-interval 1.0
   "Safety delay in seconds before and after sending responses."
   :type 'float
+  :group 'ecc)
+
+(defcustom --ecc-auto-response-mode-line-color "#4a5d23"
+  "Background color for mode-line when auto-response is enabled."
+  :type 'color
   :group 'ecc)
 
 (defcustom --ecc-auto-response-throttle-duration 5.0
@@ -106,7 +111,9 @@ Each element is (POSITION . TIMESTAMP).")
   (let ((buf (or buffer (current-buffer))))
     (--ecc-auto-response-register-buffer buf)
     (with-current-buffer buf
-      (setq-local --ecc-auto-response--enabled t))
+      (setq-local --ecc-auto-response--enabled t)
+      ;; Update mode-line
+      (--ecc-auto-response--update-mode-line))
     (unless --ecc-auto-response--timer
       (--ecc-auto-response--start-timer))
     (--ecc-debug-message "Auto-response enabled for buffer: %s"
@@ -115,8 +122,11 @@ Each element is (POSITION . TIMESTAMP).")
 (defun --ecc-auto-response-disable-buffer (&optional buffer)
   "Disable auto-response for BUFFER."
   (let ((buf (or buffer (current-buffer))))
+    (--ecc-auto-response-unregister-buffer buf)
     (with-current-buffer buf
-      (setq-local --ecc-auto-response--enabled nil))
+      (setq-local --ecc-auto-response--enabled nil)
+      ;; Update mode-line
+      (--ecc-auto-response--update-mode-line))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"
                          (buffer-name buf))))
 
@@ -296,6 +306,36 @@ Each element is (POSITION . TIMESTAMP).")
                        text)
   ;; Allow buffer to update before next check
   (sit-for --ecc-auto-response-safe-interval))
+
+
+;; 12. Mode-line functions
+;; ----------------------------------------
+
+(defun --ecc-auto-response--update-mode-line ()
+  "Update mode-line to show auto-response status."
+  (if --ecc-auto-response--enabled
+      ;; Add AUTO indicator to existing mode-line
+      (unless (and (listp mode-line-format)
+                   (member 'ecc-auto-indicator mode-line-format))
+        (setq mode-line-format
+              (append '(ecc-auto-indicator) 
+                      (if (listp mode-line-format)
+                          mode-line-format
+                        (list mode-line-format))))
+        (put 'ecc-auto-indicator 'risky-local-variable t)
+        (setq-local ecc-auto-indicator
+                    `(:propertize " [AUTO] "
+                                  face (:background ,--ecc-auto-response-mode-line-color
+                                        :foreground "#ffffff"
+                                        :weight bold)
+                                  help-echo "Auto-response is active")))
+    ;; Remove AUTO indicator
+    (when (and (listp mode-line-format)
+               (member 'ecc-auto-indicator mode-line-format))
+      (setq mode-line-format
+            (delq 'ecc-auto-indicator mode-line-format))
+      (kill-local-variable 'ecc-auto-indicator)))
+  (force-mode-line-update))
 
 
 (provide 'ecc-auto-response)

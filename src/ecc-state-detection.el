@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 06:40:45>
+;;; Timestamp: <2025-05-28 07:56:27>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -37,7 +37,7 @@
     (:y/n . "❯ 1. Yes")
     (:y/y/n . " 2. Yes, and")
     (:running . " tokens · esc to interrupt)"))
-  "Alist mapping state symbols to detection patterns.")
+  "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
 
 (defvar --ecc-state-detection--flash-overlays nil
   "List of overlays used for flashing detected text.")
@@ -70,7 +70,7 @@
       (throw 'found :y/n))
     (when (string-match-p "continue>\\|Continue>" text)
       (throw 'found :waiting))
-    
+
     ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))

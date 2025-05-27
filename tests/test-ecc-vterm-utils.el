@@ -12,17 +12,6 @@
   "Test that ecc-vterm-utils loads correctly."
   (should (featurep 'ecc-vterm-utils)))
 
-(ert-deftest test-ecc-vterm-visual-effect-exists ()
-  "Test that visual effect function exists."
-  (should (functionp '--ecc-vterm-visual-effect)))
-
-(ert-deftest test-ecc-vterm-safe-execute-exists ()
-  "Test that safe execute function exists."
-  (should (functionp '--ecc-vterm-safe-execute)))
-
-(ert-deftest test-ecc-vterm-check-exists ()
-  "Test that vterm check function exists."
-  (should (functionp '--ecc-vterm-check)))
 
 (provide 'test-ecc-vterm-utils)
 

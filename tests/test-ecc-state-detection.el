@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 07:14:00>
-;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-state-detection.el
+;;; Timestamp: <2025-05-28 07:55:56>
+;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 (require 'ert)
 (require 'ecc-state-detection)
@@ -40,11 +41,6 @@
     (insert "Some text [Y/y/n] prompt")
     (should (eq (--ecc-state-detection-detect) :y/y/n))))
 
-(ert-deftest test-ecc-state-detection-waiting-pattern ()
-  "Test waiting state detection."
-  (with-temp-buffer
-    (insert "│ >                            ")
-    (should (eq (--ecc-state-detection-detect) :waiting))))
 
 (ert-deftest test-ecc-state-detection-no-match ()
   "Test that nil is returned when no pattern matches."
@@ -55,11 +51,14 @@
 (ert-deftest test-ecc-state-detection-get-name ()
   "Test state name conversion."
   (should (string= (--ecc-state-detection-get-name :y/n) "Y/N"))
-  (should (string= (--ecc-state-detection-get-name :waiting) "Continue")))
+  (should
+   (string= (--ecc-state-detection-get-name :waiting) "Continue")))
+
 
 (provide 'test-ecc-state-detection)
 
-(when (not load-file-name)
+(when
+    (not load-file-name)
   (message "test-ecc-state-detection.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))

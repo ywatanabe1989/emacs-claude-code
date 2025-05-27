@@ -26,7 +26,6 @@
 (require 'ecc-notification)
 (require 'ecc-auto-response)
 (require 'ecc-vterm-utils)
-(require 'ecc-vterm-mode)
 (require 'ecc-list)
 
 
@@ -35,12 +34,17 @@
 
 ;;;###autoload
 (defun --ecc-create-vterm ()
-  "Create a new Claude vterm buffer."
+  "Create a new vterm buffer with Claude auto-response enabled."
   (interactive)
   (--ecc-debug-message "Creating new Claude vterm buffer...")
-  (let ((buffer (--ecc-vterm-mode-create)))
-    (--ecc-debug-message "Created vterm buffer: %s" (buffer-name buffer))
-    buffer))
+  (require 'vterm nil t)
+  (if (not (fboundp 'vterm))
+      (user-error "vterm is not installed")
+    (let ((buffer (vterm "*Claude-vterm*")))
+      (with-current-buffer buffer
+        (--ecc-auto-response-enable-buffer))
+      (--ecc-debug-message "Created vterm buffer: %s" (buffer-name buffer))
+      buffer)))
 
 
 (provide 'ecc)
