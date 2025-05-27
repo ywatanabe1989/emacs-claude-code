@@ -63,20 +63,40 @@
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
+    ;; Check for specific patterns first
+    (when (string-match-p "\\[Y/y/n\\]" text)
+      (throw 'found :y/y/n))
+    (when (string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text)
+      (throw 'found :y/n))
+    (when (string-match-p "continue>\\|Continue>" text)
+      (throw 'found :waiting))
+    
+    ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
             (pattern (cdr pattern-pair)))
-        (when (string-match-p (regexp-quote pattern) text)
-          (--ecc-debug-message "Matched state %s" state)
-          (throw 'found state))))
-    (cond
-     ((string-match-p "\\[Y/y/n\\]" text) :y/y/n)
-     ((string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text) :y/n)
-     ((string-match-p "continue>\\|Continue>" text) :waiting)
-     (t nil))))
+        ;; Skip initial-waiting check if there's previous content
+        (unless (and (eq state :initial-waiting)
+                     (--ecc-state-detection--has-previous-messages-p))
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message "Matched state %s" state)
+            (throw 'found state)))))
+    nil))
 
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
+
+(defun --ecc-state-detection--has-previous-messages-p ()
+  "Check if buffer has previous messages (not the initial state)."
+  (save-excursion
+    (goto-char (point-min))
+    ;; Look for signs of previous interactions
+    (or (search-forward "Human:" nil t)
+        (search-forward "Assistant:" nil t)
+        (search-forward "│ H " nil t)  ; Human prompt indicator
+        (search-forward "│ A " nil t)  ; Assistant response indicator
+        ;; Check if buffer has substantial content (more than just the initial prompt)
+        (> (- (point-max) (point-min)) 500))))
 
 (defun --ecc-state-detection-get-name (state)
   "Convert STATE symbol to human-readable name."
