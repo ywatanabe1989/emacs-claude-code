@@ -1,0 +1,215 @@
+Running 55 tests (2025-05-28 07:28:06+1000, selector ‘t’)
+   passed   1/55  test-ecc-auto-response-interval-is-number (0.000104 sec)
+   passed   2/55  test-ecc-auto-response-interval-positive (0.000058 sec)
+   passed   3/55  test-ecc-auto-response-loadable (0.012946 sec)
+   passed   4/55  test-ecc-auto-response-registry-exists (0.000055 sec)
+   passed   5/55  test-ecc-auto-response-responses-has-waiting (0.000050 sec)
+   passed   6/55  test-ecc-auto-response-responses-has-yn (0.000049 sec)
+   passed   7/55  test-ecc-auto-response-responses-is-list (0.000050 sec)
+   passed   8/55  test-ecc-auto-response-safe-interval-is-number (0.000049 sec)
+   passed   9/55  test-ecc-auto-response-safe-interval-positive (0.000073 sec)
+   passed  10/55  test-ecc-auto-response-throttle-duration-is-number (0.000052 sec)
+   passed  11/55  test-ecc-auto-response-throttle-duration-positive (0.000049 sec)
+   passed  12/55  test-ecc-auto-toggle-exists (0.000051 sec)
+   passed  13/55  test-ecc-auto-toggle-interactive (0.000049 sec)
+   passed  14/55  test-ecc-debug-initial-state (0.000049 sec)
+   passed  15/55  test-ecc-debug-loadable (0.000052 sec)
+   passed  16/55  test-ecc-debug-message-function-exists (0.000048 sec)
+   passed  17/55  test-ecc-debug-prefix-variable-exists (0.000048 sec)
+   passed  18/55  test-ecc-debug-toggle-exists (0.000082 sec)
+   passed  19/55  test-ecc-debug-toggle-interactive (0.000051 sec)
+   passed  20/55  test-ecc-list-auto-refresh-default (0.000049 sec)
+   passed  21/55  test-ecc-list-buffers-exists (0.000052 sec)
+   passed  22/55  test-ecc-list-buffers-interactive (0.000049 sec)
+   passed  23/55  test-ecc-list-loadable (0.000053 sec)
+   passed  24/55  test-ecc-list-mode-map-exists (0.000051 sec)
+   passed  25/55  test-ecc-list-refresh-interval-is-number (0.000052 sec)
+   passed  26/55  test-ecc-list-refresh-interval-positive (0.000049 sec)
+   passed  27/55  test-ecc-loadable (0.000050 sec)
+   passed  28/55  test-ecc-notification-enabled-variable-exists (0.000051 sec)
+   passed  29/55  test-ecc-notification-loadable (0.000050 sec)
+   passed  30/55  test-ecc-notification-methods-is-list (0.000050 sec)
+   passed  31/55  test-ecc-notification-methods-variable-exists (0.000049 sec)
+   passed  32/55  test-ecc-notification-toggle-exists (0.000050 sec)
+   passed  33/55  test-ecc-notification-toggle-interactive (0.000050 sec)
+   passed  34/55  test-ecc-state-detection-buffer-size-is-integer (0.000051 sec)
+   passed  35/55  test-ecc-state-detection-buffer-size-positive (0.000050 sec)
+   passed  36/55  test-ecc-state-detection-get-name (0.000060 sec)
+   passed  37/55  test-ecc-state-detection-loadable (0.000052 sec)
+   passed  38/55  test-ecc-state-detection-no-match (0.000112 sec)
+   passed  39/55  test-ecc-state-detection-patterns-is-list (0.000052 sec)
+   passed  40/55  test-ecc-state-detection-patterns-not-empty (0.000051 sec)
+Test test-ecc-state-detection-waiting-pattern backtrace:
+  signal(ert-test-failed (((should (eq (--ecc-state-detection-detect) 
+  ert-fail(((should (eq (--ecc-state-detection-detect) :waiting)) :for
+  (if (unwind-protect (setq value-191 (apply fn-189 args-190)) (setq f
+  (let (form-description-193) (if (unwind-protect (setq value-191 (app
+  (let ((value-191 'ert-form-evaluation-aborted-192)) (let (form-descr
+  (let* ((fn-189 #'eq) (args-190 (condition-case err (list (--ecc-stat
+  (progn (insert "│ >                            ") (let* ((fn-189 #'e
+  (unwind-protect (progn (insert "│ >                            ") (l
+  (save-current-buffer (set-buffer temp-buffer) (unwind-protect (progn
+  (let ((temp-buffer (generate-new-buffer " *temp*" t))) (save-current
+  #f(lambda () [t] (let ((temp-buffer (generate-new-buffer " *temp*" t
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-state-detection-waiting-patt
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-state-detection-waiting-pattern condition:
+    (ert-test-failed
+     ((should (eq (--ecc-state-detection-detect) :waiting)) :form
+      (eq nil :waiting) :value nil))
+   FAILED  41/55  test-ecc-state-detection-waiting-pattern (0.000138 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-state-detection.el:43
+   passed  42/55  test-ecc-state-detection-yn-pattern (0.000126 sec)
+   passed  43/55  test-ecc-state-detection-yyn-pattern (0.000085 sec)
+   passed  44/55  test-ecc-variables-loadable (0.000054 sec)
+   passed  45/55  test-ecc-version-exists (0.000053 sec)
+   passed  46/55  test-ecc-version-is-string (0.000055 sec)
+Test test-ecc-vterm-check-exists backtrace:
+  signal(ert-test-failed (((should (functionp '--ecc-vterm-check)) :fo
+  ert-fail(((should (functionp '--ecc-vterm-check)) :form (functionp -
+  (if (unwind-protect (setq value-261 (apply fn-259 args-260)) (setq f
+  (let (form-description-263) (if (unwind-protect (setq value-261 (app
+  (let ((value-261 'ert-form-evaluation-aborted-262)) (let (form-descr
+  (let* ((fn-259 #'functionp) (args-260 (condition-case err (list '--e
+  #f(lambda () [t] (let* ((fn-259 #'functionp) (args-260 (condition-ca
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-vterm-check-exists :document
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-vterm-check-exists condition:
+    (ert-test-failed
+     ((should (functionp '--ecc-vterm-check)) :form
+      (functionp --ecc-vterm-check) :value nil))
+   FAILED  47/55  test-ecc-vterm-check-exists (0.000190 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-utils.el:23
+Test test-ecc-vterm-mode-function-exists backtrace:
+  signal(ert-test-failed (((should (functionp '--ecc-vterm-mode)) :for
+  ert-fail(((should (functionp '--ecc-vterm-mode)) :form (functionp --
+  (if (unwind-protect (setq value-236 (apply fn-234 args-235)) (setq f
+  (let (form-description-238) (if (unwind-protect (setq value-236 (app
+  (let ((value-236 'ert-form-evaluation-aborted-237)) (let (form-descr
+  (let* ((fn-234 #'functionp) (args-235 (condition-case err (list '--e
+  #f(lambda () [t] (let* ((fn-234 #'functionp) (args-235 (condition-ca
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-vterm-mode-function-exists :
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-vterm-mode-function-exists condition:
+    (ert-test-failed
+     ((should (functionp '--ecc-vterm-mode)) :form
+      (functionp --ecc-vterm-mode) :value nil))
+   FAILED  48/55  test-ecc-vterm-mode-function-exists (0.000138 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-mode.el:19
+Test test-ecc-vterm-mode-hook-exists backtrace:
+  signal(ert-test-failed (((should (boundp '--ecc-vterm-mode-hook)) :f
+  ert-fail(((should (boundp '--ecc-vterm-mode-hook)) :form (boundp --e
+  (if (unwind-protect (setq value-241 (apply fn-239 args-240)) (setq f
+  (let (form-description-243) (if (unwind-protect (setq value-241 (app
+  (let ((value-241 'ert-form-evaluation-aborted-242)) (let (form-descr
+  (let* ((fn-239 #'boundp) (args-240 (condition-case err (list '--ecc-
+  #f(lambda () [t] (let* ((fn-239 #'boundp) (args-240 (condition-case 
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-vterm-mode-hook-exists :docu
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-vterm-mode-hook-exists condition:
+    (ert-test-failed
+     ((should (boundp '--ecc-vterm-mode-hook)) :form
+      (boundp --ecc-vterm-mode-hook) :value nil))
+   FAILED  49/55  test-ecc-vterm-mode-hook-exists (0.000223 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-mode.el:23
+   passed  50/55  test-ecc-vterm-mode-loadable (0.000095 sec)
+   passed  51/55  test-ecc-vterm-mode-map-exists (0.000057 sec)
+Test test-ecc-vterm-safe-execute-exists backtrace:
+  signal(ert-test-failed (((should (functionp '--ecc-vterm-safe-execut
+  ert-fail(((should (functionp '--ecc-vterm-safe-execute)) :form (func
+  (if (unwind-protect (setq value-256 (apply fn-254 args-255)) (setq f
+  (let (form-description-258) (if (unwind-protect (setq value-256 (app
+  (let ((value-256 'ert-form-evaluation-aborted-257)) (let (form-descr
+  (let* ((fn-254 #'functionp) (args-255 (condition-case err (list '--e
+  #f(lambda () [t] (let* ((fn-254 #'functionp) (args-255 (condition-ca
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-vterm-safe-execute-exists :d
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-vterm-safe-execute-exists condition:
+    (ert-test-failed
+     ((should (functionp '--ecc-vterm-safe-execute)) :form
+      (functionp --ecc-vterm-safe-execute) :value nil))
+   FAILED  52/55  test-ecc-vterm-safe-execute-exists (0.000119 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-utils.el:19
+   passed  53/55  test-ecc-vterm-utils-loadable (0.000097 sec)
+Test test-ecc-vterm-visual-effect-exists backtrace:
+  signal(ert-test-failed (((should (functionp '--ecc-vterm-visual-effe
+  ert-fail(((should (functionp '--ecc-vterm-visual-effect)) :form (fun
+  (if (unwind-protect (setq value-251 (apply fn-249 args-250)) (setq f
+  (let (form-description-253) (if (unwind-protect (setq value-251 (app
+  (let ((value-251 'ert-form-evaluation-aborted-252)) (let (form-descr
+  (let* ((fn-249 #'functionp) (args-250 (condition-case err (list '--e
+  #f(lambda () [t] (let* ((fn-249 #'functionp) (args-250 (condition-ca
+  #f(compiled-function () #<bytecode -0x5573bd9acc84242>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x5573bd9acc84242
+  ert--run-test-internal(#s(ert--test-execution-info :test #s(ert-test
+  ert-run-test(#s(ert-test :name test-ecc-vterm-visual-effect-exists :
+  ert-run-or-rerun-test(#s(ert--stats :selector t :tests ... :test-map
+  ert-run-tests(t #f(compiled-function (event-type &rest event-args) #
+  ert-run-tests-batch(nil)
+  ert-run-tests-batch-and-exit()
+  eval((ert-run-tests-batch-and-exit) t)
+  command-line-1(("--eval" "(add-to-list 'load-path \"/home/ywatanabe/
+  command-line()
+  normal-top-level()
+Test test-ecc-vterm-visual-effect-exists condition:
+    (ert-test-failed
+     ((should (functionp '--ecc-vterm-visual-effect)) :form
+      (functionp --ecc-vterm-visual-effect) :value nil))
+   FAILED  54/55  test-ecc-vterm-visual-effect-exists (0.000102 sec) at ../../../.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-utils.el:15
+   passed  55/55  test-emacs-claude-code-loadable (0.000116 sec)
+
+Ran 55 tests, 49 results as expected, 6 unexpected (2025-05-28 07:28:07+1000, 0.577720 sec)
+
+6 unexpected results:
+   FAILED  test-ecc-state-detection-waiting-pattern
+   FAILED  test-ecc-vterm-check-exists
+   FAILED  test-ecc-vterm-mode-function-exists
+   FAILED  test-ecc-vterm-mode-hook-exists
+   FAILED  test-ecc-vterm-safe-execute-exists
+   FAILED  test-ecc-vterm-visual-effect-exists
+

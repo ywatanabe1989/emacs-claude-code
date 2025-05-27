@@ -1,1 +1,1 @@
-run_tests_elisp.sh
+run_tests.sh

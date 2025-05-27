@@ -1,0 +1,9 @@
+# Apptainer images
+*.sif
+*.simg
+
+# Cache directory
+.apptainer-cache/
+
+# Build artifacts
+*.log

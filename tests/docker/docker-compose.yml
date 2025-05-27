@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Test with Emacs 27
+  test-emacs27:
+    build: .
+    environment:
+      - EMACS_VERSION=27
+    command: |
+      bash -c "
+        update-alternatives --set emacs /usr/bin/emacs27
+        emacs --version
+        ./run-tests.sh
+      "
+    volumes:
+      - .:/workspace
+
+  # Test with Emacs 28
+  test-emacs28:
+    build: .
+    environment:
+      - EMACS_VERSION=28
+    command: |
+      bash -c "
+        update-alternatives --set emacs /usr/bin/emacs28
+        emacs --version
+        ./run-tests.sh
+      "
+    volumes:
+      - .:/workspace
+
+  # Run all tests
+  test-all:
+    build: .
+    command: |
+      bash -c "
+        echo '=== Testing with Emacs 27 ==='
+        update-alternatives --set emacs /usr/bin/emacs27
+        emacs --version
+        ./run-tests.sh
+        
+        echo -e '\n=== Testing with Emacs 28 ==='
+        update-alternatives --set emacs /usr/bin/emacs28
+        emacs --version
+        ./run-tests.sh
+      "
+    volumes:
+      - .:/workspace
