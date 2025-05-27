@@ -14,7 +14,7 @@
   :prefix "--ecc-"
   :group 'tools)
 
-(defconst --ecc-version "1.0.0"
+(defconst --ecc-version "2.0.0"
   "Current version of the emacs-claude-code package.")
 
 
