@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 08:28:55>
+;;; Timestamp: <2025-05-29 03:04:38>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -86,6 +86,9 @@
   "List of buffer positions where responses have been sent.
 Each element is (POSITION . TIMESTAMP).")
 
+(defvar-local --ecc-auto-response--original-mode-line nil
+  "Original mode-line-format before AUTO indicator was added.")
+
 
 ;; 4. Main entry point
 ;; ----------------------------------------
@@ -116,6 +119,8 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-auto-response--update-mode-line))
     (unless --ecc-auto-response--timer
       (--ecc-auto-response--start-timer))
+    ;; Play buzzer sound
+    (beep)
     (--ecc-debug-message "Auto-response enabled for buffer: %s"
                          (buffer-name buf))))
 
@@ -314,27 +319,45 @@ Each element is (POSITION . TIMESTAMP).")
 (defun --ecc-auto-response--update-mode-line ()
   "Update mode-line to show auto-response status."
   (if --ecc-auto-response--enabled
-      ;; Add AUTO indicator to existing mode-line
-      (unless (and (listp mode-line-format)
-                   (member 'ecc-auto-indicator mode-line-format))
-        (setq mode-line-format
-              (append '(ecc-auto-indicator) 
-                      (if (listp mode-line-format)
+      ;; Add AUTO indicator to mode-line
+      (progn
+        ;; Store the current mode-line-format before modifying
+        (unless (local-variable-p '--ecc-auto-response--original-mode-line)
+          (setq-local --ecc-auto-response--original-mode-line
+                      (if (local-variable-p 'mode-line-format)
                           mode-line-format
-                        (list mode-line-format))))
-        (put 'ecc-auto-indicator 'risky-local-variable t)
-        (setq-local ecc-auto-indicator
-                    `(:propertize " [AUTO] "
-                                  face (:background ,--ecc-auto-response-mode-line-color
-                                        :foreground "#ffffff"
-                                        :weight bold)
-                                  help-echo "Auto-response is active")))
-    ;; Remove AUTO indicator
-    (when (and (listp mode-line-format)
-               (member 'ecc-auto-indicator mode-line-format))
-      (setq mode-line-format
-            (delq 'ecc-auto-indicator mode-line-format))
-      (kill-local-variable 'ecc-auto-indicator)))
+                        (default-value 'mode-line-format))))
+        
+        (unless (and (listp mode-line-format)
+                     (member 'ecc-auto-indicator mode-line-format))
+          ;; Define the indicator
+          (put 'ecc-auto-indicator 'risky-local-variable t)
+          (setq-local ecc-auto-indicator
+                      `(:propertize " [AUTO] "
+                                    face (:background ,--ecc-auto-response-mode-line-color
+                                          :foreground "#ffffff"
+                                          :weight bold)
+                                    help-echo "Auto-response is active"))
+          ;; Use the stored original format
+          (let ((original --ecc-auto-response--original-mode-line))
+            (if (listp original)
+                (let ((new-format (copy-sequence original))
+                      (buffer-id-pos (cl-position 'mode-line-buffer-identification original)))
+                  (if buffer-id-pos
+                      ;; Insert after buffer identification
+                      (setq mode-line-format
+                            (append (cl-subseq new-format 0 (1+ buffer-id-pos))
+                                    '(ecc-auto-indicator)
+                                    (cl-subseq new-format (1+ buffer-id-pos))))
+                    ;; If no buffer-id found, prepend
+                    (setq mode-line-format (cons 'ecc-auto-indicator new-format))))
+              ;; If original is not a list, make it one
+              (setq mode-line-format (list 'ecc-auto-indicator original))))))
+    ;; Remove AUTO indicator and restore original
+    (when (local-variable-p '--ecc-auto-response--original-mode-line)
+      (setq mode-line-format --ecc-auto-response--original-mode-line)
+      (kill-local-variable 'ecc-auto-indicator)
+      (kill-local-variable '--ecc-auto-response--original-mode-line)))
   (force-mode-line-update))
 
 
