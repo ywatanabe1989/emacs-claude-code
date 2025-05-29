@@ -14,6 +14,9 @@
 (require 'ecc-state-detection)
 (require 'vterm nil t)  ; Optional dependency
 
+;; Declare function to avoid compiler warnings
+(declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical" ())
+
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -63,6 +66,16 @@
   :type '(alist :key-type symbol :value-type string)
   :group 'ecc)
 
+(defcustom --ecc-auto-response-periodic-interval 300.0
+  "Interval in seconds for periodic return sending (default: 5 minutes)."
+  :type 'float
+  :group 'ecc)
+
+(defcustom --ecc-auto-response-periodic-enabled t
+  "Whether to enable periodic return sending as a fallback."
+  :type 'boolean
+  :group 'ecc)
+
 
 ;; 3. Variables
 ;; ----------------------------------------
@@ -96,6 +109,12 @@ Each element is (POSITION . TIMESTAMP).")
 (defvar-local --ecc-auto-response--original-mode-line nil
   "Original mode-line-format before AUTO indicator was added.")
 
+(defvar-local --ecc-auto-response--last-periodic-time 0
+  "Timestamp of last periodic return sent.")
+
+(defvar-local --ecc-auto-response--periodic-timer nil
+  "Buffer-local timer for periodic return sending.")
+
 
 ;; 4. Main entry point
 ;; ----------------------------------------
@@ -123,7 +142,10 @@ Each element is (POSITION . TIMESTAMP).")
     (with-current-buffer buf
       (setq-local --ecc-auto-response--enabled t)
       ;; Update mode-line
-      (--ecc-auto-response--update-mode-line))
+      (--ecc-auto-response--update-mode-line)
+      ;; Start periodic timer if enabled
+      (when --ecc-auto-response-periodic-enabled
+        (--ecc-auto-response--start-periodic-timer buf)))
     (unless --ecc-auto-response--timer
       (--ecc-auto-response--start-timer))
     ;; Play buzzer sound
@@ -137,6 +159,8 @@ Each element is (POSITION . TIMESTAMP).")
     (--ecc-auto-response-unregister-buffer buf)
     (with-current-buffer buf
       (setq-local --ecc-auto-response--enabled nil)
+      ;; Stop periodic timer
+      (--ecc-auto-response--stop-periodic-timer)
       ;; Update mode-line
       (--ecc-auto-response--update-mode-line))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"
@@ -201,6 +225,52 @@ Each element is (POSITION . TIMESTAMP).")
     (cancel-timer --ecc-auto-response--timer)
     (setq --ecc-auto-response--timer nil))
   (--ecc-debug-message "Auto-response timer stopped"))
+
+(defun --ecc-auto-response--start-periodic-timer (buffer)
+  "Start periodic timer for BUFFER."
+  (with-current-buffer buffer
+    (when --ecc-auto-response--periodic-timer
+      (cancel-timer --ecc-auto-response--periodic-timer))
+    (setq-local --ecc-auto-response--periodic-timer
+                (run-with-timer --ecc-auto-response-periodic-interval
+                                --ecc-auto-response-periodic-interval
+                                '--ecc-auto-response--send-periodic-return
+                                buffer))
+    (--ecc-debug-message "Started periodic timer for buffer %s (interval: %s seconds)"
+                         (buffer-name buffer)
+                         --ecc-auto-response-periodic-interval)))
+
+(defun --ecc-auto-response--stop-periodic-timer ()
+  "Stop the buffer-local periodic timer."
+  (when --ecc-auto-response--periodic-timer
+    (cancel-timer --ecc-auto-response--periodic-timer)
+    (setq-local --ecc-auto-response--periodic-timer nil)
+    (--ecc-debug-message "Stopped periodic timer for buffer %s" (buffer-name))))
+
+(defun --ecc-auto-response--send-periodic-return (buffer)
+  "Send periodic return to BUFFER if appropriate."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (and --ecc-auto-response--enabled
+                 --ecc-auto-response-periodic-enabled)
+        (let ((current-time (float-time)))
+          ;; Only send if enough time has passed since last periodic send
+          (when (>= (- current-time --ecc-auto-response--last-periodic-time)
+                    --ecc-auto-response-periodic-interval)
+            (--ecc-debug-message "Sending periodic return to buffer %s" (buffer-name buffer))
+            (setq-local --ecc-auto-response--last-periodic-time current-time)
+            ;; Send return key
+            (cond
+             ((derived-mode-p 'vterm-mode)
+              (when (fboundp 'vterm-send-return)
+                (vterm-send-return)))
+             ((derived-mode-p 'comint-mode)
+              (goto-char (point-max))
+              (comint-send-input))
+             (t
+              (goto-char (point-max))
+              (insert "\n")))
+            (--ecc-debug-message "Periodic return sent to %s" (buffer-name buffer))))))))
 
 
 ;; 8. Processing functions
@@ -281,7 +351,11 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-auto-response--send-to-buffer buffer response)
       (--ecc-auto-response--update-tracking state)
       (when (fboundp '--ecc-notification-notify)
-        (--ecc-notification-notify state buffer)))))
+        (--ecc-notification-notify state buffer))
+      ;; Trigger auto-periodical check if available
+      (when (fboundp 'ecc-auto-periodical-setup-hook)
+        (with-current-buffer buffer
+          (ecc-auto-periodical-setup-hook))))))
 
 (defun --ecc-auto-response--update-tracking (state)
   "Update tracking variables for STATE."
@@ -427,6 +501,22 @@ Each element is (POSITION . TIMESTAMP).")
     (when (buffer-live-p buffer)
       (--ecc-auto-response-disable-buffer buffer)))
   (message "Auto-response disabled in all buffers"))
+
+(defun --ecc-auto-response-toggle-periodic ()
+  "Toggle periodic return sending globally."
+  (interactive)
+  (setq --ecc-auto-response-periodic-enabled
+        (not --ecc-auto-response-periodic-enabled))
+  ;; Update all active buffers
+  (dolist (buffer (--ecc-auto-response-get-registered-buffers))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (when --ecc-auto-response--enabled
+          (if --ecc-auto-response-periodic-enabled
+              (--ecc-auto-response--start-periodic-timer buffer)
+            (--ecc-auto-response--stop-periodic-timer))))))
+  (message "Periodic return sending %s"
+           (if --ecc-auto-response-periodic-enabled "enabled" "disabled")))
 
 
 (provide 'ecc-auto-response)

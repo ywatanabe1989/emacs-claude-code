@@ -9,8 +9,8 @@
 (require 'ert)
 (require 'ecc-state-detection)
 
-(ert-deftest test-ecc-state-detection-loadable ()
-  "Test that ecc-state-detection loads correctly."
+(ert-deftest test-ecc-state-detection-feature-loads-without-error ()
+  "Test that ecc-state-detection feature loads successfully without errors."
   (should (featurep 'ecc-state-detection)))
 
 (ert-deftest test-ecc-state-detection-patterns-is-list ()
@@ -48,11 +48,13 @@
     (insert "Just regular text without any patterns")
     (should-not (--ecc-state-detection-detect))))
 
-(ert-deftest test-ecc-state-detection-get-name ()
-  "Test state name conversion."
-  (should (string= (--ecc-state-detection-get-name :y/n) "Y/N"))
-  (should
-   (string= (--ecc-state-detection-get-name :waiting) "Continue")))
+(ert-deftest test-ecc-state-detection-get-name-yn ()
+  "Test that :y/n state converts to 'Y/N' name."
+  (should (string= (--ecc-state-detection-get-name :y/n) "Y/N")))
+
+(ert-deftest test-ecc-state-detection-get-name-waiting ()
+  "Test that :waiting state converts to 'Continue' name."
+  (should (string= (--ecc-state-detection-get-name :waiting) "Continue")))
 
 
 (provide 'test-ecc-state-detection)

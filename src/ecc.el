@@ -27,6 +27,7 @@
 (require 'ecc-auto-response)
 (require 'ecc-vterm-utils)
 (require 'ecc-list)
+(require 'ecc-auto-periodical)
 
 
 ;; 3. Main entry point

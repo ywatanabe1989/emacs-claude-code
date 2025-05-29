@@ -4,10 +4,13 @@
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/project_management/feature_requests/feature-request-auto-periodical-commands.md
 !-- --- -->
 
-# Feature Request: Auto Periodical Commands
+# Feature Request: Auto Periodical Commands [IMPLEMENTED]
 
 ## Summary
 Add `ecc-auto-periodical` functionality that automatically executes predefined commands at regular intervals based on interaction count (e.g., every 10 interactions, run `/git` command).
+
+## Status: IMPLEMENTED (2025-05-30)
+This feature has been successfully implemented in `src/ecc-auto-periodical.el`.
 
 ## Motivation
 During extended Claude sessions, it's easy to forget to commit changes regularly. Automatic periodic execution of commands like `/git` would help maintain good version control practices and reduce the risk of losing work.
