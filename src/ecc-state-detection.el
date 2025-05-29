@@ -71,6 +71,11 @@
     (when (string-match-p "continue>\\|Continue>" text)
       (throw 'found :waiting))
 
+    ;; Check for Y/Y/N pattern first (must come before Y/N check)
+    (when (string-match-p " 2\\. Yes, and" text)
+      (--ecc-debug-message "Matched state :y/y/n")
+      (throw 'found :y/y/n))
+    
     ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))

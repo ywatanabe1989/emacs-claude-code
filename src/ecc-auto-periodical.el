@@ -26,8 +26,7 @@
   :group 'ecc)
 
 (defcustom ecc-auto-periodical-commands
-  '((10 . "/git")
-    (20 . "/user:auto"))
+  '()
   "Alist of (INTERVAL . COMMAND) pairs for periodic execution.
 INTERVAL is the number of interactions between executions.
 COMMAND is the string to send to the buffer."
