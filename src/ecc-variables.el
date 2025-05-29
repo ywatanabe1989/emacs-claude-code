@@ -21,7 +21,7 @@
 
 ;; 3. Variables
 ;; ----------------------------------------
-(defconst --ecc-version "1.0.0"
+(defconst --ecc-version "2.1.0"
   "Current version of the emacs-claude-code package.")
 
 
