@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-29 05:21:06>
+;;; Timestamp: <2025-05-30 05:10:13>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -396,7 +396,7 @@ Each element is (POSITION . TIMESTAMP).")
       (insert text)
       (sit-for --ecc-auto-response-safe-interval)
       (insert "\n")        
-      (sit-for --ecc-auto-response-safe-interval)       )))
+      (sit-for --ecc-auto-response-safe-interval))))
   (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
                        text)
   ;; Allow buffer to update before next check
