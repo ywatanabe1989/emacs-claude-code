@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-30 05:10:13>
+;;; Timestamp: <2025-05-30 06:35:33>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -96,11 +96,9 @@
 (defvar-local --ecc-auto-response--last-time 0
   "Timestamp of last auto-response in this buffer.")
 
-(defvar-local --ecc-auto-response--accumulation-count 0
-  "Counter for responses sent within current accumulation window.")
-
-(defvar-local --ecc-auto-response--accumulation-start-time 0
-  "Start time of current accumulation tracking window.")
+(defvar-local --ecc-auto-response--response-timestamps nil
+  "List of timestamps when responses were sent.
+Used for sliding window accumulation detection.")
 
 (defvar-local --ecc-auto-response--sent-positions nil
   "List of buffer positions where responses have been sent.
@@ -308,22 +306,37 @@ Each element is (POSITION . TIMESTAMP).")
                          (- current-time --ecc-auto-response--last-time)
                          --ecc-auto-response-throttle-duration)
     (or
+     ;; Throttle if same state within throttle duration
      (and (eq state --ecc-auto-response--last-state)
           (< (- current-time --ecc-auto-response--last-time)
              --ecc-auto-response-throttle-duration))
-     (--ecc-auto-response--accumulation-detected-p))))
+     ;; Check if we're at or would exceed accumulation threshold
+     (let ((window-start (- current-time --ecc-auto-response-accumulation-window)))
+       ;; Count recent responses within window
+       (let ((recent-count (cl-count-if (lambda (timestamp)
+                                          (>= timestamp window-start))
+                                        --ecc-auto-response--response-timestamps)))
+         (--ecc-debug-message "Recent responses: %d (threshold: %d)"
+                              recent-count --ecc-auto-response-accumulation-threshold)
+         ;; Block if adding one more would meet/exceed threshold
+         (>= (1+ recent-count) --ecc-auto-response-accumulation-threshold))))))
 
 (defun --ecc-auto-response--accumulation-detected-p ()
-  "Check if auto-response accumulation has been detected."
-  (let ((current-time (float-time)))
-    (when (>
-           (- current-time
-              --ecc-auto-response--accumulation-start-time)
-           --ecc-auto-response-accumulation-window)
-      (setq-local --ecc-auto-response--accumulation-count 0)
-      (setq-local --ecc-auto-response--accumulation-start-time 0))
-    (>= --ecc-auto-response--accumulation-count
-        --ecc-auto-response-accumulation-threshold)))
+  "Check if auto-response accumulation has been detected.
+Uses a sliding window approach to count responses within the accumulation window."
+  (let ((current-time (float-time))
+        (window-start (- (float-time) --ecc-auto-response-accumulation-window)))
+    ;; Remove timestamps outside the sliding window
+    (setq-local --ecc-auto-response--response-timestamps
+                (cl-remove-if (lambda (timestamp)
+                                (< timestamp window-start))
+                              --ecc-auto-response--response-timestamps))
+    ;; Check if we've exceeded the threshold
+    (let ((count (length --ecc-auto-response--response-timestamps)))
+      (--ecc-debug-message "Accumulation check: %d responses in last %s seconds (threshold: %d)"
+                           count --ecc-auto-response-accumulation-window
+                           --ecc-auto-response-accumulation-threshold)
+      (>= count --ecc-auto-response-accumulation-threshold))))
 
 
 ;; 10. Response detection functions
@@ -362,11 +375,8 @@ Each element is (POSITION . TIMESTAMP).")
   (let ((current-time (float-time)))
     (setq-local --ecc-auto-response--last-state state)
     (setq-local --ecc-auto-response--last-time current-time)
-    (when (= --ecc-auto-response--accumulation-count 0)
-      (setq-local --ecc-auto-response--accumulation-start-time
-                  current-time))
-    (setq-local --ecc-auto-response--accumulation-count
-                (1+ --ecc-auto-response--accumulation-count))
+    ;; Add timestamp to sliding window
+    (push current-time --ecc-auto-response--response-timestamps)
     ;; Record the position where we sent the response
     (push (cons (point-max) current-time) --ecc-auto-response--sent-positions)
     ;; Clean up old sent positions (older than 60 seconds)
@@ -375,32 +385,66 @@ Each element is (POSITION . TIMESTAMP).")
                           (> (- current-time (cdr pos-time)) 60))
                         --ecc-auto-response--sent-positions))))
 
+;; (defun --ecc-auto-response--send-to-buffer (buffer text)
+;;   "Send TEXT to BUFFER."
+;;   (with-current-buffer buffer
+;;     (cond
+;;      ((derived-mode-p 'vterm-mode)
+;;       (when (fboundp 'vterm-send-string)
+;;         (sit-for --ecc-auto-response-safe-interval)        
+;;         (vterm-send-string text)
+;;         (sit-for --ecc-auto-response-safe-interval)
+;;         (vterm-send-return)
+;;         ;; Return twice for solid processing
+;;         (sit-for --ecc-auto-response-safe-interval)
+;;         (vterm-send-return)))
+;;      ((derived-mode-p 'comint-mode)
+;;       (goto-char (point-max))
+;;       (sit-for --ecc-auto-response-safe-interval)              
+;;       (insert text)
+;;       (sit-for --ecc-auto-response-safe-interval)              
+;;       (comint-send-input))
+;;      (t
+;;       (goto-char (point-max))
+;;       (insert text)
+;;       (sit-for --ecc-auto-response-safe-interval)
+;;       (insert "\n")        
+;;       (sit-for --ecc-auto-response-safe-interval))))
+;;   (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
+;;                        text)
+;;   ;; Allow buffer to update before next check
+;;   (sit-for --ecc-auto-response-safe-interval))
+
+
+
 (defun --ecc-auto-response--send-to-buffer (buffer text)
   "Send TEXT to BUFFER."
   (with-current-buffer buffer
-    (cond
-     ((derived-mode-p 'vterm-mode)
-      (when (fboundp 'vterm-send-string)
-        (sit-for --ecc-auto-response-safe-interval)        
-        (vterm-send-string text)
-        (sit-for --ecc-auto-response-safe-interval)
-        (vterm-send-return)))
-     ((derived-mode-p 'comint-mode)
-      (goto-char (point-max))
-      (sit-for --ecc-auto-response-safe-interval)              
-      (insert text)
-      (sit-for --ecc-auto-response-safe-interval)              
-      (comint-send-input))
-     (t
-      (goto-char (point-max))
-      (insert text)
+    (let ((text-sender (cond
+                        ((derived-mode-p 'vterm-mode)
+                         (lambda () (vterm-send-string text)))
+                        ((derived-mode-p 'comint-mode)
+                         (lambda () (insert text)))
+                        (t
+                         (lambda () (insert text)))))
+          (return-sender (lambda () 
+                          (cond
+                           ((derived-mode-p 'vterm-mode)
+                            (vterm-send-return))
+                           ((derived-mode-p 'comint-mode)
+                            (comint-send-input))
+                           (t
+                            (insert "\n"))))))
+      ;; Main
       (sit-for --ecc-auto-response-safe-interval)
-      (insert "\n")        
-      (sit-for --ecc-auto-response-safe-interval))))
-  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
-                       text)
-  ;; Allow buffer to update before next check
-  (sit-for --ecc-auto-response-safe-interval))
+      (funcall text-sender)
+      (sit-for --ecc-auto-response-safe-interval)
+      (funcall return-sender)
+      (sit-for --ecc-auto-response-safe-interval)
+      (funcall return-sender)
+      (sit-for --ecc-auto-response-safe-interval)))
+  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text))
+
 
 
 
