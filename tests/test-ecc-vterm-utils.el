@@ -108,28 +108,19 @@
 ;; ===========================================
 ;; Interactive Function Tests
 ;; ===========================================
-(ert-deftest test-ecc-vterm-utils-yank-region-to-file-exists ()
-  "Test that yank-region-to-file function exists."
-  (should (fboundp '--ecc-vterm-utils-yank-region-to-file)))
-
-(ert-deftest test-ecc-vterm-utils-yank-region-to-file-interactive ()
-  "Test that yank-region-to-file is interactive."
+(ert-deftest test-ecc-vterm-utils-yank-region-to-file-command ()
+  "Test that yank-region-to-file exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-yank-region-to-file))
   (should (commandp '--ecc-vterm-utils-yank-region-to-file)))
 
-(ert-deftest test-ecc-vterm-utils-yank-buffer-to-file-exists ()
-  "Test that yank-buffer-to-file function exists."
-  (should (fboundp '--ecc-vterm-utils-yank-buffer-to-file)))
-
-(ert-deftest test-ecc-vterm-utils-yank-buffer-to-file-interactive ()
-  "Test that yank-buffer-to-file is interactive."
+(ert-deftest test-ecc-vterm-utils-yank-buffer-to-file-command ()
+  "Test that yank-buffer-to-file exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-yank-buffer-to-file))
   (should (commandp '--ecc-vterm-utils-yank-buffer-to-file)))
 
-(ert-deftest test-ecc-vterm-utils-quick-yank-region-exists ()
-  "Test that quick-yank-region function exists."
-  (should (fboundp '--ecc-vterm-utils-quick-yank-region)))
-
-(ert-deftest test-ecc-vterm-utils-quick-yank-region-interactive ()
-  "Test that quick-yank-region is interactive."
+(ert-deftest test-ecc-vterm-utils-quick-yank-region-command ()
+  "Test that quick-yank-region exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-quick-yank-region))
   (should (commandp '--ecc-vterm-utils-quick-yank-region)))
 
 ;; ===========================================
@@ -164,32 +155,23 @@
   (should (numberp --ecc-vterm-yank-as-file-threshold)))
 
 ;; Test advice functions
-(ert-deftest test-ecc-vterm-utils-enable-yank-advice-exists ()
-  "Test that enable-yank-advice function exists."
-  (should (fboundp '--ecc-vterm-utils-enable-yank-advice)))
-
-(ert-deftest test-ecc-vterm-utils-enable-yank-advice-interactive ()
-  "Test that enable-yank-advice is interactive."
+(ert-deftest test-ecc-vterm-utils-enable-yank-advice-command ()
+  "Test that enable-yank-advice exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-enable-yank-advice))
   (should (commandp '--ecc-vterm-utils-enable-yank-advice)))
 
 (ert-deftest test-ecc-vterm-utils-disable-yank-advice-exists ()
   "Test that disable-yank-advice function exists."
   (should (fboundp '--ecc-vterm-utils-disable-yank-advice)))
 
-(ert-deftest test-ecc-vterm-utils-toggle-yank-advice-exists ()
-  "Test that toggle-yank-advice function exists."
-  (should (fboundp '--ecc-vterm-utils-toggle-yank-advice)))
-
-(ert-deftest test-ecc-vterm-utils-toggle-yank-advice-interactive ()
-  "Test that toggle-yank-advice is interactive."
+(ert-deftest test-ecc-vterm-utils-toggle-yank-advice-command ()
+  "Test that toggle-yank-advice exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-toggle-yank-advice))
   (should (commandp '--ecc-vterm-utils-toggle-yank-advice)))
 
-(ert-deftest test-ecc-vterm-utils-setup-yank-advice-exists ()
-  "Test that setup-yank-advice function exists."
-  (should (fboundp '--ecc-vterm-utils-setup-yank-advice)))
-
-(ert-deftest test-ecc-vterm-utils-setup-yank-advice-interactive ()
-  "Test that setup-yank-advice is interactive."
+(ert-deftest test-ecc-vterm-utils-setup-yank-advice-command ()
+  "Test that setup-yank-advice exists and is an interactive command."
+  (should (fboundp '--ecc-vterm-utils-setup-yank-advice))
   (should (commandp '--ecc-vterm-utils-setup-yank-advice)))
 
 
