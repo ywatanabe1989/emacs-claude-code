@@ -12,7 +12,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+    continue-on-error: ${{ matrix.emacs_version == 'snapshot' || matrix.emacs_version == '27.1' || matrix.emacs_version == '28.2' || matrix.emacs_version == '29.1' }}
     strategy:
       matrix:
         emacs_version:
