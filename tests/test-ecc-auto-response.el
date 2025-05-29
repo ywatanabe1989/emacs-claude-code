@@ -60,6 +60,44 @@
   "Test that buffer registry exists."
   (should (hash-table-p --ecc-auto-response--registered-buffers)))
 
+(ert-deftest test-ecc-auto-response-modeline-buffer-local ()
+  "Test that modeline changes are buffer-local."
+  (let ((buf1 (generate-new-buffer "*test-auto-1*"))
+        (buf2 (generate-new-buffer "*test-auto-2*")))
+    (unwind-protect
+        (progn
+          ;; Enable auto-response in buf1
+          (with-current-buffer buf1
+            (--ecc-auto-response-enable-buffer buf1)
+            (should (member 'ecc-auto-indicator mode-line-format))
+            (should --ecc-auto-response--enabled))
+          
+          ;; Check that buf2 is unaffected
+          (with-current-buffer buf2
+            (should-not (member 'ecc-auto-indicator mode-line-format))
+            (should-not --ecc-auto-response--enabled))
+          
+          ;; Enable auto-response in buf2
+          (with-current-buffer buf2
+            (--ecc-auto-response-enable-buffer buf2)
+            (should (member 'ecc-auto-indicator mode-line-format))
+            (should --ecc-auto-response--enabled))
+          
+          ;; Disable auto-response in buf1
+          (with-current-buffer buf1
+            (--ecc-auto-response-disable-buffer buf1)
+            (should-not (member 'ecc-auto-indicator mode-line-format))
+            (should-not --ecc-auto-response--enabled))
+          
+          ;; Check that buf2 still has auto-response enabled
+          (with-current-buffer buf2
+            (should (member 'ecc-auto-indicator mode-line-format))
+            (should --ecc-auto-response--enabled)))
+      
+      ;; Cleanup
+      (when (buffer-live-p buf1) (kill-buffer buf1))
+      (when (buffer-live-p buf2) (kill-buffer buf2)))))
+
 (provide 'test-ecc-auto-response)
 
 (when (not load-file-name)

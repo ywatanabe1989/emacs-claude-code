@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-29 03:04:38>
+;;; Timestamp: <2025-05-29 05:21:06>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -12,10 +12,17 @@
 (require 'cl-lib)
 (require 'ecc-debug)
 (require 'ecc-state-detection)
+(require 'vterm nil t)  ; Optional dependency
 
 
 ;; 2. Configuration
 ;; ----------------------------------------
+
+;; Define the face globally
+(defface ecc-auto-indicator-face
+  '((t :background "#ff8c00" :foreground "#ffffff" :weight bold))
+  "Face for AUTO indicator in mode-line."
+  :group 'ecc)
 
 (defcustom --ecc-auto-response-interval 3.0
   "Interval in seconds for auto-response timer checks."
@@ -27,7 +34,7 @@
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-mode-line-color "#4a5d23"
+(defcustom --ecc-auto-response-mode-line-color "#ff8c00"
   "Background color for mode-line when auto-response is enabled."
   :type 'color
   :group 'ecc)
@@ -226,6 +233,10 @@ Each element is (POSITION . TIMESTAMP).")
 (defun --ecc-auto-response--should-throttle-p (state)
   "Check if auto-response for STATE should be throttled."
   (let ((current-time (float-time)))
+    (--ecc-debug-message "Throttle check: state=%s, last-state=%s, time-diff=%s, throttle-duration=%s"
+                         state --ecc-auto-response--last-state
+                         (- current-time --ecc-auto-response--last-time)
+                         --ecc-auto-response-throttle-duration)
     (or
      (and (eq state --ecc-auto-response--last-state)
           (< (- current-time --ecc-auto-response--last-time)
@@ -302,15 +313,21 @@ Each element is (POSITION . TIMESTAMP).")
         (vterm-send-return)))
      ((derived-mode-p 'comint-mode)
       (goto-char (point-max))
+      (sit-for --ecc-auto-response-safe-interval)              
       (insert text)
+      (sit-for --ecc-auto-response-safe-interval)              
       (comint-send-input))
      (t
       (goto-char (point-max))
-      (insert text "\n"))))
+      (insert text)
+      (sit-for --ecc-auto-response-safe-interval)
+      (insert "\n")        
+      (sit-for --ecc-auto-response-safe-interval)       )))
   (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
                        text)
   ;; Allow buffer to update before next check
   (sit-for --ecc-auto-response-safe-interval))
+
 
 
 ;; 12. Mode-line functions
@@ -328,37 +345,88 @@ Each element is (POSITION . TIMESTAMP).")
                           mode-line-format
                         (default-value 'mode-line-format))))
         
+        ;; Create a face for the indicator
+        (face-spec-set 'ecc-auto-indicator-face
+                       `((t :background ,--ecc-auto-response-mode-line-color
+                            :foreground "#ffffff"
+                            :weight bold))
+                       'face-defface-spec)
+        
         (unless (and (listp mode-line-format)
-                     (member 'ecc-auto-indicator mode-line-format))
-          ;; Define the indicator
-          (put 'ecc-auto-indicator 'risky-local-variable t)
-          (setq-local ecc-auto-indicator
-                      `(:propertize " [AUTO] "
-                                    face (:background ,--ecc-auto-response-mode-line-color
-                                          :foreground "#ffffff"
-                                          :weight bold)
-                                    help-echo "Auto-response is active"))
-          ;; Use the stored original format
-          (let ((original --ecc-auto-response--original-mode-line))
-            (if (listp original)
-                (let ((new-format (copy-sequence original))
-                      (buffer-id-pos (cl-position 'mode-line-buffer-identification original)))
-                  (if buffer-id-pos
-                      ;; Insert after buffer identification
-                      (setq mode-line-format
-                            (append (cl-subseq new-format 0 (1+ buffer-id-pos))
-                                    '(ecc-auto-indicator)
-                                    (cl-subseq new-format (1+ buffer-id-pos))))
-                    ;; If no buffer-id found, prepend
-                    (setq mode-line-format (cons 'ecc-auto-indicator new-format))))
-              ;; If original is not a list, make it one
-              (setq mode-line-format (list 'ecc-auto-indicator original))))))
+                     (member '(:eval (when --ecc-auto-response--enabled " [AUTO] ")) mode-line-format))
+          ;; Use :eval to dynamically show/hide based on buffer-local variable
+          (let ((indicator '(:eval (when --ecc-auto-response--enabled
+                                     (propertize " [AUTO] "
+                                                 'face 'ecc-auto-indicator-face
+                                                 'help-echo "Auto-response is active")))))
+            ;; Use the stored original format
+            (let ((original --ecc-auto-response--original-mode-line))
+              (if (listp original)
+                  (let ((new-format (copy-sequence original))
+                        (buffer-id-pos (cl-position 'mode-line-buffer-identification original)))
+                    (if buffer-id-pos
+                        ;; Insert after buffer identification
+                        (setq mode-line-format
+                              (append (cl-subseq new-format 0 (1+ buffer-id-pos))
+                                      (list indicator)
+                                      (cl-subseq new-format (1+ buffer-id-pos))))
+                      ;; If no buffer-id found, prepend
+                      (setq mode-line-format (cons indicator new-format))))
+                ;; If original is not a list, make it one
+                (setq mode-line-format (list indicator original))))))
     ;; Remove AUTO indicator and restore original
     (when (local-variable-p '--ecc-auto-response--original-mode-line)
       (setq mode-line-format --ecc-auto-response--original-mode-line)
-      (kill-local-variable 'ecc-auto-indicator)
       (kill-local-variable '--ecc-auto-response--original-mode-line)))
-  (force-mode-line-update))
+  (force-mode-line-update)))
+
+(defun --ecc-auto-response-refresh-all-mode-lines ()
+  "Refresh mode-lines for all buffers with auto-response enabled."
+  (interactive)
+  ;; First, ensure the face is properly defined with current color
+  (face-spec-set 'ecc-auto-indicator-face
+                 `((t :background ,--ecc-auto-response-mode-line-color
+                      :foreground "#ffffff"
+                      :weight bold))
+                 'face-defface-spec)
+  ;; Refresh all registered buffers
+  (dolist (buffer (--ecc-auto-response-get-registered-buffers))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (when --ecc-auto-response--enabled
+          ;; Reset mode-line to original first
+          (when (local-variable-p '--ecc-auto-response--original-mode-line)
+            (setq mode-line-format --ecc-auto-response--original-mode-line)
+            (kill-local-variable '--ecc-auto-response--original-mode-line))
+          ;; Force recreation
+          (--ecc-auto-response--update-mode-line)))))
+  (message "Refreshed mode-lines for all auto-response buffers"))
+
+(defun --ecc-auto-response-restart ()
+  "Restart the auto-response system."
+  (interactive)
+  (--ecc-auto-response--stop-timer)
+  (--ecc-auto-response--start-timer)
+  (message "Auto-response system restarted"))
+
+(defun --ecc-auto-response-test-mode-line ()
+  "Test the mode-line indicator."
+  (interactive)
+  (with-current-buffer (current-buffer)
+    (message "Testing mode-line in buffer: %s" (buffer-name))
+    (message "Auto-response enabled: %s" --ecc-auto-response--enabled)
+    (message "Mode-line format: %s" mode-line-format)
+    (when --ecc-auto-response--enabled
+      (message "Face background should be: %s" --ecc-auto-response-mode-line-color))))
+
+(defun --ecc-auto-response-disable-all ()
+  "Disable auto-response in all buffers."
+  (interactive)
+  (--ecc-auto-response--stop-timer)
+  (dolist (buffer (--ecc-auto-response-get-registered-buffers))
+    (when (buffer-live-p buffer)
+      (--ecc-auto-response-disable-buffer buffer)))
+  (message "Auto-response disabled in all buffers"))
 
 
 (provide 'ecc-auto-response)
