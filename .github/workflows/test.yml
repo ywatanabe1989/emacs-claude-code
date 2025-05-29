@@ -11,7 +11,7 @@ on:
       - '**.md'
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
     strategy:
       matrix:
