@@ -63,7 +63,12 @@
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
-    ;; Check for specific patterns first
+    ;; Check for running state first (highest priority)
+    (when (string-match-p "esc to interrupt" text)
+      (--ecc-debug-message "Matched state :running")
+      (throw 'found :running))
+    
+    ;; Check for specific patterns
     (when (string-match-p "\\[Y/y/n\\]" text)
       (throw 'found :y/y/n))
     (when (string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text)
@@ -72,9 +77,10 @@
       (throw 'found :waiting))
 
     ;; Check for Y/Y/N pattern first (must come before Y/N check)
-    (when (string-match-p " 2\\. Yes, and" text)
-      (--ecc-debug-message "Matched state :y/y/n")
-      (throw 'found :y/y/n))
+    (let ((yyn-pattern (cdr (assq :y/y/n --ecc-state-detection-patterns))))
+      (when (and yyn-pattern (string-match-p (regexp-quote yyn-pattern) text))
+        (--ecc-debug-message "Matched state :y/y/n")
+        (throw 'found :y/y/n)))
     
     ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
