@@ -11,6 +11,9 @@
 (require 'ecc-debug)
 (require 'ecc-state-detection)
 
+;; Declare function to avoid compiler warnings
+(declare-function --ecc-auto-response--update-mode-line "ecc-auto-response" ())
+
 ;; 2. Configuration
 ;; ----------------------------------------
 
@@ -42,6 +45,9 @@
 
 (defvar --ecc-notification--flash-timer nil
   "Timer for mode line flashing.")
+
+(defvar-local --ecc-notification--mode-line-format nil
+  "Buffer-local storage for original mode-line-format.")
 
 ;; 4. Main Entry Points
 ;; ----------------------------------------
@@ -108,17 +114,32 @@
     (when --ecc-notification--flash-timer
       (cancel-timer --ecc-notification--flash-timer))
     (with-current-buffer target-buffer
-      (invert-face 'mode-line)
+      ;; Store original mode-line-format
+      (unless --ecc-notification--mode-line-format
+        (setq --ecc-notification--mode-line-format mode-line-format))
+      ;; Create highlighted version
+      (setq mode-line-format
+            (list '(:propertize " ⚡ CLAUDE " face (:background "red" :foreground "white" :weight bold))
+                  --ecc-notification--mode-line-format))
       (force-mode-line-update))
     (setq --ecc-notification--flash-timer
-          (run-with-timer 0.5 nil
-                          (lambda ()
-                            (when (buffer-live-p target-buffer)
-                              (with-current-buffer target-buffer
-                                (invert-face 'mode-line)
+          (run-with-timer 0.3 nil
+                          (lambda (buffer)
+                            (when (buffer-live-p buffer)
+                              (with-current-buffer buffer
+                                ;; Restore original mode-line-format
+                                (when --ecc-notification--mode-line-format
+                                  (setq mode-line-format --ecc-notification--mode-line-format)
+                                  (setq --ecc-notification--mode-line-format nil))
+                                ;; Re-apply AUTO indicator if auto-response is enabled
+                                (when (and (boundp '--ecc-auto-response--enabled)
+                                           --ecc-auto-response--enabled
+                                           (fboundp '--ecc-auto-response--update-mode-line))
+                                  (--ecc-auto-response--update-mode-line))
                                 (force-mode-line-update))
                               (--ecc-debug-message
-                               "Mode line flash completed")))))))
+                               "Mode line flash completed")))
+                          target-buffer))))
 
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
