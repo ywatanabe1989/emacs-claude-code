@@ -53,6 +53,51 @@ This is likely related to timing issues between text insertion and return key se
       (cl-incf attempts))))
 ```
 
+### 5. Utilize Running and Sent States (Recommended)
+Leverage the existing `:running` state detection to verify proper text transmission:
+
+```elisp
+(defvar-local --ecc-auto-response--send-state nil
+  "Current send state: 'pending, 'sending, 'sent, or 'verified")
+
+(defun --ecc-auto-response--send-with-state-verification (buffer text)
+  "Send TEXT to BUFFER with state verification."
+  (with-current-buffer buffer
+    ;; Set initial state
+    (setq --ecc-auto-response--send-state 'pending)
+    
+    ;; Insert text
+    (--ecc-auto-response--insert-text text)
+    (setq --ecc-auto-response--send-state 'sending)
+    
+    ;; Send return
+    (--ecc-auto-response--send-return)
+    
+    ;; Wait for :running state (indicates Claude is processing)
+    (run-with-timer 0.5 nil
+      (lambda (buf)
+        (with-current-buffer buf
+          (when (eq (--ecc-state-detection-get-state) :running)
+            (setq --ecc-auto-response--send-state 'sent))
+          ;; If still not in running state, retry
+          (when (eq --ecc-auto-response--send-state 'sending)
+            (--ecc-auto-response--retry-send))))
+      buffer)))
+
+(defun --ecc-auto-response--verify-sent-state ()
+  "Verify text was sent by checking for state transitions."
+  ;; Monitor state changes: 
+  ;; :waiting → (text inserted) → :running → :y/n or :y/y/n
+  ;; This confirms the full cycle completed
+  )
+```
+
+This approach:
+- Uses `:running` state as confirmation that Claude received and is processing the command
+- Tracks send state through the full lifecycle
+- Enables retry logic if state doesn't transition as expected
+- Provides clear debugging information about where sends fail
+
 ## Benefits
 - Reliable auto-response execution
 - No partial or dropped commands
