@@ -1,5 +1,33 @@
 # Bulletin Board
 
+## 2025-05-31 08:59 AM
+- All tests passing (91/91) - system stable
+- Uncommitted changes in:
+  - Python guidelines (MNGS-02, MNGS-06)
+  - Auto-response and notification modules
+  - Buffer-local thunder icon feature request
+- Ready to commit and continue development
+
+## 2025-05-31 1:00 PM
+- Removed flashing behavior from thunder icon
+- Now ⚡ CLAUDE stays displayed continuously (no flash/disappear)
+- Icon only shows on buffers with auto-response enabled
+- Added function to remove thunder icon when needed
+- Cleaned up unused flash timer code
+
+## 2025-05-31 12:55 PM
+- Fixed notification flash to be properly buffer-local
+- Now ⚡ CLAUDE only appears on buffers with auto-response enabled
+- Modified ecc-notification.el to check buffer-local auto-response state
+- Feature working as requested
+
+## 2025-05-31 12:50 PM
+- Analyzed buffer-local thunder icon feature request
+- FINDING: Feature already implemented correctly!
+- Both [AUTO] and ⚡ CLAUDE are buffer-local
+- If seeing global display, likely a bug to investigate
+- Created feature request documentation
+
 ## 2025-05-31 08:15 AM
 - Created URGENT-FIX-INSTRUCTIONS.md with detailed steps
 - Auto-response still not working - interface format has changed

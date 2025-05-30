@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-31 06:10:26>
+;;; Timestamp: <2025-05-31 08:09:40>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -433,36 +433,6 @@ Uses a sliding window approach to count responses within the accumulation window
                           (> (- current-time (cdr pos-time)) 60))
                         --ecc-auto-response--sent-positions))))
 
-;; (defun --ecc-auto-response--send-to-buffer (buffer text)
-;;   "Send TEXT to BUFFER."
-;;   (with-current-buffer buffer
-;;     (cond
-;;      ((derived-mode-p 'vterm-mode)
-;;       (when (fboundp 'vterm-send-string)
-;;         (sit-for --ecc-auto-response-safe-interval)        
-;;         (vterm-send-string text)
-;;         (sit-for --ecc-auto-response-safe-interval)
-;;         (vterm-send-return)
-;;         ;; Return twice for solid processing
-;;         (sit-for --ecc-auto-response-safe-interval)
-;;         (vterm-send-return)))
-;;      ((derived-mode-p 'comint-mode)
-;;       (goto-char (point-max))
-;;       (sit-for --ecc-auto-response-safe-interval)              
-;;       (insert text)
-;;       (sit-for --ecc-auto-response-safe-interval)              
-;;       (comint-send-input))
-;;      (t
-;;       (goto-char (point-max))
-;;       (insert text)
-;;       (sit-for --ecc-auto-response-safe-interval)
-;;       (insert "\n")        
-;;       (sit-for --ecc-auto-response-safe-interval))))
-;;   (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
-;;                        text)
-;;   ;; Allow buffer to update before next check
-;;   (sit-for --ecc-auto-response-safe-interval))
-
 (defun --ecc-auto-response--send-to-buffer (buffer text)
   "Send TEXT to BUFFER."
   (with-current-buffer buffer
@@ -487,18 +457,15 @@ Uses a sliding window approach to count responses within the accumulation window
            (cdr (assoc :waiting --ecc-auto-response-responses))))
       ;; Main sending sequence
       (sit-for --ecc-auto-response-safe-interval)
+
+      ;; Auto Message      
       (funcall text-sender)
-      ;; Add extra delay for vterm mode to ensure text is processed
-      (when (derived-mode-p 'vterm-mode)
-        (sit-for --ecc-auto-response-vterm-return-delay))
+      (sit-for --ecc-auto-response-safe-interval)
+
+      ;; Return
       (funcall return-sender)
-      ;; For vterm, send an extra return to ensure processing
-      (when (and (derived-mode-p 'vterm-mode)
-                 (member text (list auto-response-text-initial-waiting auto-response-text-waiting)))
-        (sit-for --ecc-auto-response-safe-interval)
-        (funcall return-sender))
       (sit-for --ecc-auto-response-safe-interval)))
-  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text)) 
+  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text))
 
 
 
