@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-30 12:28:37>
+;;; Timestamp: <2025-05-31 06:10:26>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -463,8 +463,6 @@ Uses a sliding window approach to count responses within the accumulation window
 ;;   ;; Allow buffer to update before next check
 ;;   (sit-for --ecc-auto-response-safe-interval))
 
-
-
 (defun --ecc-auto-response--send-to-buffer (buffer text)
   "Send TEXT to BUFFER."
   (with-current-buffer buffer
@@ -482,7 +480,11 @@ Uses a sliding window approach to count responses within the accumulation window
                            ((derived-mode-p 'comint-mode)
                             (comint-send-input))
                            (t
-                            (insert "\n"))))))
+                            (insert "\n")))))
+          (auto-response-text-initial-waiting
+           (cdr (assoc :initial-waiting --ecc-auto-response-responses)))          
+          (auto-response-text-waiting
+           (cdr (assoc :waiting --ecc-auto-response-responses))))
       ;; Main sending sequence
       (sit-for --ecc-auto-response-safe-interval)
       (funcall text-sender)
@@ -492,11 +494,11 @@ Uses a sliding window approach to count responses within the accumulation window
       (funcall return-sender)
       ;; For vterm, send an extra return to ensure processing
       (when (and (derived-mode-p 'vterm-mode)
-                 (member text '("/user:auto" "/user:understand-guidelines")))
-        (sit-for 0.1)
+                 (member text (list auto-response-text-initial-waiting auto-response-text-waiting)))
+        (sit-for --ecc-auto-response-safe-interval)
         (funcall return-sender))
       (sit-for --ecc-auto-response-safe-interval)))
-  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text))
+  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text)) 
 
 
 
@@ -658,6 +660,27 @@ Uses a sliding window approach to count responses within the accumulation window
             (--ecc-auto-response--stop-periodic-timer))))))
   (message "Periodic return sending %s"
            (if --ecc-auto-response-periodic-enabled "enabled" "disabled")))
+
+;; Removed circular alias - ecc-refresh-timers is defined in ecc.el
+
+(defun ecc-auto-response-diagnose ()
+  "Diagnose auto-response issues in current buffer."
+  (interactive)
+  (if (not --ecc-auto-response--enabled)
+      (message "Auto-response is not enabled in this buffer. Use M-x ecc-auto-toggle to enable.")
+    (let ((state (--ecc-state-detection-detect)))
+      (message "=== Auto-Response Diagnosis ===")
+      (message "Buffer: %s" (buffer-name))
+      (message "Auto-response enabled: %s" --ecc-auto-response--enabled)
+      (message "Current state: %s" (or state "none"))
+      (message "Last state: %s" (or --ecc-auto-response--last-state "none"))
+      (message "Time since last response: %s seconds" 
+               (round (- (float-time) --ecc-auto-response--last-time)))
+      (message "Expected response: %s" 
+               (or (cdr (assq state --ecc-auto-response-responses)) "none"))
+      (message "Run M-x --ecc-state-detection-diagnose for more details")
+      (message "===============================")
+      state)))
 
 
 (provide 'ecc-auto-response)

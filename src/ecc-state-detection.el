@@ -75,6 +75,14 @@
       (throw 'found :y/n))
     (when (string-match-p "continue>\\|Continue>" text)
       (throw 'found :waiting))
+    ;; Additional flexible patterns for Claude prompts
+    (when (string-match-p "│[[:space:]]*>[[:space:]]*$" text)
+      (--ecc-debug-message "Matched flexible waiting pattern")
+      (throw 'found :waiting))
+    (when (and (string-match-p "Human:" text)
+               (string-match-p "│" text))
+      (--ecc-debug-message "Matched Human: prompt pattern")
+      (throw 'found :waiting))
 
     ;; Check for Y/Y/N pattern first (must come before Y/N check)
     (let ((yyn-pattern (cdr (assq :y/y/n --ecc-state-detection-patterns))))
@@ -146,6 +154,28 @@
   "Remove all flash overlays."
   (mapc 'delete-overlay --ecc-state-detection--flash-overlays)
   (setq --ecc-state-detection--flash-overlays nil))
+
+(defun --ecc-state-detection-diagnose (&optional buffer)
+  "Diagnose what Claude prompt patterns exist in BUFFER."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (let* ((buffer-text (buffer-substring-no-properties
+                        (max
+                         (- (point-max)
+                            --ecc-state-detection-buffer-size)
+                         (point-min))
+                        (point-max)))
+           (state (--ecc-state-detection-detect))
+           (last-100-chars (substring buffer-text (max 0 (- (length buffer-text) 100)))))
+      (message "=== Claude State Detection Diagnosis ===")
+      (message "Current state: %s" (or state "none"))
+      (message "Last 100 chars: %S" last-100-chars)
+      (message "Contains '│': %s" (if (string-match-p "│" buffer-text) "yes" "no"))
+      (message "Contains '>': %s" (if (string-match-p ">" buffer-text) "yes" "no"))
+      (message "Contains 'Human:': %s" (if (string-match-p "Human:" buffer-text) "yes" "no"))
+      (message "Contains 'esc to interrupt': %s" (if (string-match-p "esc to interrupt" buffer-text) "yes" "no"))
+      (message "========================================")
+      state)))
 
 
 (provide 'ecc-state-detection)
