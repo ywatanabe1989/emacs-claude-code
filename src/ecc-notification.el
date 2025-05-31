@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 06:36:19>
+;;; Timestamp: <2025-05-31 09:43:51>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-notification.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -119,7 +119,7 @@
         (setq --ecc-notification--mode-line-format mode-line-format))
       ;; Create version with thunder icon
       (setq mode-line-format
-            (list '(:propertize " ⚡ CLAUDE " face (:background "red" :foreground "white" :weight bold))
+            (list '(:propertize " ⚡ CLAUDE " face (:background "red4" :foreground "gray85" :weight bold))
                   --ecc-notification--mode-line-format))
       (force-mode-line-update))))
 

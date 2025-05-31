@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-31 08:09:40>
+;;; Timestamp: <2025-05-31 18:09:16>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -43,7 +43,7 @@
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-mode-line-color "red"
+(defcustom --ecc-auto-response-mode-line-color "red4"
   "Background color for mode-line when auto-response is enabled."
   :type 'color
   :group 'ecc)
@@ -170,6 +170,9 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-auto-response--start-timer))
     ;; Play buzzer sound
     (beep)
+    ;; Show thunder icon when enabling auto-response
+    (when (fboundp '--ecc-notification--flash-mode-line)
+      (--ecc-notification--flash-mode-line buf))
     ;; Force immediate update
     (force-mode-line-update)
     ;; Schedule a mode-line refresh to ensure persistence
@@ -197,6 +200,9 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-auto-response--stop-pulse-timer)
       ;; Re-enable visual modes
       (--ecc-auto-response--restore-visual-modes)
+      ;; Remove thunder icon when disabling auto-response
+      (when (fboundp '--ecc-notification--remove-thunder-icon)
+        (--ecc-notification--remove-thunder-icon))
       ;; Update mode-line
       (--ecc-auto-response--update-mode-line))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"

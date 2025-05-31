@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 07:56:27>
+;;; Timestamp: <2025-05-31 23:33:44>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -9,6 +9,7 @@
 ;; 1. Dependencies
 ;; ----------------------------------------
 (require 'ecc-debug)
+(require 'ecc-vterm-utils)
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -63,43 +64,58 @@
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
-    ;; Check for running state first (highest priority)
-    (when (string-match-p "esc to interrupt" text)
-      (--ecc-debug-message "Matched state :running")
-      (throw 'found :running))
-    
-    ;; Check for specific patterns
-    (when (string-match-p "\\[Y/y/n\\]" text)
-      (throw 'found :y/y/n))
-    (when (string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text)
-      (throw 'found :y/n))
-    (when (string-match-p "continue>\\|Continue>" text)
-      (throw 'found :waiting))
-    ;; Additional flexible patterns for Claude prompts
-    (when (string-match-p "│[[:space:]]*>[[:space:]]*$" text)
-      (--ecc-debug-message "Matched flexible waiting pattern")
-      (throw 'found :waiting))
-    (when (and (string-match-p "Human:" text)
-               (string-match-p "│" text))
-      (--ecc-debug-message "Matched Human: prompt pattern")
-      (throw 'found :waiting))
+    ;; ;; Check for running state first (highest priority)
+    ;; (when (string-match-p "esc to interrupt" text)
+    ;;   (--ecc-debug-message "Matched state :running")
+    ;;   (throw 'found :running))
+
+    ;; ;; Check for specific patterns
+    ;; (when (string-match-p "\\[Y/y/n\\]" text)
+    ;;   (throw 'found :y/y/n))
+    ;; (when (string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text)
+    ;;   (throw 'found :y/n))
+    ;; (when (string-match-p "continue>\\|Continue>" text)
+    ;;   (throw 'found :waiting))
+    ;; ;; Additional flexible patterns for Claude prompts
+    ;; (when (string-match-p "│[[:space:]]*>[[:space:]]*$" text)
+    ;;   (--ecc-debug-message "Matched flexible waiting pattern")
+    ;;   (throw 'found :waiting))
+    ;; (when (and (string-match-p "Human:" text)
+    ;;            (string-match-p "│" text))
+    ;;   (--ecc-debug-message "Matched Human: prompt pattern")
+    ;;   (throw 'found :waiting))
+
+    ;; Check for running pattern first (highest priority)
+    (let
+        ((running-pattern
+          (cdr (assq :running --ecc-state-detection-patterns))))
+      (when
+          (and running-pattern
+               (string-match-p (regexp-quote running-pattern) text))
+        (--ecc-debug-message "Matched state :running")
+        (throw 'found :running)))
 
     ;; Check for Y/Y/N pattern first (must come before Y/N check)
-    (let ((yyn-pattern (cdr (assq :y/y/n --ecc-state-detection-patterns))))
-      (when (and yyn-pattern (string-match-p (regexp-quote yyn-pattern) text))
+    (let
+        ((yyn-pattern
+          (cdr (assq :y/y/n --ecc-state-detection-patterns))))
+      (when
+          (and yyn-pattern
+               (string-match-p (regexp-quote yyn-pattern) text))
         (--ecc-debug-message "Matched state :y/y/n")
         (throw 'found :y/y/n)))
-    
+
     ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
             (pattern (cdr pattern-pair)))
-        ;; Skip initial-waiting check if there's previous content
-        (unless (and (eq state :initial-waiting)
-                     (--ecc-state-detection--has-previous-messages-p))
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state %s" state)
-            (throw 'found state)))))
+        ;; ;; Skip initial-waiting check if there's previous content
+        ;; (unless (and (eq state :initial-waiting)
+        ;;              (--ecc-state-detection--has-previous-messages-p))
+        (when (string-match-p (regexp-quote pattern) text)
+          (--ecc-debug-message "Matched state %s" state)
+          (throw 'found state))))
+                                        ;)
     nil))
 
 ;; 6. Helper/Utility Functions
@@ -160,20 +176,32 @@
   (interactive)
   (with-current-buffer (or buffer (current-buffer))
     (let* ((buffer-text (buffer-substring-no-properties
-                        (max
-                         (- (point-max)
-                            --ecc-state-detection-buffer-size)
-                         (point-min))
-                        (point-max)))
+                         (max
+                          (- (point-max)
+                             --ecc-state-detection-buffer-size)
+                          (point-min))
+                         (point-max)))
            (state (--ecc-state-detection-detect))
-           (last-100-chars (substring buffer-text (max 0 (- (length buffer-text) 100)))))
+           (last-100-chars
+            (substring buffer-text
+                       (max 0 (- (length buffer-text) 100))))
+           (last-line (--ecc-vterm-utils-get-last-non-empty-line))
+           (session-active (--ecc-vterm-utils-is-claude-session-active)))
       (message "=== Claude State Detection Diagnosis ===")
       (message "Current state: %s" (or state "none"))
+      (message "Claude session active: %s" (if session-active "yes" "no"))
+      (message "Last non-empty line: %S" last-line)
       (message "Last 100 chars: %S" last-100-chars)
-      (message "Contains '│': %s" (if (string-match-p "│" buffer-text) "yes" "no"))
-      (message "Contains '>': %s" (if (string-match-p ">" buffer-text) "yes" "no"))
-      (message "Contains 'Human:': %s" (if (string-match-p "Human:" buffer-text) "yes" "no"))
-      (message "Contains 'esc to interrupt': %s" (if (string-match-p "esc to interrupt" buffer-text) "yes" "no"))
+      (message "Contains '│': %s"
+               (if (string-match-p "│" buffer-text) "yes" "no"))
+      (message "Contains '>': %s"
+               (if (string-match-p ">" buffer-text) "yes" "no"))
+      (message "Contains 'Human:': %s"
+               (if (string-match-p "Human:" buffer-text) "yes" "no"))
+      (message "Contains 'esc to interrupt': %s"
+               (if (string-match-p "esc to interrupt" buffer-text)
+                   "yes"
+                 "no"))
       (message "========================================")
       state)))
 

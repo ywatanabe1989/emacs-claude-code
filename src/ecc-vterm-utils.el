@@ -196,7 +196,39 @@ Removes temporary files older than 24 hours."
       (message "No temporary yank-as-file files found"))))
 
 
-;; 7. Advice Functions
+;; 7. Session Detection Functions
+;; ----------------------------------------
+(defun --ecc-vterm-utils-get-last-non-empty-line (&optional buffer)
+  "Get the last non-empty line from vterm BUFFER.
+If BUFFER is nil, use the current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (save-excursion
+      (goto-char (point-max))
+      (skip-chars-backward " \t\n\r")
+      (let ((end (point)))
+        (beginning-of-line)
+        (buffer-substring-no-properties (point) end)))))
+
+(defun --ecc-vterm-utils-is-claude-session-active (&optional buffer)
+  "Check if a Claude session is active in vterm BUFFER.
+Returns t if Claude prompt is detected, nil otherwise."
+  (let ((last-line (--ecc-vterm-utils-get-last-non-empty-line buffer)))
+    (--ecc-debug-message "Checking Claude session, last line: %S" last-line)
+    (cond
+     ;; Check for Claude prompts - these patterns indicate an active session
+     ((string-match-p "Human:" last-line) t)
+     ((string-match-p "│[[:space:]]*>" last-line) t)
+     ((string-match-p "continue>" last-line) t)
+     ((string-match-p "\\[y/n\\]" last-line) t)
+     ((string-match-p "\\[Y/n\\]" last-line) t)
+     ((string-match-p "\\[Y/y/n\\]" last-line) t)
+     ;; Check for Claude running indicator
+     ((string-match-p "esc to interrupt" last-line) t)
+     ;; Check for initial Claude prompt
+     ((string-match-p "Try claude -h" last-line) t)
+     (t nil))))
+
+;; 8. Advice Functions
 ;; ----------------------------------------
 (defun --ecc-vterm-utils-yank-advice (orig-fun &rest args)
   "Advice to save yanked content as file and send reference to Claude.
