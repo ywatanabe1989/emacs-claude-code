@@ -5,6 +5,30 @@ All notable changes to emacs-claude-code will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-06-01
+
+### Fixed
+- **CLAUDE THUNDER Icon Synchronization**: Fixed mode-line thunder icon to properly sync with auto-response status
+  - Thunder icon (⚡ CLAUDE) now appears when auto-response is enabled
+  - Thunder icon is removed when auto-response is disabled
+  - Ensures visual consistency across all buffer states
+  
+### Added
+- **Session Detection Functions**: New utility functions for detecting active Claude sessions
+  - `--ecc-vterm-utils-get-last-non-empty-line`: Get last non-empty line from vterm
+  - `--ecc-vterm-utils-is-claude-session-active`: Check if Claude session is active
+  - Improved pattern matching for various Claude prompt states
+
+### Changed
+- **Guidelines Documentation**: Updated multiple guideline documents
+  - Enhanced refactoring guidelines
+  - Improved test-driven workflow documentation
+  - Added new project management guidelines (CLAUDE_ID, beyond-control, etc.)
+  - Updated Python module guidelines (MNGS)
+
+### Removed
+- Temporary fix files (`ecc-state-detection-patch.el`, `fix-auto-response.el`) - now integrated into main codebase
+
 ## [2.1.0] - 2025-05-30
 
 ### Added
