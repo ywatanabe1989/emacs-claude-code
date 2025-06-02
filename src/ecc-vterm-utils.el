@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 05:36:45>
+;;; Timestamp: <2025-06-02 14:41:36>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-utils.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -10,9 +10,9 @@
 ;; ----------------------------------------
 (require 'ecc-debug)
 
-
 ;; 2. Configuration
 ;; ----------------------------------------
+
 (defcustom --ecc-vterm-yank-extension-patterns
   '(("py" . "^\\(import\\|from\\|def\\|class\\|if __name__ ==\\)")
     ("js"
@@ -37,9 +37,9 @@
   :type 'string
   :group 'ecc)
 
-
 ;; 3. Variables
 ;; ----------------------------------------
+
 (defvar --ecc-vterm-yank-history nil
   "History of filenames used for yanking vterm content.")
 
@@ -64,9 +64,9 @@ yanked as a file reference regardless of content type."
   :type 'integer
   :group 'ecc)
 
-
 ;; 4. Main Entry Points
 ;; ----------------------------------------
+
 (defun --ecc-vterm-utils-yank-region-to-file (start end filename)
   "Yank region between START and END to file named FILENAME."
   (interactive
@@ -140,9 +140,9 @@ yanked as a file reference regardless of content type."
     (--ecc-debug-message "Quick yank failed: no active region")
     (user-error "No active region")))
 
-
 ;; 5. Core Functions
 ;; ----------------------------------------
+
 (defun --ecc-vterm-utils-detect-file-type (content)
   "Detect file type based on CONTENT."
   (--ecc-debug-message "Detecting file type for content of length %d"
@@ -156,9 +156,9 @@ yanked as a file reference regardless of content type."
      "No specific file type detected, defaulting to txt")
     "txt"))
 
-
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
+
 (defun --ecc-vterm-utils-cleanup-temp-files ()
   "Clean up old temporary files created by yank-as-file.
 Removes temporary files older than 24 hours."
@@ -170,7 +170,7 @@ Removes temporary files older than 24 hours."
          (removed-count 0))
     (dolist (file (file-expand-wildcards pattern))
       (when (and (file-regular-p file)
-                 (> (- current-time 
+                 (> (- current-time
                        (float-time (nth 5 (file-attributes file))))
                     age-limit))
         (delete-file file)
@@ -189,15 +189,15 @@ Removes temporary files older than 24 hours."
           (erase-buffer)
           (insert "Temporary files created by yank-as-file:\n\n")
           (dolist (file files)
-            (insert (format "%s (%.1f KB)\n" 
-                            file 
+            (insert (format "%s (%.1f KB)\n"
+                            file
                             (/ (nth 7 (file-attributes file)) 1024.0))))
           (display-buffer (current-buffer)))
       (message "No temporary yank-as-file files found"))))
 
-
 ;; 7. Session Detection Functions
 ;; ----------------------------------------
+
 (defun --ecc-vterm-utils-get-last-non-empty-line (&optional buffer)
   "Get the last non-empty line from vterm BUFFER.
 If BUFFER is nil, use the current buffer."
@@ -212,8 +212,10 @@ If BUFFER is nil, use the current buffer."
 (defun --ecc-vterm-utils-is-claude-session-active (&optional buffer)
   "Check if a Claude session is active in vterm BUFFER.
 Returns t if Claude prompt is detected, nil otherwise."
-  (let ((last-line (--ecc-vterm-utils-get-last-non-empty-line buffer)))
-    (--ecc-debug-message "Checking Claude session, last line: %S" last-line)
+  (let
+      ((last-line (--ecc-vterm-utils-get-last-non-empty-line buffer)))
+    (--ecc-debug-message "Checking Claude session, last line: %S"
+                         last-line)
     (cond
      ;; Check for Claude prompts - these patterns indicate an active session
      ((string-match-p "Human:" last-line) t)
@@ -230,45 +232,57 @@ Returns t if Claude prompt is detected, nil otherwise."
 
 ;; 8. Advice Functions
 ;; ----------------------------------------
+
 (defun --ecc-vterm-utils-yank-advice (orig-fun &rest args)
   "Advice to save yanked content as file and send reference to Claude.
 ORIG-FUN is the original yank function, ARGS are its arguments."
   (if (and --ecc-vterm-yank-as-file-enabled
            (derived-mode-p 'vterm-mode)
-           (car kill-ring))  ; Ensure there's something to yank
-      ;; Our custom yank-as-file behavior
-      (let* ((yanked-content (car kill-ring))
-             (content-length (length yanked-content))
-             (file-type (--ecc-vterm-utils-detect-file-type yanked-content)))
-        (if (or 
-             ;; Auto yank as file if content is very long
-             (>= content-length --ecc-vterm-yank-as-file-auto-threshold)
-             ;; Or if it meets threshold and user confirms (or prompting disabled)
-             (and (>= content-length --ecc-vterm-yank-as-file-threshold)
-                  (not (string= file-type "txt"))  ; Don't prompt for plain text
-                  (or (not --ecc-vterm-yank-as-file-prompt)
-                      (y-or-n-p (format "Yank %s content (%d chars) as file? " 
-                                        file-type content-length)))))
-            ;; Yank as file
-            (let* (;; Create temporary file
-                   (temp-file (make-temp-file 
-                               (format "claude_yank_%s_" 
-                                       (format-time-string "%Y%m%d_%H%M%S"))
-                               nil
-                               (format ".%s" file-type))))
-              ;; Write content to temporary file
-              (with-temp-file temp-file
-                (insert yanked-content))
-              (--ecc-debug-message "Saved yanked content to temporary file: %s" temp-file)
-              ;; Send message to Claude with file reference
-              (let ((message (format --ecc-vterm-yank-as-file-message-format temp-file)))
-                (if (fboundp 'vterm-send-string)
-                    (progn
-                      (vterm-send-string message)
-                      (message "Sent to Claude: %s" message))
-                  (insert message))))
-          ;; Normal yank
-          (apply orig-fun args)))
+           (car kill-ring))
+                                        ; Ensure there's something to
+      yank
+    ;; Our custom yank-as-file behavior
+    (let* ((yanked-content (car kill-ring))
+           (content-length (length yanked-content))
+           (file-type
+            (--ecc-vterm-utils-detect-file-type yanked-content)))
+      (if (or
+           ;; Auto yank as file if content is very long
+           (>= content-length
+               --ecc-vterm-yank-as-file-auto-threshold)
+           ;; Or if it meets threshold and user confirms (or prompting disabled)
+           (and
+            (>= content-length --ecc-vterm-yank-as-file-threshold)
+            (not (string= file-type "txt"))  ; Don't prompt for plain text
+            (or (not --ecc-vterm-yank-as-file-prompt)
+                (y-or-n-p (format
+                           "Yank %s content (%d chars) as file? "
+                           file-type content-length)))))
+          ;; Yank as file
+          (let* (;; Create temporary file
+                 (temp-file (make-temp-file
+                             (format "claude_yank_%s_"
+                                     (format-time-string
+                                      "%Y%m%d_%H%M%S"))
+                             nil
+                             (format ".%s" file-type))))
+            ;; Write content to temporary file
+            (with-temp-file temp-file
+              (insert yanked-content))
+            (--ecc-debug-message
+             "Saved yanked content to temporary file: %s" temp-file)
+            ;; Send message to Claude with file reference
+            (let
+                ((message
+                  (format --ecc-vterm-yank-as-file-message-format
+                          temp-file)))
+              (if (fboundp 'vterm-send-string)
+                  (progn
+                    (vterm-send-string message)
+                    (message "Sent to Claude: %s" message))
+                (insert message))))
+        ;; Normal yank
+        (apply orig-fun args)))
     ;; Not in vterm or feature disabled, use normal yank
     (apply orig-fun args)))
 
@@ -294,6 +308,7 @@ ORIG-FUN is the original yank function, ARGS are its arguments."
     (--ecc-vterm-utils-enable-yank-advice)))
 
 ;; Also add advice for regular yank in vterm buffers
+
 (defun --ecc-vterm-utils-regular-yank-advice (orig-fun &rest args)
   "Advice for regular yank command in vterm buffers.
 ORIG-FUN is the original yank function, ARGS are its arguments."

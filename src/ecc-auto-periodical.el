@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-01 11:17:16>
+;;; Timestamp: <2025-06-02 14:41:33>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-periodical.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -71,7 +71,7 @@ COMMAND is the string to send to the buffer."
                          --ecc-auto-periodical-interaction-counter)
     ;; Show counter in minibuffer when debug is enabled
     (when --ecc-debug-enabled
-      (message "[ECC Periodical] Interaction count: %d" 
+      (message "[ECC Periodical] Interaction count: %d"
                --ecc-auto-periodical-interaction-counter))
     (ecc-auto-periodical-check)))
 

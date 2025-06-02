@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-31 23:33:44>
+;;; Timestamp: <2025-06-02 14:41:36>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -186,10 +186,12 @@
             (substring buffer-text
                        (max 0 (- (length buffer-text) 100))))
            (last-line (--ecc-vterm-utils-get-last-non-empty-line))
-           (session-active (--ecc-vterm-utils-is-claude-session-active)))
+           (session-active
+            (--ecc-vterm-utils-is-claude-session-active)))
       (message "=== Claude State Detection Diagnosis ===")
       (message "Current state: %s" (or state "none"))
-      (message "Claude session active: %s" (if session-active "yes" "no"))
+      (message "Claude session active: %s"
+               (if session-active "yes" "no"))
       (message "Last non-empty line: %S" last-line)
       (message "Last 100 chars: %S" last-100-chars)
       (message "Contains '│': %s"

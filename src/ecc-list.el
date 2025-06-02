@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 06:02:30>
+;;; Timestamp: <2025-06-02 14:41:35>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-list.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -12,9 +12,9 @@
 (require 'ecc-state-detection)
 (require 'ecc-auto-response)
 
-
 ;; 2. Configuration
 ;; ----------------------------------------
+
 (defcustom --ecc-buffer-list-auto-refresh t
   "Whether to automatically refresh the buffer list."
   :type 'boolean
@@ -25,9 +25,9 @@
   :type 'number
   :group 'ecc)
 
-
 ;; 3. Variables
 ;; ----------------------------------------
+
 (defvar --ecc-buffer-list--timer nil
   "Timer for automatic buffer list refresh.")
 
@@ -53,10 +53,10 @@
     map)
   "Keymap for --ecc-buffer-list-mode.")
 
-
 ;; 4. Main Entry Points
 ;; ----------------------------------------
 ;;;###autoload
+
 (defun ecc-list-buffers ()
   "Display a list of vterm buffers with their auto-response status.
 Shows all vterm-mode buffers with their auto-response status.
@@ -68,15 +68,16 @@ In the buffer list:
 - q: Quit"
   (interactive)
   (let ((vterm-buffers '())
-        (registered-buffers (--ecc-auto-response-get-registered-buffers)))
-    
+        (registered-buffers
+         (--ecc-auto-response-get-registered-buffers)))
+
     ;; Collect vterm buffers
     (dolist (buffer (buffer-list))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
           (when (derived-mode-p 'vterm-mode)
             (push buffer vterm-buffers)))))
-    
+
     ;; Create or switch to the buffer list
     (let ((list-buffer (get-buffer-create "*ECC Buffers*")))
       (with-current-buffer list-buffer
@@ -85,49 +86,70 @@ In the buffer list:
         (let ((inhibit-read-only t)
               (current-line (line-number-at-pos)))
           (erase-buffer)
-          
+
           (insert "ECC Claude Buffer List\n")
           (insert "=====================\n\n")
-          
+
           (if vterm-buffers
               (progn
                 (insert (format "%-3s %-30s %-15s %-12s %s\n"
-                                " " "Buffer Name" "Auto-Response" "Last Sent" "State"))
+                                " " "Buffer Name" "Auto-Response"
+                                "Last Sent" "State"))
                 (insert (format "%-3s %-30s %-15s %-12s %s\n"
                                 "───"
-                                "─────────────────────────────" 
+                                "─────────────────────────────"
                                 "──────────────"
                                 "────────────"
                                 "─────"))
-                
+
                 ;; Sort buffers: last sent -> state not None -> created at
                 (setq vterm-buffers (sort vterm-buffers
                                           (lambda (a b)
-                                            (let ((time-a (with-current-buffer a
-                                                            --ecc-auto-response--last-time))
-                                                  (time-b (with-current-buffer b
-                                                            --ecc-auto-response--last-time))
-                                                  (state-a (with-current-buffer a
-                                                             (--ecc-state-detection-detect)))
-                                                  (state-b (with-current-buffer b
-                                                             (--ecc-state-detection-detect))))
+                                            (let ((time-a
+                                                   (with-current-buffer
+                                                       a
+                                                     --ecc-auto-response--last-time))
+                                                  (time-b
+                                                   (with-current-buffer
+                                                       b
+                                                     --ecc-auto-response--last-time))
+                                                  (state-a
+                                                   (with-current-buffer
+                                                       a
+                                                     (--ecc-state-detection-detect)))
+                                                  (state-b
+                                                   (with-current-buffer
+                                                       b
+                                                     (--ecc-state-detection-detect))))
                                               (cond
                                                ;; Both have sent times - sort by time (newer first)
-                                               ((and time-a time-b 
-                                                     (> time-a 0) (> time-b 0))
+                                               ((and time-a time-b
+                                                     (> time-a 0)
+                                                     (> time-b 0))
                                                 (> time-a time-b))
                                                ;; Only a has sent time
-                                               ((and time-a (> time-a 0)) t)
+                                               ((and time-a
+                                                     (> time-a 0))
+                                                t)
                                                ;; Only b has sent time
-                                               ((and time-b (> time-b 0)) nil)
+                                               ((and time-b
+                                                     (> time-b 0))
+                                                nil)
                                                ;; Neither has sent time, check states
-                                               ((and state-a (not state-b)) t)
-                                               ((and state-b (not state-a)) nil)
+                                               ((and state-a
+                                                     (not state-b))
+                                                t)
+                                               ((and state-b
+                                                     (not state-a))
+                                                nil)
                                                ;; Both have states or both have no states
                                                ;; Sort by buffer creation order (older buffers first)
-                                               (t (< (buffer-chars-modified-tick a)
-                                                     (buffer-chars-modified-tick b))))))))
-                
+                                               (t (<
+                                                   (buffer-chars-modified-tick
+                                                    a)
+                                                   (buffer-chars-modified-tick
+                                                    b))))))))
+
                 (dolist (buffer vterm-buffers)
                   (let* ((name (buffer-name buffer))
                          (auto-enabled (with-current-buffer buffer
@@ -135,27 +157,33 @@ In the buffer list:
                          (current-state (with-current-buffer buffer
                                           (--ecc-state-detection-detect)))
                          (state-str (if current-state
-                                        (--ecc-state-detection-get-name current-state)
+                                        (--ecc-state-detection-get-name
+                                         current-state)
                                       "None"))
                          (last-time (with-current-buffer buffer
                                       --ecc-auto-response--last-time))
                          (time-str (if (and last-time (> last-time 0))
-                                       (format-time-string "%H:%M:%S" last-time)
+                                       (format-time-string "%H:%M:%S"
+                                                           last-time)
                                      "Never"))
-                         (marked (member buffer --ecc-buffer-list--marked-buffers))
+                         (marked
+                          (member buffer
+                                  --ecc-buffer-list--marked-buffers))
                          (mark-str (if marked "*" " ")))
                     (insert (propertize
                              (format "%-3s %-30s %-15s %-12s %s\n"
                                      mark-str
                                      (if (> (length name) 29)
-                                         (concat (substring name 0 26) "...")
+                                         (concat (substring name 0 26)
+                                                 "...")
                                        name)
-                                     (if auto-enabled "Enabled" "Disabled")
+                                     (if auto-enabled "Enabled"
+                                       "Disabled")
                                      time-str
                                      state-str)
                              '--ecc-buffer buffer)))))
             (insert "No vterm buffers found.\n"))
-          
+
           (insert "\nCommands:\n")
           (insert "  RET/SPC  - Jump to buffer\n")
           (insert "  o        - Display buffer in other window\n")
@@ -169,11 +197,11 @@ In the buffer list:
           (insert "  r        - Toggle auto-refresh\n")
           (insert "  q        - Quit\n")
           (insert "  n/p      - Next/previous line\n")
-          
+
           (when --ecc-buffer-list-auto-refresh
-            (insert (format "\nAuto-refresh: ON (every %.1fs)\n" 
+            (insert (format "\nAuto-refresh: ON (every %.1fs)\n"
                             --ecc-buffer-list-refresh-interval)))
-          
+
           ;; Enable the mode
           (--ecc-buffer-list-mode)
           (goto-char (point-min))
@@ -181,18 +209,19 @@ In the buffer list:
           (when (and (> current-line 0)
                      (<= current-line (line-number-at-pos (point-max))))
             (goto-line current-line)))
-        
+
         ;; Set up auto-refresh timer if enabled
         (when --ecc-buffer-list-auto-refresh
           (--ecc-buffer-list--setup-refresh-timer)))
-      
+
       ;; Display the buffer
       (pop-to-buffer list-buffer))))
 
-
 ;; 5. Core Functions
 ;; ----------------------------------------
-(define-derived-mode --ecc-buffer-list-mode special-mode "--ECC-Buffers"
+
+(define-derived-mode --ecc-buffer-list-mode special-mode
+  "--ECC-Buffers"
   "Major mode for browsing Claude vterm buffers with auto-response status.
 \\{--ecc-buffer-list-mode-map}"
   (setq buffer-read-only t)
@@ -207,7 +236,8 @@ In the buffer list:
       (if (buffer-live-p buffer)
           (progn
             (switch-to-buffer buffer)
-            (--ecc-debug-message "Switched to buffer: %s" (buffer-name buffer)))
+            (--ecc-debug-message "Switched to buffer: %s"
+                                 (buffer-name buffer)))
         (message "Buffer no longer exists")))))
 
 (defun --ecc-buffer-list-display-buffer ()
@@ -218,7 +248,8 @@ In the buffer list:
       (if (buffer-live-p buffer)
           (progn
             (display-buffer buffer)
-            (--ecc-debug-message "Displayed buffer: %s" (buffer-name buffer)))
+            (--ecc-debug-message "Displayed buffer: %s"
+                                 (buffer-name buffer)))
         (message "Buffer no longer exists")))))
 
 (defun --ecc-buffer-list-toggle-auto-response ()
@@ -231,17 +262,19 @@ In the buffer list:
             (with-current-buffer buffer
               (--ecc-auto-response-toggle-buffer))
             (ecc-list-buffers)
-            (--ecc-debug-message "Toggled auto-response for: %s" (buffer-name buffer)))
+            (--ecc-debug-message "Toggled auto-response for: %s"
+                                 (buffer-name buffer)))
         (message "Buffer no longer exists")))))
 
 (defun --ecc-buffer-list-toggle-auto-refresh ()
   "Toggle automatic refresh of the buffer list."
   (interactive)
-  (setq --ecc-buffer-list-auto-refresh (not --ecc-buffer-list-auto-refresh))
+  (setq --ecc-buffer-list-auto-refresh
+        (not --ecc-buffer-list-auto-refresh))
   (if --ecc-buffer-list-auto-refresh
       (progn
         (--ecc-buffer-list--setup-refresh-timer)
-        (message "Auto-refresh enabled (interval: %.1fs)" 
+        (message "Auto-refresh enabled (interval: %.1fs)"
                  --ecc-buffer-list-refresh-interval))
     (--ecc-buffer-list--cancel-refresh-timer)
     (message "Auto-refresh disabled"))
@@ -257,10 +290,11 @@ In the buffer list:
              (when buf (list buf))))))
     (when buffers-to-kill
       (let ((count (length buffers-to-kill)))
-        (when (yes-or-no-p 
+        (when (yes-or-no-p
                (if (> count 1)
                    (format "Kill %d marked buffers? " count)
-                 (format "Kill buffer %s? " (buffer-name (car buffers-to-kill)))))
+                 (format "Kill buffer %s? "
+                         (buffer-name (car buffers-to-kill)))))
           (dolist (buffer buffers-to-kill)
             (when (buffer-live-p buffer)
               (kill-buffer buffer)))
@@ -318,9 +352,9 @@ In the buffer list:
         (push buffer --ecc-buffer-list--marked-buffers))))
   (ecc-list-buffers))
 
-
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
+
 (defun --ecc-buffer-list-get-buffer-at-point ()
   "Get the buffer object from the current line."
   (get-text-property (line-beginning-position) '--ecc-buffer))
@@ -347,13 +381,13 @@ In the buffer list:
 (defun --ecc-buffer-list--refresh-if-visible (buffer)
   "Refresh BUFFER if it's still visible."
   (save-window-excursion
-  (when (and (buffer-live-p buffer)
-             (get-buffer-window buffer))
-    (with-current-buffer buffer
-      (let ((inhibit-read-only t)
-            (pos (point)))
-        (ecc-list-buffers)
-        (goto-char pos))))))
+    (when (and (buffer-live-p buffer)
+               (get-buffer-window buffer))
+      (with-current-buffer buffer
+        (let ((inhibit-read-only t)
+              (pos (point)))
+          (ecc-list-buffers)
+          (goto-char pos))))))
 
 (defun --ecc-buffer-list--cleanup ()
   "Clean up when the buffer list is killed."

@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 06:12:34>
+;;; Timestamp: <2025-06-02 14:41:34>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
