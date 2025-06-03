@@ -24,6 +24,8 @@
 (require 'ecc-debug)
 (require 'ecc-state-detection)
 (require 'ecc-notification)
+(require 'ecc-auto-response-logging)
+(require 'ecc-send-verification)
 (require 'ecc-auto-response)
 (require 'ecc-vterm-utils)
 (require 'ecc-list)
