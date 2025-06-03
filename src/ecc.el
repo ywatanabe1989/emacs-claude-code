@@ -29,6 +29,7 @@
 (require 'ecc-list)
 (require 'ecc-auto-periodical)
 (require 'ecc-vterm-yank-as-file)
+(require 'ecc-host-switch)
 
 
 ;; 3. Main entry point

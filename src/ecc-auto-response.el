@@ -13,6 +13,7 @@
 (require 'ecc-debug)
 (require 'ecc-state-detection)
 (require 'ecc-notification)
+(require 'ecc-auto-response-logging)
 (require 'vterm nil t)  ; Optional dependency
 
 ;; Declare function to avoid compiler warnings
@@ -334,13 +335,18 @@ Each element is (POSITION . TIMESTAMP).")
   "Process BUFFER for auto-response."
   (with-current-buffer buffer
     (when --ecc-auto-response--enabled
-      (let ((state (--ecc-state-detection-detect)))
+      (let ((state (--ecc-state-detection-detect))
+            (buffer-content (buffer-substring-no-properties 
+                           (max (point-min) (- (point-max) 200))
+                           (point-max))))
         (--ecc-debug-message "Processing buffer %s: state=%s" (buffer-name buffer) state)
+        (ecc-auto-response-log-state-detection state buffer-content)
         (when state
           (cond
            ;; Skip auto-response when Claude is running
            ((eq state :running)
-            (--ecc-debug-message "Claude is running, skipping auto-response"))
+            (--ecc-debug-message "Claude is running, skipping auto-response")
+            (ecc-auto-response-log 'info "Claude is running, skipping auto-response"))
            ;; Normal processing for other states
            ((not (--ecc-auto-response--already-sent-p))
             (--ecc-debug-message "State detected, checking throttle for %s" state)
@@ -354,26 +360,36 @@ Each element is (POSITION . TIMESTAMP).")
 
 (defun --ecc-auto-response--should-throttle-p (state)
   "Check if auto-response for STATE should be throttled."
-  (let ((current-time (float-time)))
+  (let ((current-time (float-time))
+        (throttle-reason nil))
     (--ecc-debug-message "Throttle check: state=%s, last-state=%s, time-diff=%s, throttle-duration=%s"
                          state --ecc-auto-response--last-state
                          (- current-time --ecc-auto-response--last-time)
                          --ecc-auto-response-throttle-duration)
-    (or
+    (cond
      ;; Throttle if same state within throttle duration
-     (and (eq state --ecc-auto-response--last-state)
-          (< (- current-time --ecc-auto-response--last-time)
-             --ecc-auto-response-throttle-duration))
+     ((and (eq state --ecc-auto-response--last-state)
+           (< (- current-time --ecc-auto-response--last-time)
+              --ecc-auto-response-throttle-duration))
+      (setq throttle-reason (format "Same state within %s seconds" 
+                                   --ecc-auto-response-throttle-duration))
+      (ecc-auto-response-log-throttle state throttle-reason)
+      t)
      ;; Check if we're at or would exceed accumulation threshold
-     (let ((window-start (- current-time --ecc-auto-response-accumulation-window)))
-       ;; Count recent responses within window
-       (let ((recent-count (cl-count-if (lambda (timestamp)
-                                          (>= timestamp window-start))
-                                        --ecc-auto-response--response-timestamps)))
-         (--ecc-debug-message "Recent responses: %d (threshold: %d)"
-                              recent-count --ecc-auto-response-accumulation-threshold)
-         ;; Block if we've already exceeded the threshold
-         (>= recent-count --ecc-auto-response-accumulation-threshold))))))
+     ((let ((window-start (- current-time --ecc-auto-response-accumulation-window)))
+        ;; Count recent responses within window
+        (let ((recent-count (cl-count-if (lambda (timestamp)
+                                           (>= timestamp window-start))
+                                         --ecc-auto-response--response-timestamps)))
+          (--ecc-debug-message "Recent responses: %d (threshold: %d)"
+                               recent-count --ecc-auto-response-accumulation-threshold)
+          ;; Block if we've already exceeded the threshold
+          (when (>= recent-count --ecc-auto-response-accumulation-threshold)
+            (setq throttle-reason (format "Accumulation threshold reached: %d responses in %s seconds"
+                                         recent-count --ecc-auto-response-accumulation-window))
+            (ecc-auto-response-log-throttle state throttle-reason)
+            t))))
+     (t nil))))
 
 (defun --ecc-auto-response--accumulation-detected-p ()
   "Check if auto-response accumulation has been detected.
