@@ -28,6 +28,7 @@
 (require 'ecc-vterm-utils)
 (require 'ecc-list)
 (require 'ecc-auto-periodical)
+(require 'ecc-vterm-yank-as-file)
 
 
 ;; 3. Main entry point
