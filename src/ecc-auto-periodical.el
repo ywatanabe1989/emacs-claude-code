@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-02 14:43:58>
+;;; Timestamp: <2025-06-04 08:47:02>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-periodical.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -131,7 +131,7 @@ COMMAND is the string to send to the buffer."
     (insert command)
     (insert "\n")))
   ;; Show what was actually sent
-  (message "[ECC Auto-Periodical] ✅ Sent: %s" command))
+  (--ecc-debug-message "[ECC Auto-Periodical] ✅ Sent: %s" command))
 
 ;; 5. Interactive Commands
 ;; ----------------------------------------
@@ -140,8 +140,8 @@ COMMAND is the string to send to the buffer."
   "Toggle periodic command execution globally."
   (interactive)
   (setq ecc-auto-periodical-enabled (not ecc-auto-periodical-enabled))
-  (message "Auto periodic commands %s"
-           (if ecc-auto-periodical-enabled "enabled" "disabled")))
+  (--ecc-debug-message "Auto periodic commands %s"
+                       (if ecc-auto-periodical-enabled "enabled" "disabled")))
 
 (defun ecc-auto-periodical-toggle-buffer ()
   "Toggle periodic command execution for current buffer."
@@ -152,17 +152,17 @@ COMMAND is the string to send to the buffer."
                         '--ecc-auto-periodical-enabled-local)
                        --ecc-auto-periodical-enabled-local
                      ecc-auto-periodical-enabled)))
-  (message "Auto periodic commands %s in buffer %s"
-           (if --ecc-auto-periodical-enabled-local "enabled"
-             "disabled")
-           (buffer-name)))
+  (--ecc-debug-message "Auto periodic commands %s in buffer %s"
+                       (if --ecc-auto-periodical-enabled-local "enabled"
+                         "disabled")
+                       (buffer-name)))
 
 (defun ecc-auto-periodical-reset-counter ()
   "Reset the interaction counter for current buffer."
   (interactive)
   (setq-local --ecc-auto-periodical-interaction-counter 0)
   (clrhash --ecc-auto-periodical-last-executed)
-  (message "Interaction counter reset to 0"))
+  (--ecc-debug-message "Interaction counter reset to 0"))
 
 (defun ecc-auto-periodical-status ()
   "Show current periodic command status."
@@ -194,7 +194,7 @@ COMMAND is the string to send to the buffer."
         (push (format "  %s every %d (last: %d, next: %d)"
                       command interval last-exec next-exec)
               status-lines)))
-    (message "%s" (string-join (nreverse status-lines) "\n"))))
+    (--ecc-debug-message "%s" (string-join (nreverse status-lines) "\n"))))
 
 ;; 6. Integration Hook
 ;; ----------------------------------------
@@ -205,6 +205,12 @@ COMMAND is the string to send to the buffer."
   (ecc-auto-periodical-increment))
 
 ;;; ecc-auto-periodical.el ends here
+
+(when
+    (not load-file-name)
+  (--ecc-debug-message "ecc-auto-periodical.el loaded."
+                       (file-name-nondirectory
+                        (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-auto-periodical)

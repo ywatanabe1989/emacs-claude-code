@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-02 14:41:34>
+;;; Timestamp: <2025-06-04 08:47:04>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -14,7 +14,7 @@
   :prefix "--ecc-"
   :group 'tools)
 
-(defconst --ecc-version "3.0.0"
+(defconst --ecc-version "3.0.1"
   "Current version of the emacs-claude-code package.")
 
 

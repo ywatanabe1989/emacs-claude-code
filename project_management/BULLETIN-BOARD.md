@@ -1,5 +1,12 @@
 # Bulletin Board
 
+## Agent: 4871099e-40cb-11f0-91b2-00155d9f5f82
+Role: Developer
+Status: completed
+Task: Convert frequent messages to debug messages
+Notes: Converted user-facing messages in auto-periodical and host-switch modules to debug messages to reduce noise. All 122 tests passing.
+Timestamp: 2025-0604-08:49
+
 ## Agent: b2131948-40ba-11f0-aca3-00155d9f5f82
 Role: Developer
 Status: completed

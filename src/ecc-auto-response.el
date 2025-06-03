@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-02 14:44:46>
+;;; Timestamp: <2025-06-04 08:47:02>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -29,7 +29,7 @@
   "Face for AUTO indicator in mode-line."
   :group 'ecc)
 
-(defcustom --ecc-auto-response-interval 3.0
+(defcustom --ecc-auto-response-interval 2.0
   "Interval in seconds for auto-response timer checks."
   :type 'float
   :group 'ecc)
@@ -187,7 +187,7 @@ Each element is (POSITION . TIMESTAMP).")
                     buf)
     (--ecc-debug-message "Auto-response enabled for buffer: %s"
                          (buffer-name buf))
-    (message "Auto-response enabled - look for pulsing red [AUTO] in mode-line")))
+    (--ecc-debug-message "Auto-response enabled - look for pulsing red [AUTO] in mode-line")))
 
 (defun --ecc-auto-response-disable-buffer (&optional buffer)
   "Disable auto-response for BUFFER."
@@ -260,7 +260,9 @@ Each element is (POSITION . TIMESTAMP).")
   (setq --ecc-auto-response--timer
         (run-with-timer 0 --ecc-auto-response-interval
                         '--ecc-auto-response--process-all-buffers))
-  (--ecc-debug-message "Auto-response timer started"))
+  (--ecc-debug-message "Auto-response timer started")
+  ;; Force an immediate check
+  (run-with-timer 0.1 nil '--ecc-auto-response--process-all-buffers))
 
 (defun --ecc-auto-response--stop-timer ()
   "Stop the auto-response timer."
@@ -326,6 +328,8 @@ Each element is (POSITION . TIMESTAMP).")
 
 (defun --ecc-auto-response--process-all-buffers ()
   "Process all registered buffers for auto-response."
+  (--ecc-debug-message "Timer tick: processing %d registered buffers" 
+                       (hash-table-count --ecc-auto-response--registered-buffers))
   (--ecc-auto-response-cleanup-registry)
   (dolist (buffer (--ecc-auto-response-get-registered-buffers))
     (when (buffer-live-p buffer)
@@ -419,8 +423,9 @@ Uses a sliding window approach to count responses within the accumulation window
     (let ((result (cl-some (lambda (pos-time)
                              (< (abs (- current-pos (car pos-time))) threshold))
                            --ecc-auto-response--sent-positions)))
-      (--ecc-debug-message "Already sent check: pos=%d, sent-positions=%s, result=%s" 
-                           current-pos --ecc-auto-response--sent-positions result)
+      (when result
+        (--ecc-debug-message "Already sent check: pos=%d, sent-positions=%s, result=%s" 
+                             current-pos --ecc-auto-response--sent-positions result))
       result)))
 
 
@@ -656,7 +661,7 @@ Uses a sliding window approach to count responses within the accumulation window
   "Diagnose auto-response issues in current buffer."
   (interactive)
   (if (not --ecc-auto-response--enabled)
-      (message "Auto-response is not enabled in this buffer. Use M-x ecc-auto-toggle to enable.")
+      (message "Auto-response is not enabled in this buffer. Use C-c C-a to enable.")
     (let ((state (--ecc-state-detection-detect)))
       (message "=== Auto-Response Diagnosis ===")
       (message "Buffer: %s" (buffer-name))
@@ -667,9 +672,20 @@ Uses a sliding window approach to count responses within the accumulation window
                (round (- (float-time) --ecc-auto-response--last-time)))
       (message "Expected response: %s" 
                (or (cdr (assq state --ecc-auto-response-responses)) "none"))
-      (message "Run M-x --ecc-state-detection-diagnose for more details")
+      (message "Timer running: %s" (if --ecc-auto-response--timer "yes" "no"))
+      (message "Registered buffers: %d" (hash-table-count --ecc-auto-response--registered-buffers))
       (message "===============================")
+      ;; Try to process manually
+      (when (and state --ecc-auto-response--timer)
+        (message "Triggering manual timer process...")
+        (--ecc-auto-response--process-all-buffers))
       state)))
+
+(when
+    (not load-file-name)
+  (--ecc-debug-message "ecc-auto-response.el loaded."
+           (file-name-nondirectory
+            (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-auto-response)

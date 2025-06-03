@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-02 14:41:35>
+;;; Timestamp: <2025-06-04 08:47:05>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-list.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -392,6 +392,12 @@ In the buffer list:
 (defun --ecc-buffer-list--cleanup ()
   "Clean up when the buffer list is killed."
   (--ecc-buffer-list--cancel-refresh-timer))
+
+(when
+    (not load-file-name)
+  (--ecc-debug-message "ecc-list.el loaded."
+                       (file-name-nondirectory
+                        (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-list)

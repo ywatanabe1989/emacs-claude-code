@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-02 14:41:34>
+;;; Timestamp: <2025-06-04 08:47:04>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-debug.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -45,6 +45,12 @@
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
 ;; No helper functions in this file
+
+(when
+    (not load-file-name)
+  (--ecc-debug-message "ecc-debug.el loaded."
+                       (file-name-nondirectory
+                        (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-debug)

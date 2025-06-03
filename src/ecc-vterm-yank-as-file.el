@@ -1,14 +1,16 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-04 06:41:35>
-;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
+;;; Timestamp: <2025-06-04 08:47:08>
+;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 (require 'vterm nil t)
 
 ;; 1. Main entry point
 ;; ----------------------------------------
+
 (defcustom ecc-vterm-yank-default-directory "~/"
   "Default directory for creating yank files.
 Useful for SSH sessions where current directory might be remote."
@@ -39,6 +41,7 @@ Example:
 
 ;; 2. Core functions
 ;; ----------------------------------------
+
 (defun --ecc-vterm-create-temp-file (&optional use-default-dir)
   "Create a unique temporary file in the current or default directory.
 
@@ -47,8 +50,9 @@ Returns the absolute path of the created file."
   (let* ((timestamp (format-time-string "%Y%m%d-%H%M%S"))
          (filename (format "kill-ring-%s.tmp" timestamp))
          (directory (if use-default-dir
-                       (expand-file-name ecc-vterm-yank-default-directory)
-                     default-directory))
+                        (expand-file-name
+                         ecc-vterm-yank-default-directory)
+                      default-directory))
          (filepath (expand-file-name filename directory)))
     filepath))
 
@@ -76,6 +80,7 @@ Returns the content as a string, or nil if kill-ring is empty."
 
 ;; 3. Keybinding setup
 ;; ----------------------------------------
+
 (defun ecc-vterm-yank-as-file-setup-keybinding ()
   "Set up keybinding for ecc-vterm-yank-as-file in vterm-mode."
   (when (fboundp 'vterm-mode-map)
@@ -85,9 +90,11 @@ Returns the content as a string, or nil if kill-ring is empty."
 (with-eval-after-load 'vterm
   (ecc-vterm-yank-as-file-setup-keybinding))
 
+
 (provide 'ecc-vterm-yank-as-file)
 
-(when (not load-file-name)
+(when
+    (not load-file-name)
   (message "ecc-vterm-yank-as-file.el loaded."
            (file-name-nondirectory
             (or load-file-name buffer-file-name))))
