@@ -9,17 +9,27 @@
 
 ;; 1. Main entry point
 ;; ----------------------------------------
-(defun ecc-vterm-yank-as-file ()
+(defcustom ecc-vterm-yank-default-directory "~/"
+  "Default directory for creating yank files.
+Useful for SSH sessions where current directory might be remote."
+  :type 'string
+  :group 'ecc)
+
+(defun ecc-vterm-yank-as-file (&optional use-default-dir)
   "Create a temporary file with the latest kill-ring content and send path to vterm.
+
+With prefix arg USE-DEFAULT-DIR, creates file in `ecc-vterm-yank-default-directory'.
+This is useful for SSH sessions where files should be created locally.
 
 Example:
   ;; Copy some text to kill-ring
   ;; Run M-x ecc-vterm-yank-as-file
+  ;; Or C-u M-x ecc-vterm-yank-as-file (to use default dir)
   ;; Sends \"Read /path/to/temp/file.tmp\" to vterm"
-  (interactive)
+  (interactive "P")
   (if (not (derived-mode-p 'vterm-mode))
       (message "This command only works in vterm-mode")
-    (let ((temp-file (--ecc-vterm-create-temp-file))
+    (let ((temp-file (--ecc-vterm-create-temp-file use-default-dir))
           (content (--ecc-vterm-get-kill-ring-content)))
       (if content
           (progn
@@ -29,13 +39,17 @@ Example:
 
 ;; 2. Core functions
 ;; ----------------------------------------
-(defun --ecc-vterm-create-temp-file ()
-  "Create a unique temporary file in the current directory.
+(defun --ecc-vterm-create-temp-file (&optional use-default-dir)
+  "Create a unique temporary file in the current or default directory.
 
+If USE-DEFAULT-DIR is non-nil, creates file in `ecc-vterm-yank-default-directory'.
 Returns the absolute path of the created file."
   (let* ((timestamp (format-time-string "%Y%m%d-%H%M%S"))
          (filename (format "kill-ring-%s.tmp" timestamp))
-         (filepath (expand-file-name filename default-directory)))
+         (directory (if use-default-dir
+                       (expand-file-name ecc-vterm-yank-default-directory)
+                     default-directory))
+         (filepath (expand-file-name filename directory)))
     filepath))
 
 (defun --ecc-vterm-get-kill-ring-content ()
