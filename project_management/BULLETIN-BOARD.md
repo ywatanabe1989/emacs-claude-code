@@ -3,6 +3,13 @@
 ## Agent: b2131948-40ba-11f0-aca3-00155d9f5f82
 Role: Developer
 Status: completed
+Task: Implement and improve yank-as-file feature for SSH
+Notes: Created ecc-vterm-yank-as-file.el with SSH support. Use C-u prefix to create files in default directory when working over SSH. Keeps terminal clean.
+Timestamp: 2025-0604-06:51
+
+## Agent: b2131948-40ba-11f0-aca3-00155d9f5f82
+Role: Developer
+Status: completed
 Task: Implement yank-as-file feature
 Notes: Created new module ecc-vterm-yank-as-file.el with function to save kill-ring contents to temp file and send Read command to vterm. All tests passing (95/97, 2 pre-existing failures).
 Timestamp: 2025-0604-06:45

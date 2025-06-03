@@ -32,13 +32,13 @@
 (ert-deftest test-ecc-state-detection-yn-pattern ()
   "Test Y/N state detection."
   (with-temp-buffer
-    (insert "Some text [y/n] prompt")
+    (insert "Some text ❯ 1. Yes more text")
     (should (eq (--ecc-state-detection-detect) :y/n))))
 
 (ert-deftest test-ecc-state-detection-yyn-pattern ()
   "Test Y/Y/N state detection."
   (with-temp-buffer
-    (insert "Some text [Y/y/n] prompt")
+    (insert "Some text ❯ 1. Yes\n 2. Yes, and more text")
     (should (eq (--ecc-state-detection-detect) :y/y/n))))
 
 
