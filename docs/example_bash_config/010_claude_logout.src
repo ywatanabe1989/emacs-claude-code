@@ -1,0 +1,30 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# Timestamp: "2025-06-01 05:59:30 (ywatanabe)"
+# File: /ssh:ywatanabe@sp:/home/ywatanabe/.dotfiles/.bash.d/all/010_claude/010_claude_logout.src
+
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ---------------------------------------
+
+BLACK='\033[0;30m'
+LIGHT_GRAY='\033[0;37m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+echo_success() { echo -e "${GREEN}$1${NC}"; }
+echo_warning() { echo -e "${YELLOW}$1${NC}"; }
+echo_error() { echo -e "${RED}$1${NC}"; }
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+
+cld_logout() {
+    local CREDENTIAL_FILE="$HOME/.claude/.credentials.json"
+    echo_info "Credential file removed:\n$(cat $CREDENTIAL_FILE)"
+    echo > $CREDENTIAL_FILE
+    echo_success "Account credentials deleted"
+}
+
+# EOF

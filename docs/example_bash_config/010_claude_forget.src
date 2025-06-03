@@ -1,0 +1,72 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# Timestamp: "2025-06-04 06:02:47 (ywatanabe)"
+# File: /home/ywatanabe/.dotfiles/.bash.d/all/010_claude/010_claude_forget.src
+
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ---------------------------------------
+
+BLACK='\033[0;30m'
+LIGHT_GRAY='\033[0;37m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+echo_success() { echo -e "${GREEN}$1${NC}"; }
+echo_warning() { echo -e "${YELLOW}$1${NC}"; }
+echo_error() { echo -e "${RED}$1${NC}"; }
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+
+cld_forget() {
+    # Delete the latest n JSONL files from Claude project history
+    # Usage: cld_forget [num_files]
+    # Default: deletes 1 file if num_files not specified
+
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    RED='\033[0;31m'
+    NC='\033[0m'
+    echo_success() { echo -e "${GREEN}$@${NC}"; }
+    echo_warning() { echo -e "${YELLOW}$@${NC}"; }
+    echo_error() { echo -e "${RED}$@${NC}"; }
+
+    local num_files=${1:-1}
+    local current_path="$(realpath $(pwd))"
+    # local current_path="$(pwd)"
+    local cld_project_name=$(echo "$current_path" | sed 's|/|-|g' | sed 's|\.|-|g' | sed 's|_|-|g')
+    local cld_history_dir="$HOME/.claude/projects/$cld_project_name"
+
+    if [ ! -d "$cld_history_dir" ]; then
+        echo_error "Claude project directory not found: $cld_history_dir"
+        return 1
+    fi
+
+    cd "$cld_history_dir"
+    local files_to_delete=($(ls -t *.jsonl 2>/dev/null | head -n $num_files))
+
+    if [ ${#files_to_delete[@]} -eq 0 ]; then
+        echo_warning "No JSONL files found"
+        return 1
+    fi
+
+    for file in "${files_to_delete[@]}"; do
+        if [ -f "$file" ]; then
+            echo "Attempting to delete: $file"
+            ls -la "$file"
+            rm -vf "$file"
+            if [ ! -f "$file" ]; then
+                echo_success "Removed: $full_path"
+            else
+                echo_error "Failed to remove: $full_path"
+            fi
+        fi
+    done
+
+    echo_success "Deleted ${#files_to_delete[@]} files"
+    cd - > /dev/null
+}
+
+# EOF

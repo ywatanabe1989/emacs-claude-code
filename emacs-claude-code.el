@@ -2,6 +2,7 @@
 ;;; Author: ywatanabe
 ;;; Timestamp: <2025-05-28 05:43:59>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/emacs-claude-code.el
+;;; Version: 3.0.0
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
