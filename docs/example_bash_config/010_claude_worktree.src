@@ -1,0 +1,122 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# Timestamp: "2025-06-01 05:58:52 (ywatanabe)"
+# File: /ssh:ywatanabe@sp:/home/ywatanabe/.dotfiles/.bash.d/all/010_claude/010_claude_worktree.src
+
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ---------------------------------------
+
+BLACK='\033[0;30m'
+LIGHT_GRAY='\033[0;37m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+echo_success() { echo -e "${GREEN}$1${NC}"; }
+echo_warning() { echo -e "${YELLOW}$1${NC}"; }
+echo_error() { echo -e "${RED}$1${NC}"; }
+
+cld_worktree_toggle() {
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -z "$git_root" ]; then
+        echo_warning "✗ Not in a git repository"
+        return 1
+    fi
+
+    if [[ "$git_root" == *"/.claude-worktree/"* ]]; then
+        _cld_worktree_from_cld
+    else
+        _cld_worktree_to_cld
+    fi
+}
+
+alias ct=cld_worktree_toggle
+
+_cld_worktree_to_cld() {
+    local current_path=$(pwd)
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+
+    if [ -z "$git_root" ]; then
+        echo_warning "✗ Not in a git repository"
+        return 1
+    fi
+
+    if [[ "$git_root" == *"/.claude-worktree/"* ]]; then
+        echo_warning "Already in Claude worktree"
+        return 0
+    fi
+
+    local project_name=$(basename "$git_root")
+    local project_root=$(dirname "$git_root")
+    local cld_worktree="$project_root/.claude-worktree/$project_name"
+
+    if [ -d "$cld_worktree" ]; then
+        cd "$cld_worktree"
+        echo_success "Switched to Claude worktree: $(pwd)"
+        return 0
+    else
+        echo_warning "✗ Claude worktree not found: $cld_worktree"
+        return 1
+    fi
+}
+
+_cld_worktree_from_cld() {
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -z "$git_root" ]; then
+        echo_warning "✗ Not in a git repository"
+        return 1
+    fi
+
+    if [[ "$git_root" != *"/.claude-worktree/"* ]]; then
+        echo_warning "Not in Claude worktree"
+        return 0
+    fi
+
+    local project_name=$(basename "$git_root")
+    local original_project=$(echo "$git_root" | sed 's|/\.claude-worktree/[^/]*||')
+    local original_path="$original_project/$project_name"
+
+    if [ -d "$original_path" ]; then
+        cd "$original_path"
+        echo_success "Switched to original project: $(pwd)"
+        return 0
+    else
+        echo_warning "✗ Original project not found: $original_path"
+        return 1
+    fi
+}
+
+
+_cld_check_cld_working_tree() {
+    current_path=$(pwd)
+    git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -z "$git_root" ]; then
+        echo_warning "✗ Not in a git repository"
+        return 1
+    fi
+
+    if [[ "$git_root" == *"/.claude-worktree/"* ]]; then
+        echo_success "✓ Claude working tree: $current_path"
+        return 0
+    else
+        project_name=$(basename "$git_root")
+        project_root=$(dirname "$git_root")
+        potential_cld_worktree="$project_root/.claude-worktree/$project_name"
+
+        echo_warning "✗ Not in Claude working tree: $current_path"
+        if [ -d "$potential_cld_worktree" ]; then
+            echo_warning "Change to Claude worktree ($potential_cld_worktree)? (Y/n): "
+            read -r response
+            if [[ "$response" =~ ^[Yy]?$ ]]; then
+                cd "$potential_cld_worktree"
+                echo_success "Changed to: $(pwd)"
+                return 0
+            fi
+        fi
+        return 1
+    fi
+}
+
+# EOF

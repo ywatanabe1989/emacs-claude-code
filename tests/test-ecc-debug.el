@@ -8,20 +8,17 @@
 (require 'ert)
 (require 'ecc-debug)
 
-(ert-deftest test-ecc-debug-loadable ()
-  "Test that ecc-debug loads correctly."
+(ert-deftest test-ecc-debug-feature-loads-without-error ()
+  "Test that ecc-debug feature loads successfully without errors."
   (should (featurep 'ecc-debug)))
 
-(ert-deftest test-ecc-debug-toggle-exists ()
-  "Test that ecc-debug-toggle function exists."
-  (should (functionp 'ecc-debug-toggle)))
-
-(ert-deftest test-ecc-debug-toggle-interactive ()
-  "Test that ecc-debug-toggle is interactive."
+(ert-deftest test-ecc-debug-toggle-command ()
+  "Test that ecc-debug-toggle exists and is an interactive command."
+  (should (functionp 'ecc-debug-toggle))
   (should (commandp 'ecc-debug-toggle)))
 
-(ert-deftest test-ecc-debug-initial-state ()
-  "Test that debug is initially disabled."
+(ert-deftest test-ecc-debug-initially-disabled ()
+  "Test that debug mode is disabled by default on startup."
   (should-not --ecc-debug-enabled))
 
 (ert-deftest test-ecc-debug-message-function-exists ()

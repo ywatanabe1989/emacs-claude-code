@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-05-28 07:56:27>
+;;; Timestamp: <2025-06-04 08:47:06>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -9,6 +9,7 @@
 ;; 1. Dependencies
 ;; ----------------------------------------
 (require 'ecc-debug)
+(require 'ecc-vterm-utils)
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -63,24 +64,37 @@
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
-    ;; Check for specific patterns first
-    (when (string-match-p "\\[Y/y/n\\]" text)
-      (throw 'found :y/y/n))
-    (when (string-match-p "\\[y/n\\]\\|\\[Y/n\\]" text)
-      (throw 'found :y/n))
-    (when (string-match-p "continue>\\|Continue>" text)
-      (throw 'found :waiting))
+    ;; Check for running pattern first (highest priority)
+    ;; Only consider it running if we see the tokens counter actively changing
+    (let
+        ((running-pattern
+          (cdr (assq :running --ecc-state-detection-patterns))))
+      (when
+          (and running-pattern
+               (string-match-p (regexp-quote running-pattern) text)
+               ;; Also check for the presence of actual token count
+               (string-match-p "[0-9]+ tokens · esc to interrupt)"
+                               text))
+        (--ecc-debug-message "Matched state :running")
+        (throw 'found :running)))
+
+    ;; Check for Y/Y/N pattern first (must come before Y/N check)
+    (let
+        ((yyn-pattern
+          (cdr (assq :y/y/n --ecc-state-detection-patterns))))
+      (when
+          (and yyn-pattern
+               (string-match-p (regexp-quote yyn-pattern) text))
+        (--ecc-debug-message "Matched state :y/y/n")
+        (throw 'found :y/y/n)))
 
     ;; Check for exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
             (pattern (cdr pattern-pair)))
-        ;; Skip initial-waiting check if there's previous content
-        (unless (and (eq state :initial-waiting)
-                     (--ecc-state-detection--has-previous-messages-p))
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state %s" state)
-            (throw 'found state)))))
+        (when (string-match-p (regexp-quote pattern) text)
+          (--ecc-debug-message "Matched state %s" state)
+          (throw 'found state))))
     nil))
 
 ;; 6. Helper/Utility Functions
@@ -88,15 +102,8 @@
 
 (defun --ecc-state-detection--has-previous-messages-p ()
   "Check if buffer has previous messages (not the initial state)."
-  (save-excursion
-    (goto-char (point-min))
-    ;; Look for signs of previous interactions
-    (or (search-forward "Human:" nil t)
-        (search-forward "Assistant:" nil t)
-        (search-forward "│ H " nil t)  ; Human prompt indicator
-        (search-forward "│ A " nil t)  ; Assistant response indicator
-        ;; Check if buffer has substantial content (more than just the initial prompt)
-        (> (- (point-max) (point-min)) 500))))
+  ;; Simply check buffer size as a quick heuristic
+  (> (- (point-max) (point-min)) 500))
 
 (defun --ecc-state-detection-get-name (state)
   "Convert STATE symbol to human-readable name."
@@ -135,6 +142,48 @@
   "Remove all flash overlays."
   (mapc 'delete-overlay --ecc-state-detection--flash-overlays)
   (setq --ecc-state-detection--flash-overlays nil))
+
+(defun --ecc-state-detection-diagnose (&optional buffer)
+  "Diagnose what Claude prompt patterns exist in BUFFER."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (let* ((buffer-text (buffer-substring-no-properties
+                         (max
+                          (- (point-max)
+                             --ecc-state-detection-buffer-size)
+                          (point-min))
+                         (point-max)))
+           (state (--ecc-state-detection-detect))
+           (last-100-chars
+            (substring buffer-text
+                       (max 0 (- (length buffer-text) 100))))
+           (last-line (--ecc-vterm-utils-get-last-non-empty-line))
+           (session-active
+            (--ecc-vterm-utils-is-claude-session-active)))
+      (--ecc-debug-message "=== Claude State Detection Diagnosis ===")
+      (--ecc-debug-message "Current state: %s" (or state "none"))
+      (--ecc-debug-message "Claude session active: %s"
+                           (if session-active "yes" "no"))
+      (--ecc-debug-message "Last non-empty line: %S" last-line)
+      (--ecc-debug-message "Last 100 chars: %S" last-100-chars)
+      (--ecc-debug-message "Contains '│': %s"
+                           (if (string-match-p "│" buffer-text) "yes" "no"))
+      (--ecc-debug-message "Contains '>': %s"
+                           (if (string-match-p ">" buffer-text) "yes" "no"))
+      (--ecc-debug-message "Contains 'Human:': %s"
+                           (if (string-match-p "Human:" buffer-text) "yes" "no"))
+      (--ecc-debug-message "Contains 'esc to interrupt': %s"
+                           (if (string-match-p "esc to interrupt" buffer-text)
+                               "yes"
+                             "no"))
+      (--ecc-debug-message "========================================")
+      state)))
+
+(when
+    (not load-file-name)
+  (--ecc-debug-message "ecc-state-detection.el loaded."
+                       (file-name-nondirectory
+                        (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-state-detection)

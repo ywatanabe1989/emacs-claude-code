@@ -1,0 +1,199 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# Timestamp: "2025-06-01 13:21:37 (ywatanabe)"
+# File: /home/ywatanabe/.dotfiles/.bash.d/all/010_claude/010_claude_session.src
+
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ---------------------------------------
+
+BLACK='\033[0;30m'
+LIGHT_GRAY='\033[0;37m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+echo_success() { echo -e "${GREEN}$1${NC}"; }
+echo_warning() { echo -e "${YELLOW}$1${NC}"; }
+echo_error() { echo -e "${RED}$1${NC}"; }
+
+echo_info() { echo -e "${BLACK}$1${NC}"; }
+
+_cld_rsync_file() {
+    local src=$1
+    local tgt=$2
+
+    if [ ! -f "$src" ]; then
+        return 1
+    fi
+
+    if [ "$src" -ef "$tgt" ]; then
+        return 0
+    fi
+
+    local tgtdir="$(dirname "$tgt")"
+    mkdir -p "$tgtdir" >/dev/null
+    if [ -f "$tgt" ]; then chmod 0744 "$tgt"; fi
+    cat "$src" > "$tgt"
+}
+
+_cld_rsync_dir() {
+    local src=$1
+    local tgt=$2
+
+    if [ ! -d "$src" ]; then
+        return 1
+    fi
+
+    if [ "$src" -ef "$tgt" ]; then
+        return 0
+    fi
+
+    rm -rf "$tgt" >/dev/null
+    mkdir -p "$tgt" >/dev/null
+    echo_info "$src -> $tgt"
+    rsync -au "$src" "$tgt"
+}
+
+_cld_rsync_settings() {
+    local project_root=$1
+    _cld_rsync_file "$HOME/.claude/settings.local.json" \
+                     "$project_root/.claude/settings.local.json"
+}
+
+_cld_rsync_mcp_configs() {
+    local project_root=$1
+    _cld_rsync_file "$HOME/.claude/mcp-config.json" \
+                      "$project_root/.claude/mcp-config.json"
+}
+
+_cld_rsync_to_cld_dir() {
+    local project_root=$1
+    local src_dir="$HOME/.claude/to_claude"
+    local tgt_dir="$project_root/docs/to_claude"
+    local subdirs=("guidelines" "bin" "examples")
+
+    # Before Rsync
+    # ----------------------------------------
+    # Remove .old directories
+    find "$tgt_dir" -type d -path "*.old*" -exec sh -c 'chmod 777 "$1" && rm -rf "$1"' sh {} \; 2>/dev/null || true
+
+    # Remove .log files
+    find "$tgt_dir" -type f -name "*.log" -exec sh -c 'chmod 777 "$1" && rm -f "$1"' sh {} \; 2>/dev/null || true
+
+    # Unprotect target directory first
+    echo_info "Unprotecting $tgt_dir with write permissions..."
+    find "$tgt_dir" -type d -not -path "*.old*" -exec chmod 755 {} \; 2>/dev/null || true
+    find "$tgt_dir" -type f -not -path "*.old*" -exec chmod 755 {} \; 2>/dev/null || true
+    echo_info "Done"
+
+    # Rsync
+    # ----------------------------------------
+    for subdir in "${subdirs[@]}"; do
+        _cld_rsync_dir "$src_dir/$subdir/" "$tgt_dir/$subdir/"
+    done
+
+    # After Rsync
+    # ----------------------------------------
+    # Remove .old directories
+    find "$tgt_dir" -type d -path "*.old*" -exec sh -c 'chmod 777 "$1" && rm -rf "$1"' sh {} \; 2>/dev/null || true
+
+    # Remove .log files
+    find "$tgt_dir" -type f -name "*.log" -exec sh -c 'chmod 777 "$1" && rm -f "$1"' sh {} \; 2>/dev/null || true
+
+    # Protect target directory
+    echo_info "Protecting $tgt_dir with read and execute permissions..."
+    find "$tgt_dir" -type d -exec chmod 777 {} \; 2>/dev/null || true
+    find "$tgt_dir" -type f -not -path "*.old*" -not -name "*.sh" -exec chmod 444 {} \; 2>/dev/null || true
+    find "$tgt_dir" -type f -not -path "*.old*" -name "*.sh" -exec chmod 544 {} \; 2>/dev/null || true
+    echo_info "Done"
+}
+
+
+_cld_start_session() {
+    if [ -z "$CLAUDE_ID" ]; then
+        # claude command
+        local CLD_BIN_GLOBAL="$HOME/.npm-global/lib/node_modules/@anthropic-ai/claude-code/cli.js"
+        local CLD_BIN_LOCAL="$HOME/.claude/local/claude"
+        local CLD_BIN=$CLD_BIN_GLOBAL
+
+        # ID
+        local CLAUDE_ID=$(uuid 2>/dev/null || uuidgen 2>/dev/null || echo "claude-$(date +%s)")
+        # Directory
+        local CLAUDE_DIR="$(pwd)"
+        echo_success "CLAUDE_DIR: $(basename $CLAUDE_DIR)"
+        _cld_check_cld_working_tree
+
+        # Starting time
+        local CLAUDE_START_TIME="timestamp: $(date '+%Y-%m%d-%H:%M')"
+
+        # MCP
+        MCP_CONFIG_PATH="$HOME/.claude/mcp-config.json"
+        MCP_ARG=""
+        if [ -f $MCP_CONFIG_PATH ]; then
+            echo_info "MCP config found: $MCP_CONFIG_PATH"
+            MCP_ARG="--mcp-config=$MCP_CONFIG_PATH"
+        fi
+
+        # TIMEOUT
+        local BASH_MAX_TIMEOUT_H=1
+        local MS_PER_HOUR=3600000
+
+        # CLD_BASHRC
+        mkdir -p "$HOME/.bashrc.claude/" >/dev/null 2>&1
+        local CLD_BASHRC="$HOME/.bashrc.claude/.bashrc-$CLAUDE_ID"
+        echo_info "CLD_BASHRC: $CLD_BASHRC"
+        cat > "$CLD_BASHRC" << EOF
+# Parameters
+export CLAUDE_ID="$CLAUDE_ID"
+export CLAUDE_DIR="$CLAUDE_DIR"
+export CLAUDE_START_TIME="$CLAUDE_START_TIME"
+export BASH_MAX_TIMEOUT_MS=$((BASH_MAX_TIMEOUT_H * MS_PER_HOUR))
+export NO_SCD=true # Skip "set current directory" logic in host
+export CLAUDE_INTERACTION_COUNTER=\${CLAUDE_INTERACTION_COUNTER:-0}
+
+# Dynamic timestamp update
+export CLAUDE_CURRENT_TIME="\$(date '+%Y-%m%d-%H:%M')"
+
+# Directory
+cd $CLAUDE_DIR
+
+# Periodical Info
+if [ \$((\$CLAUDE_INTERACTION_COUNTER % 1)) -eq 0 ]; then
+   echo "[TO CLAUDE INFO] rm is not allowed. Use .claude/to_claude/bin/safe_rm.sh instead"
+   echo "[TO CLAUDE INFO] CLAUDE_ID: \$CLAUDE_ID"
+   echo "[TO CLAUDE INFO] CLAUDE_CURRENT_TIME: \$CLAUDE_CURRENT_TIME"
+fi
+
+# Increment Counter
+CLAUDE_INTERACTION_COUNTER=\$((CLAUDE_INTERACTION_COUNTER+1))
+
+EOF
+        chmod +x "$CLD_BASHRC"
+
+        # Rsync configurations
+        _cld_rsync_settings .
+        _cld_rsync_mcp_configs .
+
+        # Rsync guidances
+        _cld_rsync_to_cld_dir .
+
+        # PATH to ./docs/to_claude/bin
+        export PATH="$CLAUDE_DIR/docs/to_claude/bin:$PATH"
+
+        # Main
+        # BASH_ENV="$CLD_BASHRC" "$CLD_BIN" "$MCP_ARG" "$@"
+        # local cmd="BASH_ENV=$CLD_BASHRC $@ $CLD_BIN $MCP_ARG"
+        local cmd="BASH_ENV=$CLD_BASHRC $CLD_BIN $MCP_ARG $@"
+        echo_info $cmd
+        eval $cmd
+
+        # Cleanup
+        rm "$CLD_BASHRC" -f
+    fi
+}
+
+alias cld="_cld_start_session"
+
+# EOF

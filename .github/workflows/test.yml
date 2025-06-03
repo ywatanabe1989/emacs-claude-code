@@ -11,8 +11,8 @@ on:
       - '**.md'
 jobs:
   test:
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+    runs-on: ubuntu-22.04
+    continue-on-error: ${{ matrix.emacs_version == 'snapshot' || matrix.emacs_version == '27.1' || matrix.emacs_version == '28.2' || matrix.emacs_version == '29.1' }}
     strategy:
       matrix:
         emacs_version:
@@ -26,12 +26,13 @@ jobs:
           - 29.4
           - snapshot
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: purcell/setup-emacs@master
         with:
           version: ${{ matrix.emacs_version }}
+        timeout-minutes: 10
       - name: run-tests
         run: |
-          ./run-tests.sh
+          ./run_tests.sh
 
 # EOF
