@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-04 08:47:02>
+;;; Timestamp: <2025-06-06 19:18:59>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-periodical.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -25,7 +25,7 @@
   :group 'ecc)
 
 (defcustom ecc-auto-periodical-commands
-  '((10 . "/compact"))
+  '((20 . "/compact"))
   "Alist of (INTERVAL . COMMAND) pairs for periodic execution.
 INTERVAL is the number of interactions between executions.
 COMMAND is the string to send to the buffer."
@@ -141,7 +141,8 @@ COMMAND is the string to send to the buffer."
   (interactive)
   (setq ecc-auto-periodical-enabled (not ecc-auto-periodical-enabled))
   (--ecc-debug-message "Auto periodic commands %s"
-                       (if ecc-auto-periodical-enabled "enabled" "disabled")))
+                       (if ecc-auto-periodical-enabled "enabled"
+                         "disabled")))
 
 (defun ecc-auto-periodical-toggle-buffer ()
   "Toggle periodic command execution for current buffer."
@@ -153,7 +154,8 @@ COMMAND is the string to send to the buffer."
                        --ecc-auto-periodical-enabled-local
                      ecc-auto-periodical-enabled)))
   (--ecc-debug-message "Auto periodic commands %s in buffer %s"
-                       (if --ecc-auto-periodical-enabled-local "enabled"
+                       (if --ecc-auto-periodical-enabled-local
+                           "enabled"
                          "disabled")
                        (buffer-name)))
 
@@ -194,7 +196,8 @@ COMMAND is the string to send to the buffer."
         (push (format "  %s every %d (last: %d, next: %d)"
                       command interval last-exec next-exec)
               status-lines)))
-    (--ecc-debug-message "%s" (string-join (nreverse status-lines) "\n"))))
+    (--ecc-debug-message "%s"
+                         (string-join (nreverse status-lines) "\n"))))
 
 ;; 6. Integration Hook
 ;; ----------------------------------------

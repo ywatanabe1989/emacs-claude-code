@@ -3,6 +3,13 @@
 ## Agent: 4871099e-40cb-11f0-91b2-00155d9f5f82
 Role: Developer
 Status: completed
+Task: Release v3.0.1 - Debug message improvements
+Notes: Successfully created and pushed v3.0.1 tag and GitHub release. Converted frequent messages to debug messages. All changes merged to main via PR #11.
+Timestamp: 2025-0604-08:55
+
+## Agent: 4871099e-40cb-11f0-91b2-00155d9f5f82
+Role: Developer
+Status: completed
 Task: Convert frequent messages to debug messages
 Notes: Converted user-facing messages in auto-periodical and host-switch modules to debug messages to reduce noise. All 122 tests passing.
 Timestamp: 2025-0604-08:49
