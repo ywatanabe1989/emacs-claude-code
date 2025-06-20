@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-04 08:47:02>
+;;; Timestamp: <2025-06-06 18:22:24>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -29,7 +29,7 @@
   "Face for AUTO indicator in mode-line."
   :group 'ecc)
 
-(defcustom --ecc-auto-response-interval 2.0
+(defcustom --ecc-auto-response-interval 1.0
   "Interval in seconds for auto-response timer checks."
   :type 'float
   :group 'ecc)
@@ -39,7 +39,7 @@
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-vterm-return-delay 0.1
+(defcustom --ecc-auto-response-vterm-return-delay 1.0
   "Additional delay in seconds between text and return in vterm mode."
   :type 'float
   :group 'ecc)
@@ -438,6 +438,8 @@ Uses a sliding window approach to count responses within the accumulation window
     (when response
       (--ecc-auto-response--send-to-buffer buffer response)
       (--ecc-auto-response--update-tracking state)
+      ;; Play buzzer sound when sending auto-response
+      (beep)
       (when (fboundp '--ecc-notification-notify)
         (--ecc-notification-notify state buffer))
       ;; Trigger auto-periodical check if available
