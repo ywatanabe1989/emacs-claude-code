@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-06 18:22:24>
+;;; Timestamp: <2025-06-21 12:46:35>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -67,8 +67,8 @@
 (defcustom --ecc-auto-response-responses
   '((:y/n . "1")
     (:y/y/n . "2")
-    (:waiting . "/user:auto")
-    (:initial-waiting . "/user:understand-guidelines"))
+    (:waiting . "/auto")
+    (:initial-waiting . "/understand-guidelines"))
   "Alist of auto-responses for different Claude states."
   :type '(alist :key-type symbol :value-type string)
   :group 'ecc)

@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-06-04 08:04:16
+!-- Timestamp: 2025-06-21 12:47:07
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -17,7 +17,7 @@ Emacs interface for Claude Code with intelligent auto-response, centralized buff
 
 ## Demo: Automatic Response System
 ![Demo](./docs/emacs-claude-code-demo.gif)
-*Auto-response in action: initial-waiting → /user/understand-guidelines, y/n → 1, y/y/n → 2, waiting → /user:auto
+*Auto-response in action: initial-waiting → /understand-guidelines, y/n → 1, y/y/n → 2, waiting → /auto
 (Assumes commands ~/.claude/commands/{understand-guidelines.md,auto.md} exist)*
 
 ## Table of Contents
