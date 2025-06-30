@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-01 05:04:09>
+;;; Timestamp: <2025-07-01 05:53:04>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-remote.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -196,18 +196,19 @@ Example:
         (let* ((ssh-info (--ecc-get-ssh-info-from-selection)) ; Always prompt for host selection
                (target-dir (if (equal select-host '(16))  ; C-u C-u
                                (read-string "Remote directory: "
-                                            (--ecc-get-yank-directory t))
+                                            (--ecc-get-yank-directory
+                                             t))
                              (--ecc-get-yank-directory t))))
           (if (not ssh-info)
               (message "No remote server selected")
             (let* ((local-file (--ecc-vterm-create-temp-file t))  ; Always use default dir for local creation
                    (remote-file
                     (--ecc-build-remote-file-path ssh-info local-file
-                                                target-dir)))
+                                                  target-dir)))
               (--ecc-vterm-write-content-to-file content local-file)
               (if
                   (--ecc-transfer-file-to-remote local-file ssh-info
-                                               target-dir)
+                                                 target-dir)
                   (--ecc-vterm-send-read-command remote-file)
                 (message "Failed to transfer file to remote server")))))))))
 
@@ -281,20 +282,21 @@ Otherwise prompts for server selection."
               (message "Cleanup completed successfully")
             (message "Cleanup failed with exit code %d" result)))))))
 
-;; 9. Keybinding integration
-;; ----------------------------------------
+;; ;; 9. Keybinding integration
+;; ;; ----------------------------------------
 
-(defun --ecc-remote-setup-keybindings ()
-  "Set up keybindings for remote functionality in vterm-mode."
-  (when (fboundp 'vterm-mode-map)
-    (define-key vterm-mode-map (kbd "C-c C-y")
-                'ecc-vterm-yank-as-file)
-    (define-key vterm-mode-map (kbd "C-c C-S-r")
-                '--ecc-cleanup-remote-temp-files)))
+;; (defun --ecc-remote-setup-keybindings ()
+;;   "Set up keybindings for remote functionality in vterm-mode."
+;;   (when (fboundp 'vterm-mode-map)
+;;     (define-key vterm-mode-map (kbd "C-c C-y")
+;;                 'ecc-vterm-yank-as-file)
+;;     (define-key vterm-mode-map (kbd "C-c C-d")
+;;                 '--ecc-cleanup-remote-temp-files)))
 
-;; Set up keybindings when vterm is loaded
-(with-eval-after-load 'vterm
-  (--ecc-remote-setup-keybindings))
+;; ;; Set up keybindings when vterm is loaded
+;; (with-eval-after-load 'vterm
+;;   (--ecc-remote-setup-keybindings))
+
 
 (provide 'ecc-remote)
 
