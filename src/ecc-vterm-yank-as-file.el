@@ -11,7 +11,7 @@
 ;; 1. Main entry point
 ;; ----------------------------------------
 
-(defcustom ecc-vterm-yank-default-directory "~/"
+(defcustom ecc-vterm-yank-default-directory "~/.emacs-claude-code/"
   "Default directory for creating yank files.
 Useful for SSH sessions where current directory might be remote."
   :type 'string
@@ -54,6 +54,10 @@ Returns the absolute path of the created file."
                          ecc-vterm-yank-default-directory)
                       default-directory))
          (filepath (expand-file-name filename directory)))
+    ;; Ensure directory exists when using default directory
+    (when use-default-dir
+      (unless (file-exists-p directory)
+        (make-directory directory t)))
     filepath))
 
 (defun --ecc-vterm-get-kill-ring-content ()
