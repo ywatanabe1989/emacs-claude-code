@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-07-01 06:15:27
+!-- Timestamp: 2025-07-01 06:20:49
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -20,7 +20,7 @@ Emacs interface for Claude Code with intelligent auto-response and enhanced vter
 
 ![Emacs Claude Code Example](./docs/emacs-claude-code-demo.gif)
 
-*Real-time demonstration of auto-response functionality and buffer management*
+*Real-time demonstration of auto-response functionality*
 
 ## 📋 Buffer List Management
 
@@ -113,9 +113,7 @@ Add to your `init.el`:
 
 ## 💻 Custom Commands
 
-The `/auto` ([`./docs/commands/auto.md`](./docs/commands/auto.md)) and `/understand-guidelines` ([`./docs/commands/understand-guidelines.md`](./docs/commands/understand-guidelines.md)) commands are custom commands defined as markdown files in your project. These commands need to be placed in the correct directory. See [Anthropic's documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details.
-
-These commands are automatically sent based on Claude's state to provide context-aware assistance.
+The `/auto` ([`./docs/commands/auto.md`](./docs/commands/auto.md)) and `/understand-guidelines` ([`./docs/commands/understand-guidelines.md`](./docs/commands/understand-guidelines.md)) commands are defined as `./.claude/commands/*.md` files as project-level custom commands.
 
 ---
 
@@ -169,7 +167,7 @@ The `./docs/to_claude/` directory contains project-specific context files that a
 This directory is synchronized from `~/.claude/to_claude/` and protected with read-only permissions to ensure consistent project context across Claude sessions.
 
 ### Claude Commands
-Custom `/` commands for Claude Code workflow (see `docs/commands/`):
+Custom `/` commands for Claude Code workflow (see `./.claude/commands/`):
 
 - `/auto`, `/understand-guidelines`, `/plan`, `/tests`, `/git`, `/refactor`, `/cleanup`
 - `/bug-report`, `/feature-request`, `/progress`, `/timeline`, `/finalize`
