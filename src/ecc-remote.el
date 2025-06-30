@@ -16,9 +16,16 @@
 ;; 1. Configuration
 ;; ----------------------------------------
 
+(defcustom ecc-directory-for-yank-as-file "~/claude-temp/"
+  "Default directory for yank-as-file operations, both local and remote.
+This directory will be used for storing temporary files from kill ring content."
+  :type 'string
+  :group 'ecc)
+
 (defcustom ecc-remote-directory "~/claude-temp/"
   "Default directory for remote files.
-Files will be transferred here when using remote functionality."
+Files will be transferred here when using remote functionality.
+If nil, uses `ecc-directory-for-yank-as-file' instead."
   :type 'string
   :group 'ecc)
 
@@ -32,7 +39,19 @@ Files will be transferred here when using remote functionality."
   :type 'string
   :group 'ecc)
 
-;; 2. SSH host selection and management
+;; 2. Directory management
+;; ----------------------------------------
+
+(defun ecc-get-yank-directory (&optional remote-specific)
+  "Get the appropriate directory for yank-as-file operations.
+
+If REMOTE-SPECIFIC is non-nil, prioritizes ecc-remote-directory.
+Otherwise, uses ecc-directory-for-yank-as-file as fallback."
+  (if remote-specific
+      (or ecc-remote-directory ecc-directory-for-yank-as-file)
+    ecc-directory-for-yank-as-file))
+
+;; 3. SSH host selection and management
 ;; ----------------------------------------
 
 (defun ecc-select-host ()
@@ -128,8 +147,8 @@ Example:
                           ;; Auto-detect from current session
                           (t (ecc-detect-ssh-context))))
                (target-dir (if (equal select-host '(16))  ; C-u C-u
-                             (read-string "Remote directory: " ecc-remote-directory)
-                           ecc-remote-directory)))
+                             (read-string "Remote directory: " (ecc-get-yank-directory t))
+                           (ecc-get-yank-directory t))))
           (if (not ssh-info)
               (message "Not in SSH context and no remote server selected")
             (let* ((local-file (--ecc-vterm-create-temp-file t))  ; Always use default dir for local creation
@@ -201,7 +220,7 @@ Otherwise prompts for server selection."
              (cleanup-cmd (format "ssh %s -p 22 %s@%s 'find %s -name \"kill-ring-*.tmp\" -mtime +1 -delete'"
                                  ecc-remote-scp-options
                                  user host
-                                 (shell-quote-argument ecc-remote-directory))))
+                                 (shell-quote-argument (ecc-get-yank-directory t)))))
         (message "Cleaning up temporary files on %s@%s..." user host)
         (let ((result (shell-command cleanup-cmd)))
           (if (= result 0)
