@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-06-21 12:47:07
+!-- Timestamp: 2025-06-21 12:54:38
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -51,20 +51,20 @@ ECC Claude Buffer List
 
     Buffer Name                    Auto-Response   Last Sent    State
 ─── ─────────────────────────────  ──────────────  ──────────── ─────
-    mngs-07:02:07                  Enabled         07:32:09     Running
+    scitex-07:02:07                Enabled         07:32:09     Running
     claude-04:50-80-01             Enabled         07:17:17     None
-    mngs2                          Enabled         Never        Running
+    scitex2                        Enabled         Never        Running
     inits-04:18-80-01              Disabled        Never        None
     inits-04:18-160-01             Disabled        Never        None
     gpac-sp-claude-04:15-160-0...  Disabled        Never        None
     claude-04:50-160-01            Disabled        Never        None
-    mngs-sp-claude-04:16-160-0...  Disabled        Never        None
+    scitex-sp-claude-04:16-160...  Disabled        Never        None
     gpac-sp-claude-04:15-80-01...  Disabled        Never        None
 
 Commands:
-  RET/SPC  - Jump to buffer          a  - Toggle auto-response
+  RET/SPC  - Jump to buffer           a  - Toggle auto-response
   o        - Display in other window  d  - Kill buffer(s)
-  m/u/U    - Mark/Unmark/Unmark all  t  - Toggle marks
+  m/u/U    - Mark/Unmark/Unmark all   t  - Toggle marks
   g        - Refresh list             r  - Toggle auto-refresh
   n/p      - Navigate                 q  - Quit
 
