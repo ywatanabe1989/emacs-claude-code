@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-07-01 05:52:04
+!-- Timestamp: 2025-07-01 05:57:47
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -60,28 +60,40 @@ In Claude Code, text input starting with `/` is regarded as a command. See Anthr
 
 ## Buffer List Management
 
-### Buffer List Dashboard
+``` plaintext
+ECC Claude Buffer List
+=====================
 
-The buffer list dashboard provides real-time monitoring of all Claude sessions:
+    Buffer Name                Auto-Response   Last Sent    State
+─── ─────────────────────────  ──────────────  ──────────── ─────
+    frontend-dev               Enabled         10:22:54     Continue
+    backend-api                Enabled         09:18:34     None
+    database-migration         Disabled        Never        Y/N
+    testing-suite              Disabled        Never        Running
+    docs-update                Disabled        Never        Continue
+    feature-branch             Enabled         08:45:12     None
 
-![Buffer List Dashboard](./docs/images/buffer-list-dashboard.gif)
+Commands:
+  RET/SPC  - Jump to buffer
+  o        - Display buffer in other window
+  a        - Toggle auto-response
+  d        - Kill buffer(s)
+  m        - Mark buffer
+  u        - Unmark buffer
+  U        - Unmark all buffers
+  t        - Toggle marks
+  g        - Refresh list
+  r        - Toggle auto-refresh
+  q        - Quit
+  n/p      - Next/previous line
 
-### Key Features
-- **Real-time Status**: Shows current state of each Claude buffer (WAITING, PROCESSING, etc.)
-- **Auto-Response Indicators**: Visual indicators for buffers with auto-response enabled
-- **Quick Navigation**: One-click access to any Claude session
-- **Session Management**: Easy overview of all active Claude interactions
+Auto-refresh: ON (every 2.0s)
+```
 
 ### Usage
 ```elisp
 M-x ecc-list-buffers  ; Open the buffer list dashboard
 ```
-
-The dashboard automatically refreshes and shows:
-- Buffer names and their current Claude states
-- Auto-response status indicators
-- Last activity timestamps
-- Quick action buttons for each session
 
 ## Custom Commands
 
