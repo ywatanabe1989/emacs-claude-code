@@ -58,6 +58,31 @@ In Claude Code, text input starting with `/` is regarded as a command. See Anthr
     (20 . "/git")))      ; Run /git every 20 interactions
 ```
 
+## Buffer List Management
+
+### Buffer List Dashboard
+
+The buffer list dashboard provides real-time monitoring of all Claude sessions:
+
+![Buffer List Dashboard](./docs/images/buffer-list-dashboard.gif)
+
+### Key Features
+- **Real-time Status**: Shows current state of each Claude buffer (WAITING, PROCESSING, etc.)
+- **Auto-Response Indicators**: Visual indicators for buffers with auto-response enabled
+- **Quick Navigation**: One-click access to any Claude session
+- **Session Management**: Easy overview of all active Claude interactions
+
+### Usage
+```elisp
+M-x ecc-list-buffers  ; Open the buffer list dashboard
+```
+
+The dashboard automatically refreshes and shows:
+- Buffer names and their current Claude states
+- Auto-response status indicators
+- Last activity timestamps
+- Quick action buttons for each session
+
 ## Custom Commands
 
 The `/auto` and `/understand-guidelines` commands are custom commands defined as markdown files in your project. These commands help Claude understand your project context and guidelines:
