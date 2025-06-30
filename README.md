@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-07-01 06:20:49
+!-- Timestamp: 2025-07-01 06:21:33
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -178,9 +178,6 @@ These are reference command templates that can be customized for your project wo
 ---
 
 ## 📧 Contact
-Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
-## Contact
 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
 
 <!-- EOF -->
