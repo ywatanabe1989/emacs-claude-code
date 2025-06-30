@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-01 03:22:45>
+;;; Timestamp: <2025-07-01 03:28:20>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-remote.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+
 
 ;;; Commentary:
 ;; Remote functionality for emacs-claude-code
@@ -16,11 +17,16 @@
 ;; 1. Configuration
 ;; ----------------------------------------
 
-(defcustom ecc-directory-for-yank-as-file "~/claude-temp/"
+(defcustom ecc-directory-for-yank-as-file "~/.emacs-claude-code/"
   "Default directory for yank-as-file operations, both local and remote.
 This directory will be used for storing temporary files from kill ring content."
   :type 'string
   :group 'ecc)
+
+(defun ecc-ensure-directory-exists (directory)
+  "Create DIRECTORY if it doesn't exist."
+  (unless (file-exists-p directory)
+    (make-directory directory t)))
 
 (defcustom ecc-remote-directory "~/claude-temp/"
   "Default directory for remote files.
@@ -46,10 +52,16 @@ If nil, uses `ecc-directory-for-yank-as-file' instead."
   "Get the appropriate directory for yank-as-file operations.
 
 If REMOTE-SPECIFIC is non-nil, prioritizes ecc-remote-directory.
-Otherwise, uses ecc-directory-for-yank-as-file as fallback."
-  (if remote-specific
-      (or ecc-remote-directory ecc-directory-for-yank-as-file)
-    ecc-directory-for-yank-as-file))
+Otherwise, uses ecc-directory-for-yank-as-file as fallback.
+Creates directory if it doesn't exist."
+  (let ((dir (if remote-specific
+                 (or ecc-remote-directory ecc-directory-for-yank-as-file)
+               ecc-directory-for-yank-as-file)))
+    (when (not remote-specific)
+      (let ((expanded-dir (expand-file-name dir)))
+        (ecc-ensure-directory-exists expanded-dir)
+        (setq dir expanded-dir)))
+    dir))
 
 ;; 3. SSH host selection and management
 ;; ----------------------------------------
@@ -77,11 +89,24 @@ Otherwise, uses ecc-directory-for-yank-as-file as fallback."
            hostname))
          (output (string-trim (shell-command-to-string command)))
          (lines (split-string output "\n" t))
-         (username (if (> (length lines) 0) (car lines) "ywatanabe"))
-         (real-hostname (if (> (length lines) 1) (cadr lines) hostname)))
+         (username (if (> (length lines) 0) (car lines) (user-login-name)))
+         (real-hostname
+          (if (> (length lines) 1) (cadr lines) hostname)))
     (list username real-hostname)))
 
-;; 3. SSH context detection
+;; 4. SSH context detection
+;; ----------------------------------------
+
+(defun ecc-get-ssh-info-from-selection ()
+  "Get SSH info by prompting user to select host."
+  (let ((hostname (ecc-select-host)))
+    (when (and hostname (not (equal hostname "localhost")))
+      (let ((host-info (ecc-get-host-info hostname)))
+        `((user . ,(car host-info))
+          (host . ,(cadr host-info))
+          (port . "22"))))))
+
+;; 5. SSH context detection
 ;; ----------------------------------------
 
 (defun ecc-detect-ssh-context ()
@@ -95,18 +120,20 @@ or nil if not in SSH context."
     (let ((dir default-directory))
       (cond
        ;; TRAMP SSH format: /ssh:user@host#port:/path/
-       ((string-match "^/ssh:\\([^@]+\\)@\\([^#:]+\\)\\(?:#\\([0-9]+\\)\\)?:" dir)
+       ((string-match
+         "^/ssh:\\([^@]+\\)@\\([^#:]+\\)\\(?:#\\([0-9]+\\)\\)?:" dir)
         `((user . ,(match-string 1 dir))
           (host . ,(match-string 2 dir))
           (port . ,(or (match-string 3 dir) "22"))))
        ;; TRAMP SCP format: /scp:user@host#port:/path/
-       ((string-match "^/scp:\\([^@]+\\)@\\([^#:]+\\)\\(?:#\\([0-9]+\\)\\)?:" dir)
+       ((string-match
+         "^/scp:\\([^@]+\\)@\\([^#:]+\\)\\(?:#\\([0-9]+\\)\\)?:" dir)
         `((user . ,(match-string 1 dir))
           (host . ,(match-string 2 dir))
           (port . ,(or (match-string 3 dir) "22"))))
        (t nil)))))
 
-;; 4. Remote yank functionality
+;; 6. Remote yank functionality
 ;; ----------------------------------------
 
 (defun ecc-yank-to-remote-file (&optional select-host remote-dir)
@@ -128,37 +155,30 @@ Example:
       (if (not content)
           (message "Kill ring is empty")
         (let* ((ssh-info (cond
-                          ;; Manual host selection
-                          ((equal select-host '(4))  ; C-u
-                           (let ((hostname (ecc-select-host)))
-                             (when (and hostname (not (equal hostname "localhost")))
-                               (let ((host-info (ecc-get-host-info hostname)))
-                                 `((user . ,(car host-info))
-                                   (host . ,(cadr host-info))
-                                   (port . "22"))))))
-                          ;; Manual host and directory selection
-                          ((equal select-host '(16))  ; C-u C-u
-                           (let ((hostname (ecc-select-host)))
-                             (when (and hostname (not (equal hostname "localhost")))
-                               (let ((host-info (ecc-get-host-info hostname)))
-                                 `((user . ,(car host-info))
-                                   (host . ,(cadr host-info))
-                                   (port . "22"))))))
+                          ;; Manual host selection (C-u or C-u C-u)
+                          ((or (equal select-host '(4)) (equal select-host '(16)))
+                           (ecc-get-ssh-info-from-selection))
                           ;; Auto-detect from current session
                           (t (ecc-detect-ssh-context))))
                (target-dir (if (equal select-host '(16))  ; C-u C-u
-                             (read-string "Remote directory: " (ecc-get-yank-directory t))
-                           (ecc-get-yank-directory t))))
+                               (read-string "Remote directory: "
+                                            (ecc-get-yank-directory t))
+                             (ecc-get-yank-directory t))))
           (if (not ssh-info)
-              (message "Not in SSH context and no remote server selected")
+              (message
+               "Not in SSH context and no remote server selected")
             (let* ((local-file (--ecc-vterm-create-temp-file t))  ; Always use default dir for local creation
-                   (remote-file (ecc-build-remote-file-path ssh-info local-file target-dir)))
+                   (remote-file
+                    (ecc-build-remote-file-path ssh-info local-file
+                                                target-dir)))
               (--ecc-vterm-write-content-to-file content local-file)
-              (if (ecc-transfer-file-to-remote local-file ssh-info target-dir)
+              (if
+                  (ecc-transfer-file-to-remote local-file ssh-info
+                                               target-dir)
                   (--ecc-vterm-send-read-command remote-file)
                 (message "Failed to transfer file to remote server")))))))))
 
-;; 5. File transfer functionality
+;; 7. File transfer functionality
 ;; ----------------------------------------
 
 (defun ecc-build-remote-file-path (ssh-info local-file target-dir)
@@ -179,29 +199,30 @@ Returns t on success, nil on failure."
            (filename (file-name-nondirectory local-file))
            (remote-target (format "%s@%s:%s" user host target-dir))
            (scp-cmd (format "scp %s -P %s %s %s%s"
-                           ecc-remote-scp-options
-                           port
-                           (shell-quote-argument local-file)
-                           remote-target
-                           filename)))
+                            ecc-remote-scp-options
+                            port
+                            (shell-quote-argument local-file)
+                            remote-target
+                            filename)))
       (message "Transferring file to %s@%s:%s..." user host target-dir)
       ;; First ensure remote directory exists
       (let ((mkdir-cmd (format "ssh %s -p %s %s@%s 'mkdir -p %s'"
-                              ecc-remote-scp-options
-                              port user host
-                              (shell-quote-argument target-dir))))
+                               ecc-remote-scp-options
+                               port user host
+                               (shell-quote-argument target-dir))))
         (shell-command mkdir-cmd))
       ;; Then transfer the file
       (let ((result (shell-command scp-cmd)))
         (if (= result 0)
             (progn
-              (message "File transferred successfully to %s" remote-target)
+              (message "File transferred successfully to %s"
+                       remote-target)
               t)
           (progn
             (message "SCP failed with exit code %d" result)
             nil))))))
 
-;; 6. Cleanup functionality
+;; 8. Cleanup functionality
 ;; ----------------------------------------
 
 (defun ecc-cleanup-remote-temp-files (&optional hostname)
@@ -211,30 +232,36 @@ If HOSTNAME is provided, cleans up files on that server.
 Otherwise prompts for server selection."
   (interactive)
   (let* ((selected-host (or hostname (ecc-select-host)))
-         (host-info (when (and selected-host (not (equal selected-host "localhost")))
+         (host-info (when
+                        (and selected-host
+                             (not (equal selected-host "localhost")))
                       (ecc-get-host-info selected-host))))
     (if (not host-info)
         (message "No remote server selected or localhost selected")
       (let* ((user (car host-info))
              (host (cadr host-info))
-             (cleanup-cmd (format "ssh %s -p 22 %s@%s 'find %s -name \"kill-ring-*.tmp\" -mtime +1 -delete'"
-                                 ecc-remote-scp-options
-                                 user host
-                                 (shell-quote-argument (ecc-get-yank-directory t)))))
+             (cleanup-cmd (format
+                           "ssh %s -p 22 %s@%s 'find %s -name \"kill-ring-*.tmp\" -mtime +1 -delete'"
+                           ecc-remote-scp-options
+                           user host
+                           (shell-quote-argument
+                            (ecc-get-yank-directory t)))))
         (message "Cleaning up temporary files on %s@%s..." user host)
         (let ((result (shell-command cleanup-cmd)))
           (if (= result 0)
               (message "Cleanup completed successfully")
             (message "Cleanup failed with exit code %d" result)))))))
 
-;; 7. Keybinding integration
+;; 9. Keybinding integration
 ;; ----------------------------------------
 
 (defun ecc-remote-setup-keybindings ()
   "Set up keybindings for remote functionality in vterm-mode."
   (when (fboundp 'vterm-mode-map)
-    (define-key vterm-mode-map (kbd "C-c C-r") 'ecc-yank-to-remote-file)
-    (define-key vterm-mode-map (kbd "C-c C-S-r") 'ecc-cleanup-remote-temp-files)))
+    (define-key vterm-mode-map (kbd "C-c C-r")
+                'ecc-yank-to-remote-file)
+    (define-key vterm-mode-map (kbd "C-c C-S-r")
+                'ecc-cleanup-remote-temp-files)))
 
 ;; Set up keybindings when vterm is loaded
 (with-eval-after-load 'vterm
