@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-21 12:46:35>
+;;; Timestamp: <2025-07-01 06:31:29>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -29,17 +29,17 @@
   "Face for AUTO indicator in mode-line."
   :group 'ecc)
 
-(defcustom --ecc-auto-response-interval 1.0
+(defcustom --ecc-auto-response-interval 3.0
   "Interval in seconds for auto-response timer checks."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-safe-interval 1.0
+(defcustom --ecc-auto-response-safe-interval 3.0
   "Safety delay in seconds before and after sending responses."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-vterm-return-delay 1.0
+(defcustom --ecc-auto-response-vterm-return-delay 3.0
   "Additional delay in seconds between text and return in vterm mode."
   :type 'float
   :group 'ecc)
