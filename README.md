@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2025-07-01 06:21:33
+!-- Timestamp: 2025-07-03 08:54:56
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
@@ -87,8 +87,6 @@ Add to your `init.el`:
 
 ### Basic Configuration
 
-> **Note**: In Claude Code, text input starting with `/` is regarded as a command. See [Anthropic's Official Documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details.
-
 ```elisp
 ;; Enable auto-response patterns
 (setq --ecc-auto-response-responses
@@ -111,9 +109,11 @@ Add to your `init.el`:
 
 ---
 
-## 💻 Custom Commands
+## 💻 Custom Claude Commands
 
-The `/auto` ([`./docs/commands/auto.md`](./docs/commands/auto.md)) and `/understand-guidelines` ([`./docs/commands/understand-guidelines.md`](./docs/commands/understand-guidelines.md)) commands are defined as `./.claude/commands/*.md` files as project-level custom commands.
+In Claude Code, custom slash commands can be created by adding .md files to `.claude/commands/` in your project or `~/.claude/commands/` for commands that work in any project. See [Anthropic's Official Documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details.
+
+  The default settings of this `emacs-claude-code` assumes that `/auto` ([`./docs/commands/auto.md`](./docs/commands/auto.md)) and `/understand-guidelines` ([`./docs/commands/understand-guidelines.md`](./docs/commands/understand-guidelines.md)) commands are defined as `~/.claude/commands/{auto,understand-cuidelines}.md` (user level) or `./.claude/commands/{auto,understand-cuidelines}.md` (project level; most prioritized).
 
 ---
 
