@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-01 04:11:10>
+;;; Timestamp: <2025-07-25 11:43:56>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -48,12 +48,15 @@ Example usage:
                       (equal host "127.0.0.1")
                       (equal host "")))
                 ;; Local file creation (localhost case)
-                (let ((temp-file (--ecc-create-temp-file t)))
+                (let ((temp-file (--ecc-create-temp-file t content)))
                   (--ecc-write-content-to-file content temp-file)
                   (--ecc-send-read-command temp-file))
               ;; Remote file creation
               (if (require 'ecc-remote nil t)
-                  (let ((remote-file (--ecc-yank-to-remote-with-ssh-info content remote-info)))
+                  (let
+                      ((remote-file
+                        (--ecc-yank-to-remote-with-ssh-info content
+                                                            remote-info)))
                     (when remote-file
                       (--ecc-send-read-command remote-file)))
                 (message "ecc-remote not available")))
@@ -62,29 +65,61 @@ Example usage:
               (let ((ssh-info (--ecc-get-ssh-info-from-selection)))
                 (if ssh-info
                     ;; Remote host selected
-                    (let ((remote-file (--ecc-yank-to-remote-with-ssh-info content ssh-info)))
+                    (let
+                        ((remote-file
+                          (--ecc-yank-to-remote-with-ssh-info content
+                                                              ssh-info)))
                       (when remote-file
                         (--ecc-send-read-command remote-file)))
                   ;; nil returned (localhost/cancelled) - create local file
-                  (let ((temp-file (--ecc-create-temp-file t)))
+                  (let
+                      ((temp-file (--ecc-create-temp-file t content)))
                     (--ecc-write-content-to-file content
-                                                       temp-file)
+                                                 temp-file)
                     (--ecc-send-read-command temp-file))))
             (message "ecc-remote not available")))))))
 
 ;; Alias for backward compatibility
-(defalias 'ecc-vterm-yank-as-file 'emacs-claude-code-vterm-yank-as-file)
+
+(defalias 'ecc-vterm-yank-as-file
+  'emacs-claude-code-vterm-yank-as-file)
 
 ;; 2. Core functions
 ;; ----------------------------------------
 
-(defun --ecc-create-temp-file (&optional use-default-dir)
-  "Create a unique temporary file in the current or default directory.
+;; (defun --ecc-create-temp-file (&optional use-default-dir)
+;;   "Create a unique temporary file in the current or default directory.
 
+;; If USE-DEFAULT-DIR is non-nil, creates file in default directory (unified if ecc-remote loaded).
+;; Returns the absolute path of the created file."
+;;   (let* ((timestamp (format-time-string "%Y%m%d-%H%M%S"))
+;;          (filename (format "kill-ring-%s.tmp" timestamp))
+;;          (directory (if use-default-dir
+;;                         (if (fboundp '--ecc-get-yank-directory)
+;;                             (--ecc-get-yank-directory)
+;;                           (expand-file-name
+;;                            ecc-directory-for-yank-as-file))
+;;                       default-directory))
+;;          (filepath (expand-file-name filename directory)))
+;;     ;; Ensure directory exists when using default directory
+;;     (when use-default-dir
+;;       (unless (file-exists-p directory)
+;;         (make-directory directory t)))
+;;     filepath))
+
+(defun --ecc-create-temp-file (&optional use-default-dir content)
+  "Create a unique temporary file in the current or default directory.
 If USE-DEFAULT-DIR is non-nil, creates file in default directory (unified if ecc-remote loaded).
+CONTENT is used for filename preview generation.
 Returns the absolute path of the created file."
-  (let* ((timestamp (format-time-string "%Y%m%d-%H%M%S"))
-         (filename (format "kill-ring-%s.tmp" timestamp))
+  (let* ((content-preview (if content
+                              (replace-regexp-in-string
+                               "[^a-zA-Z0-9]" "_"
+                               (substring content 0
+                                          (min 20 (length content))))
+                            "empty"))
+         (timestamp (format-time-string "%Y%m%d-%H%M%S"))
+         (filename (format "%s_%s.txt" content-preview timestamp))
          (directory (if use-default-dir
                         (if (fboundp '--ecc-get-yank-directory)
                             (--ecc-get-yank-directory)
@@ -98,12 +133,29 @@ Returns the absolute path of the created file."
         (make-directory directory t)))
     filepath))
 
-(defun --ecc-get-kill-ring-content ()
-  "Get the latest content from the kill-ring.
+;; (defun --ecc-get-kill-ring-content ()
+;;   "Get the latest content from the kill-ring.
 
-Returns the content as a string, or nil if kill-ring is empty."
-  (when kill-ring
-    (car kill-ring)))
+;; Returns the content as a string, or nil if kill-ring is empty."
+;;   (when kill-ring
+;;     (car kill-ring)))
+
+(defun --ecc-get-kill-ring-content ()
+  "Get content from system clipboard or kill-ring.
+Returns the content as a string, or nil if both are empty."
+  (or
+   ;; Try different clipboard selection types
+   (when (fboundp 'gui-get-selection)
+     (or (gui-get-selection 'CLIPBOARD 'STRING)
+         (gui-get-selection 'PRIMARY 'STRING)
+         (gui-get-selection 'SECONDARY 'STRING)))
+   ;; Try x-get-clipboard for older systems
+   (when (fboundp 'x-get-clipboard)
+     (x-get-clipboard))
+   ;; Try current-kill with no error
+   (ignore-errors (current-kill 0 t))
+   ;; Fallback to kill-ring
+   (when kill-ring (car kill-ring))))
 
 (defun --ecc-write-content-to-file (content filepath)
   "Write CONTENT to FILEPATH."
@@ -123,17 +175,21 @@ Returns the content as a string, or nil if kill-ring is empty."
 (defun --ecc-yank-to-remote-with-ssh-info (content ssh-info)
   "Helper function to yank CONTENT to remote file using SSH-INFO.
 Returns local file path on remote host on success, nil on failure."
-  (let* ((local-file (--ecc-create-temp-file t))
+  (let* ((local-file (--ecc-create-temp-file t content))
          (target-dir (if (fboundp '--ecc-get-yank-directory)
-                         (--ecc-get-yank-directory t)  ; Get remote directory
+                         (--ecc-get-yank-directory t)
+                                        ; Get remote directory
                        ecc-directory-for-yank-as-file))
          (remote-local-path
           (concat target-dir (file-name-nondirectory local-file))))
     (--ecc-write-content-to-file content local-file)
     (if (and (require 'ecc-remote nil t)
              (fboundp '--ecc-transfer-file-to-remote))
-        (if (--ecc-transfer-file-to-remote local-file ssh-info target-dir)
-            remote-local-path ; Return local path on remote host
+        (if
+            (--ecc-transfer-file-to-remote local-file ssh-info
+                                           target-dir)
+            remote-local-path
+                                        ; Return local path on remote host
           (progn
             (message "Failed to transfer file to remote server")
             nil))

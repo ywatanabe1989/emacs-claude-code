@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-04 08:47:06>
+;;; Timestamp: <2025-08-26 21:10:45>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -37,9 +37,9 @@
     (:waiting . "│ >                            ")
     (:y/n . "❯ 1. Yes")
     (:y/y/n . " 2. Yes, and")
-    (:running . " tokens · esc to interrupt)"))
+    (:running . "(esc to interrupt)"))
   "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
-
+;;    (:running . " tokens · esc to interrupt)"))
 (defvar --ecc-state-detection--flash-overlays nil
   "List of overlays used for flashing detected text.")
 
@@ -167,13 +167,19 @@
       (--ecc-debug-message "Last non-empty line: %S" last-line)
       (--ecc-debug-message "Last 100 chars: %S" last-100-chars)
       (--ecc-debug-message "Contains '│': %s"
-                           (if (string-match-p "│" buffer-text) "yes" "no"))
+                           (if (string-match-p "│" buffer-text) "yes"
+                             "no"))
       (--ecc-debug-message "Contains '>': %s"
-                           (if (string-match-p ">" buffer-text) "yes" "no"))
+                           (if (string-match-p ">" buffer-text) "yes"
+                             "no"))
       (--ecc-debug-message "Contains 'Human:': %s"
-                           (if (string-match-p "Human:" buffer-text) "yes" "no"))
+                           (if (string-match-p "Human:" buffer-text)
+                               "yes"
+                             "no"))
       (--ecc-debug-message "Contains 'esc to interrupt': %s"
-                           (if (string-match-p "esc to interrupt" buffer-text)
+                           (if
+                               (string-match-p "esc to interrupt"
+                                               buffer-text)
                                "yes"
                              "no"))
       (--ecc-debug-message "========================================")

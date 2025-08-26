@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-28 05:57:41>
+;;; Timestamp: <2025-07-25 01:14:24>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-periodical.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -25,7 +25,7 @@
   :group 'ecc)
 
 (defcustom ecc-auto-periodical-commands
-  '((20 . "/compact"))
+  '((30 . "/compact"))
   "Alist of (INTERVAL . COMMAND) pairs for periodic execution.
 INTERVAL is the number of interactions between executions.
 COMMAND is the string to send to the buffer."
