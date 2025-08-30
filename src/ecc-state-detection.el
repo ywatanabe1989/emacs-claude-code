@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-08-26 21:10:45>
+;;; Timestamp: <2025-08-26 22:20:39>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -33,13 +33,13 @@
 ;; ----------------------------------------
 
 (defvar --ecc-state-detection-patterns
-  '((:initial-waiting . "│ > Try ")
-    (:waiting . "│ >                            ")
-    (:y/n . "❯ 1. Yes")
-    (:y/y/n . " 2. Yes, and")
-    (:running . "(esc to interrupt)"))
+  '((:initial-waiting . ("│ > Try "))
+    (:waiting . ("│ >                            "))
+    (:y/n . ("❯ 1. Yes"))
+    (:y/y/n . (" 2. Yes, and" " 2. Yes, allow"))
+    (:running . ("(esc to interrupt)")))
   "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
-;;    (:running . " tokens · esc to interrupt)"))
+
 (defvar --ecc-state-detection--flash-overlays nil
   "List of overlays used for flashing detected text.")
 
@@ -65,36 +65,35 @@
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
     ;; Check for running pattern first (highest priority)
-    ;; Only consider it running if we see the tokens counter actively changing
     (let
-        ((running-pattern
+        ((running-patterns
           (cdr (assq :running --ecc-state-detection-patterns))))
-      (when
-          (and running-pattern
-               (string-match-p (regexp-quote running-pattern) text)
-               ;; Also check for the presence of actual token count
-               (string-match-p "[0-9]+ tokens · esc to interrupt)"
-                               text))
-        (--ecc-debug-message "Matched state :running")
-        (throw 'found :running)))
+      (when running-patterns
+        (dolist (pattern running-patterns)
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message "Matched state :running")
+            (throw 'found :running)))))
 
     ;; Check for Y/Y/N pattern first (must come before Y/N check)
     (let
-        ((yyn-pattern
+        ((yyn-patterns
           (cdr (assq :y/y/n --ecc-state-detection-patterns))))
-      (when
-          (and yyn-pattern
-               (string-match-p (regexp-quote yyn-pattern) text))
-        (--ecc-debug-message "Matched state :y/y/n")
-        (throw 'found :y/y/n)))
+      (when yyn-patterns
+        (dolist (pattern yyn-patterns)
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message
+             "Matched state :y/y/n with pattern: %s" pattern)
+            (throw 'found :y/y/n)))))
 
-    ;; Check for exact pattern matches
+    ;; Check for other exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
-            (pattern (cdr pattern-pair)))
-        (when (string-match-p (regexp-quote pattern) text)
-          (--ecc-debug-message "Matched state %s" state)
-          (throw 'found state))))
+            (patterns (cdr pattern-pair)))
+        (unless (memq state '(:y/y/n :running))
+          (dolist (pattern patterns)
+            (when (string-match-p (regexp-quote pattern) text)
+              (--ecc-debug-message "Matched state %s" state)
+              (throw 'found state))))))
     nil))
 
 ;; 6. Helper/Utility Functions
@@ -118,25 +117,34 @@
 (defun --ecc-state-detection-flash-pattern (state &optional buffer)
   "Flash the detected pattern for STATE in BUFFER."
   (with-current-buffer (or buffer (current-buffer))
-    (let ((pattern (cdr (assq state --ecc-state-detection-patterns))))
-      (when pattern
+    (let
+        ((patterns (cdr (assq state --ecc-state-detection-patterns))))
+      (when patterns
         (--ecc-state-detection--remove-flash-overlays)
         (save-excursion
           (goto-char (point-max))
-          (when (search-backward pattern
-                                 (max (- (point-max)
-                                         --ecc-state-detection-buffer-size)
-                                      (point-min))
-                                 t)
-            (let
-                ((overlay
-                  (make-overlay (match-beginning 0) (match-end 0))))
-              (overlay-put overlay 'face
-                           --ecc-state-detection-flash-face)
-              (overlay-put overlay 'priority 1000)
-              (push overlay --ecc-state-detection--flash-overlays)
-              (run-with-timer --ecc-state-detection-flash-duration nil
-                              '--ecc-state-detection--remove-flash-overlays))))))))
+          (let ((found nil))
+            (dolist (pattern patterns)
+              (unless found
+                (when (search-backward pattern
+                                       (max
+                                        (- (point-max)
+                                           --ecc-state-detection-buffer-size)
+                                        (point-min))
+                                       t)
+                  (let
+                      ((overlay
+                        (make-overlay (match-beginning 0)
+                                      (match-end 0))))
+                    (overlay-put overlay 'face
+                                 --ecc-state-detection-flash-face)
+                    (overlay-put overlay 'priority 1000)
+                    (push overlay
+                          --ecc-state-detection--flash-overlays)
+                    (run-with-timer
+                     --ecc-state-detection-flash-duration nil
+                     '--ecc-state-detection--remove-flash-overlays)
+                    (setq found t)))))))))))
 
 (defun --ecc-state-detection--remove-flash-overlays ()
   "Remove all flash overlays."
