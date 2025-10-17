@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-01 06:31:29>
+;;; Timestamp: <2025-10-02 09:04:24>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -17,29 +17,30 @@
 (require 'vterm nil t)  ; Optional dependency
 
 ;; Declare function to avoid compiler warnings
-(declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical" ())
-
+(declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical"
+                  ())
 
 ;; 2. Configuration
 ;; ----------------------------------------
 
 ;; Define the face globally
+
 (defface ecc-auto-indicator-face
   '((t :background "red" :foreground "#ffffff" :weight bold))
   "Face for AUTO indicator in mode-line."
   :group 'ecc)
 
-(defcustom --ecc-auto-response-interval 3.0
+(defcustom --ecc-auto-response-interval 1.0
   "Interval in seconds for auto-response timer checks."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-safe-interval 3.0
+(defcustom --ecc-auto-response-safe-interval 1.0
   "Safety delay in seconds before and after sending responses."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-vterm-return-delay 3.0
+(defcustom --ecc-auto-response-vterm-return-delay 1.0
   "Additional delay in seconds between text and return in vterm mode."
   :type 'float
   :group 'ecc)
@@ -49,17 +50,17 @@
   :type 'color
   :group 'ecc)
 
-(defcustom --ecc-auto-response-throttle-duration 5.0
+(defcustom --ecc-auto-response-throttle-duration 1.0
   "Minimum seconds between auto-responses to the same state."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-accumulation-threshold 5
+(defcustom --ecc-auto-response-accumulation-threshold 3
   "Maximum number of responses allowed within accumulation window."
   :type 'number
   :group 'ecc)
 
-(defcustom --ecc-auto-response-accumulation-window 3.0
+(defcustom --ecc-auto-response-accumulation-window 1
   "Time window in seconds for accumulation detection."
   :type 'number
   :group 'ecc)
@@ -82,7 +83,6 @@
   "Whether to enable periodic return sending as a fallback."
   :type 'boolean
   :group 'ecc)
-
 
 ;; 3. Variables
 ;; ----------------------------------------
@@ -129,11 +129,11 @@ Each element is (POSITION . TIMESTAMP).")
 (defvar-local --ecc-auto-response--disabled-modes nil
   "List of modes that were disabled for performance.")
 
-
 ;; 4. Main entry point
 ;; ----------------------------------------
 
 ;;;###autoload
+
 (defun --ecc-auto-response-toggle-buffer (&optional buffer)
   "Toggle auto-response for BUFFER."
   (interactive)
@@ -145,7 +145,6 @@ Each element is (POSITION . TIMESTAMP).")
 
 (defalias 'ecc-auto-toggle '--ecc-auto-response-toggle-buffer)
 
-
 ;; 5. Core functions
 ;; ----------------------------------------
 
@@ -156,7 +155,8 @@ Each element is (POSITION . TIMESTAMP).")
     (with-current-buffer buf
       (setq-local --ecc-auto-response--enabled t)
       ;; Clear any existing mode-line modifications first
-      (when (local-variable-p '--ecc-auto-response--original-mode-line)
+      (when
+          (local-variable-p '--ecc-auto-response--original-mode-line)
         (kill-local-variable '--ecc-auto-response--original-mode-line))
       ;; Update mode-line
       (--ecc-auto-response--update-mode-line)
@@ -185,9 +185,16 @@ Each element is (POSITION . TIMESTAMP).")
                             (--ecc-auto-response--update-mode-line)
                             (force-mode-line-update)))))
                     buf)
+    ;; Immediately process the buffer for auto-response
+    (run-with-timer 0.2 nil
+                    (lambda (buffer)
+                      (when (buffer-live-p buffer)
+                        (--ecc-auto-response--process-buffer buffer)))
+                    buf)
     (--ecc-debug-message "Auto-response enabled for buffer: %s"
                          (buffer-name buf))
-    (--ecc-debug-message "Auto-response enabled - look for pulsing red [AUTO] in mode-line")))
+    (--ecc-debug-message
+     "Auto-response enabled - look for pulsing red [AUTO] in mode-line")))
 
 (defun --ecc-auto-response-disable-buffer (&optional buffer)
   "Disable auto-response for BUFFER."
@@ -208,7 +215,6 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-auto-response--update-mode-line))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"
                          (buffer-name buf))))
-
 
 ;; 6. Buffer registry functions
 ;; ----------------------------------------
@@ -249,7 +255,6 @@ Each element is (POSITION . TIMESTAMP).")
       (--ecc-debug-message "Cleaned up %d dead buffers"
                            (length dead-buffers)))))
 
-
 ;; 7. Timer management functions
 ;; ----------------------------------------
 
@@ -281,16 +286,18 @@ Each element is (POSITION . TIMESTAMP).")
                                 --ecc-auto-response-periodic-interval
                                 '--ecc-auto-response--send-periodic-return
                                 buffer))
-    (--ecc-debug-message "Started periodic timer for buffer %s (interval: %s seconds)"
-                         (buffer-name buffer)
-                         --ecc-auto-response-periodic-interval)))
+    (--ecc-debug-message
+     "Started periodic timer for buffer %s (interval: %s seconds)"
+     (buffer-name buffer)
+     --ecc-auto-response-periodic-interval)))
 
 (defun --ecc-auto-response--stop-periodic-timer ()
   "Stop the buffer-local periodic timer."
   (when --ecc-auto-response--periodic-timer
     (cancel-timer --ecc-auto-response--periodic-timer)
     (setq-local --ecc-auto-response--periodic-timer nil)
-    (--ecc-debug-message "Stopped periodic timer for buffer %s" (buffer-name))))
+    (--ecc-debug-message "Stopped periodic timer for buffer %s"
+                         (buffer-name))))
 
 (defun --ecc-auto-response--send-periodic-return (buffer)
   "Send periodic return to BUFFER if appropriate."
@@ -303,10 +310,15 @@ Each element is (POSITION . TIMESTAMP).")
           ;; Skip if Claude is running
           (unless (eq current-state :running)
             ;; Only send if enough time has passed since last periodic send
-            (when (>= (- current-time --ecc-auto-response--last-periodic-time)
-                      --ecc-auto-response-periodic-interval)
-              (--ecc-debug-message "Sending periodic return to buffer %s" (buffer-name buffer))
-              (setq-local --ecc-auto-response--last-periodic-time current-time)
+            (when (>=
+                   (- current-time
+                      --ecc-auto-response--last-periodic-time)
+                   --ecc-auto-response-periodic-interval)
+              (--ecc-debug-message
+               "Sending periodic return to buffer %s"
+               (buffer-name buffer))
+              (setq-local --ecc-auto-response--last-periodic-time
+                          current-time)
               ;; Send return key
               (cond
                ((derived-mode-p 'vterm-mode)
@@ -318,18 +330,20 @@ Each element is (POSITION . TIMESTAMP).")
                (t
                 (goto-char (point-max))
                 (insert "\n")))
-              (--ecc-debug-message "Periodic return sent to %s" (buffer-name buffer))))
+              (--ecc-debug-message "Periodic return sent to %s"
+                                   (buffer-name buffer))))
           (when (eq current-state :running)
-            (--ecc-debug-message "Claude is running, skipping periodic return")))))))
-
+            (--ecc-debug-message
+             "Claude is running, skipping periodic return")))))))
 
 ;; 8. Processing functions
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--process-all-buffers ()
   "Process all registered buffers for auto-response."
-  (--ecc-debug-message "Timer tick: processing %d registered buffers" 
-                       (hash-table-count --ecc-auto-response--registered-buffers))
+  (--ecc-debug-message "Timer tick: processing %d registered buffers"
+                       (hash-table-count
+                        --ecc-auto-response--registered-buffers))
   (--ecc-auto-response-cleanup-registry)
   (dolist (buffer (--ecc-auto-response-get-registered-buffers))
     (when (buffer-live-p buffer)
@@ -340,24 +354,28 @@ Each element is (POSITION . TIMESTAMP).")
   (with-current-buffer buffer
     (when --ecc-auto-response--enabled
       (let ((state (--ecc-state-detection-detect))
-            (buffer-content (buffer-substring-no-properties 
-                           (max (point-min) (- (point-max) 200))
-                           (point-max))))
-        (--ecc-debug-message "Processing buffer %s: state=%s" (buffer-name buffer) state)
+            (buffer-content (buffer-substring-no-properties
+                             (max (point-min) (- (point-max) 200))
+                             (point-max))))
+        (--ecc-debug-message "Processing buffer %s: state=%s"
+                             (buffer-name buffer) state)
         (ecc-auto-response-log-state-detection state buffer-content)
         (when state
           (cond
            ;; Skip auto-response when Claude is running
            ((eq state :running)
-            (--ecc-debug-message "Claude is running, skipping auto-response")
-            (ecc-auto-response-log 'info "Claude is running, skipping auto-response"))
+            (--ecc-debug-message
+             "Claude is running, skipping auto-response")
+            (ecc-auto-response-log 'info
+                                   "Claude is running, skipping auto-response"))
            ;; Normal processing for other states
            ((not (--ecc-auto-response--already-sent-p))
-            (--ecc-debug-message "State detected, checking throttle for %s" state)
+            (--ecc-debug-message
+             "State detected, checking throttle for %s" state)
             (unless (--ecc-auto-response--should-throttle-p state)
-              (--ecc-debug-message "Not throttled, sending response for %s" state)
+              (--ecc-debug-message
+               "Not throttled, sending response for %s" state)
               (--ecc-auto-response--send-response state buffer)))))))))
-
 
 ;; 9. Throttle detection functions
 ;; ----------------------------------------
@@ -366,31 +384,40 @@ Each element is (POSITION . TIMESTAMP).")
   "Check if auto-response for STATE should be throttled."
   (let ((current-time (float-time))
         (throttle-reason nil))
-    (--ecc-debug-message "Throttle check: state=%s, last-state=%s, time-diff=%s, throttle-duration=%s"
-                         state --ecc-auto-response--last-state
-                         (- current-time --ecc-auto-response--last-time)
-                         --ecc-auto-response-throttle-duration)
+    (--ecc-debug-message
+     "Throttle check: state=%s, last-state=%s, time-diff=%s, throttle-duration=%s"
+     state --ecc-auto-response--last-state
+     (- current-time
+        --ecc-auto-response--last-time)
+     --ecc-auto-response-throttle-duration)
     (cond
      ;; Throttle if same state within throttle duration
      ((and (eq state --ecc-auto-response--last-state)
            (< (- current-time --ecc-auto-response--last-time)
               --ecc-auto-response-throttle-duration))
-      (setq throttle-reason (format "Same state within %s seconds" 
-                                   --ecc-auto-response-throttle-duration))
+      (setq throttle-reason (format "Same state within %s seconds"
+                                    --ecc-auto-response-throttle-duration))
       (ecc-auto-response-log-throttle state throttle-reason)
       t)
      ;; Check if we're at or would exceed accumulation threshold
-     ((let ((window-start (- current-time --ecc-auto-response-accumulation-window)))
+     ((let
+          ((window-start
+            (- current-time --ecc-auto-response-accumulation-window)))
         ;; Count recent responses within window
         (let ((recent-count (cl-count-if (lambda (timestamp)
                                            (>= timestamp window-start))
                                          --ecc-auto-response--response-timestamps)))
           (--ecc-debug-message "Recent responses: %d (threshold: %d)"
-                               recent-count --ecc-auto-response-accumulation-threshold)
+                               recent-count
+                               --ecc-auto-response-accumulation-threshold)
           ;; Block if we've already exceeded the threshold
-          (when (>= recent-count --ecc-auto-response-accumulation-threshold)
-            (setq throttle-reason (format "Accumulation threshold reached: %d responses in %s seconds"
-                                         recent-count --ecc-auto-response-accumulation-window))
+          (when
+              (>= recent-count
+                  --ecc-auto-response-accumulation-threshold)
+            (setq throttle-reason (format
+                                   "Accumulation threshold reached: %d responses in %s seconds"
+                                   recent-count
+                                   --ecc-auto-response-accumulation-window))
             (ecc-auto-response-log-throttle state throttle-reason)
             t))))
      (t nil))))
@@ -399,7 +426,8 @@ Each element is (POSITION . TIMESTAMP).")
   "Check if auto-response accumulation has been detected.
 Uses a sliding window approach to count responses within the accumulation window."
   (let ((current-time (float-time))
-        (window-start (- (float-time) --ecc-auto-response-accumulation-window)))
+        (window-start
+         (- (float-time) --ecc-auto-response-accumulation-window)))
     ;; Remove timestamps outside the sliding window
     (setq-local --ecc-auto-response--response-timestamps
                 (cl-remove-if (lambda (timestamp)
@@ -407,37 +435,59 @@ Uses a sliding window approach to count responses within the accumulation window
                               --ecc-auto-response--response-timestamps))
     ;; Check if we've exceeded the threshold
     (let ((count (length --ecc-auto-response--response-timestamps)))
-      (--ecc-debug-message "Accumulation check: %d responses in last %s seconds (threshold: %d)"
-                           count --ecc-auto-response-accumulation-window
-                           --ecc-auto-response-accumulation-threshold)
+      (--ecc-debug-message
+       "Accumulation check: %d responses in last %s seconds (threshold: %d)"
+       count
+       --ecc-auto-response-accumulation-window
+       --ecc-auto-response-accumulation-threshold)
       (>= count --ecc-auto-response-accumulation-threshold))))
-
 
 ;; 10. Response detection functions
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--already-sent-p ()
-  "Check if we've already sent a response near current position."
+  "Check if we've already sent a response near current position.
+Only blocks if position is similar AND state hasn't changed."
   (let ((current-pos (point-max))
-        (threshold 100))  ; Consider positions within 100 chars as "same"
-    (let ((result (cl-some (lambda (pos-time)
-                             (< (abs (- current-pos (car pos-time))) threshold))
-                           --ecc-auto-response--sent-positions)))
-      (when result
-        (--ecc-debug-message "Already sent check: pos=%d, sent-positions=%s, result=%s" 
-                             current-pos --ecc-auto-response--sent-positions result))
-      result)))
-
+        (current-state (--ecc-state-detection-detect))
+        (threshold 100))
+    ;; Allow sending if state has changed, even if position is similar
+    (if (not (eq current-state --ecc-auto-response--last-state))
+        (progn
+          (--ecc-debug-message
+           "State changed from %s to %s, allowing response"
+           --ecc-auto-response--last-state current-state)
+          nil)
+      ;; Same state: check position threshold
+      (let ((result (cl-some (lambda (pos-time)
+                               (< (abs (- current-pos (car pos-time)))
+                                  threshold))
+                             --ecc-auto-response--sent-positions)))
+        (when result
+          (--ecc-debug-message
+           "Already sent check: pos=%d, sent-positions=%s, result=%s"
+           current-pos
+           --ecc-auto-response--sent-positions
+           result))
+        result))))
 
 ;; 11. Response sending functions
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--send-response (state buffer)
   "Send appropriate response for STATE in BUFFER."
-  (let ((response (cdr (assq state --ecc-auto-response-responses))))
+  (let ((response (if (and
+                       (fboundp
+                        'ecc-encouragement-get-phrase-for-state)
+                       (memq state '(:waiting :initial-waiting)))
+                      (ecc-encouragement-get-phrase-for-state state)
+                    (cdr (assq state --ecc-auto-response-responses)))))
     (when response
+      ;; Update tracking BEFORE sending to prevent duplicate sends
+      (with-current-buffer buffer
+        (--ecc-auto-response--update-tracking state))
+      ;; Now send the response (this has delays, so tracking must be updated first)
       (--ecc-auto-response--send-to-buffer buffer response)
-      (--ecc-auto-response--update-tracking state)
       ;; Play buzzer sound when sending auto-response
       (beep)
       (when (fboundp '--ecc-notification-notify)
@@ -447,6 +497,41 @@ Uses a sliding window approach to count responses within the accumulation window
         (with-current-buffer buffer
           (ecc-auto-periodical-setup-hook))))))
 
+;; (defun --ecc-auto-response--send-response (state buffer)
+;;   "Send appropriate response for STATE in BUFFER."
+;;   (let ((response (if (fboundp 'ecc-encouragement-get-phrase-for-state)
+;;                       (ecc-encouragement-get-phrase-for-state state)
+;;                     (cdr (assq state --ecc-auto-response-responses)))))
+;;     (when response
+;;       (--ecc-auto-response--send-to-buffer buffer response)
+;;       (--ecc-auto-response--update-tracking state)
+;;       (beep)
+;;       (when (fboundp '--ecc-notification-notify)
+;;         (--ecc-notification-notify state buffer))
+;;       (when (fboundp 'ecc-auto-periodical-setup-hook)
+;;         (with-current-buffer buffer
+;;           (ecc-auto-periodical-setup-hook))))))
+
+;; (defun --ecc-auto-response--send-response (state buffer)
+;;   "Send appropriate response for STATE in BUFFER."
+;;   (let ((response (if
+;;                       (fboundp
+;;                        'ecc-encouragement-get-phrase-for-state)
+;;                       (or
+;;                        (ecc-encouragement-get-phrase-for-state state)
+;;                        (cdr
+;;                         (assq state --ecc-auto-response-responses)))
+;;                     (cdr (assq state --ecc-auto-response-responses)))))
+;;     (when response
+;;       (--ecc-auto-response--send-to-buffer buffer response)
+;;       (--ecc-auto-response--update-tracking state)
+;;       (beep)
+;;       (when (fboundp '--ecc-notification-notify)
+;;         (--ecc-notification-notify state buffer))
+;;       (when (fboundp 'ecc-auto-periodical-setup-hook)
+;;         (with-current-buffer buffer
+;;           (ecc-auto-periodical-setup-hook))))))
+
 (defun --ecc-auto-response--update-tracking (state)
   "Update tracking variables for STATE."
   (let ((current-time (float-time)))
@@ -455,7 +540,8 @@ Uses a sliding window approach to count responses within the accumulation window
     ;; Add timestamp to sliding window
     (push current-time --ecc-auto-response--response-timestamps)
     ;; Record the position where we sent the response
-    (push (cons (point-max) current-time) --ecc-auto-response--sent-positions)
+    (push (cons (point-max) current-time)
+          --ecc-auto-response--sent-positions)
     ;; Clean up old sent positions (older than 60 seconds)
     (setq --ecc-auto-response--sent-positions
           (cl-remove-if (lambda (pos-time)
@@ -472,32 +558,30 @@ Uses a sliding window approach to count responses within the accumulation window
                          (lambda () (insert text)))
                         (t
                          (lambda () (insert text)))))
-          (return-sender (lambda () 
-                          (cond
-                           ((derived-mode-p 'vterm-mode)
-                            (vterm-send-return))
-                           ((derived-mode-p 'comint-mode)
-                            (comint-send-input))
-                           (t
-                            (insert "\n")))))
+          (return-sender (lambda ()
+                           (cond
+                            ((derived-mode-p 'vterm-mode)
+                             (vterm-send-return))
+                            ((derived-mode-p 'comint-mode)
+                             (comint-send-input))
+                            (t
+                             (insert "\n")))))
           (auto-response-text-initial-waiting
-           (cdr (assoc :initial-waiting --ecc-auto-response-responses)))          
+           (cdr (assoc :initial-waiting --ecc-auto-response-responses)))
           (auto-response-text-waiting
            (cdr (assoc :waiting --ecc-auto-response-responses))))
       ;; Main sending sequence
       (sit-for --ecc-auto-response-safe-interval)
 
-      ;; Auto Message      
+      ;; Auto Message
       (funcall text-sender)
       (sit-for --ecc-auto-response-safe-interval)
 
       ;; Return
       (funcall return-sender)
       (sit-for --ecc-auto-response-safe-interval)))
-  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer) text))
-
-
-
+  (--ecc-debug-message "Sent response to %s: %s" (buffer-name buffer)
+                       text))
 
 ;; 12. Pulse timer functions
 ;; ----------------------------------------
@@ -513,10 +597,14 @@ Uses a sliding window approach to count responses within the accumulation window
                                 (when (buffer-live-p buffer)
                                   (with-current-buffer buffer
                                     (when --ecc-auto-response--enabled
-                                      (setq-local --ecc-auto-response--pulse-state
-                                                  (not --ecc-auto-response--pulse-state))
+                                      (setq-local
+                                       --ecc-auto-response--pulse-state
+                                       (not
+                                        --ecc-auto-response--pulse-state))
                                       (force-mode-line-update)
-                                      (--ecc-debug-message "Pulse state: %s" --ecc-auto-response--pulse-state)))))
+                                      (--ecc-debug-message
+                                       "Pulse state: %s"
+                                       --ecc-auto-response--pulse-state)))))
                               (current-buffer))))
 
 (defun --ecc-auto-response--stop-pulse-timer ()
@@ -533,18 +621,23 @@ Uses a sliding window approach to count responses within the accumulation window
   "Disable performance-heavy visual modes during auto-response."
   (setq-local --ecc-auto-response--disabled-modes nil)
   ;; Disable highlight-parentheses-mode if active
-  (when (and (boundp 'highlight-parentheses-mode) highlight-parentheses-mode)
-    (push 'highlight-parentheses-mode --ecc-auto-response--disabled-modes)
+  (when
+      (and (boundp 'highlight-parentheses-mode)
+           highlight-parentheses-mode)
+    (push 'highlight-parentheses-mode
+          --ecc-auto-response--disabled-modes)
     (highlight-parentheses-mode -1))
   ;; Disable show-paren-mode if active
   (when (and (boundp 'show-paren-mode) show-paren-mode)
     (push 'show-paren-mode --ecc-auto-response--disabled-modes)
     (show-paren-mode -1))
   ;; Disable rainbow-delimiters-mode if active
-  (when (and (boundp 'rainbow-delimiters-mode) rainbow-delimiters-mode)
+  (when
+      (and (boundp 'rainbow-delimiters-mode) rainbow-delimiters-mode)
     (push 'rainbow-delimiters-mode --ecc-auto-response--disabled-modes)
     (rainbow-delimiters-mode -1))
-  (--ecc-debug-message "Disabled visual modes: %s" --ecc-auto-response--disabled-modes))
+  (--ecc-debug-message "Disabled visual modes: %s"
+                       --ecc-auto-response--disabled-modes))
 
 (defun --ecc-auto-response--restore-visual-modes ()
   "Restore visual modes that were disabled."
@@ -563,41 +656,60 @@ Uses a sliding window approach to count responses within the accumulation window
       ;; Add AUTO indicator to mode-line
       (progn
         ;; Store the current mode-line-format before modifying
-        (unless (local-variable-p '--ecc-auto-response--original-mode-line)
+        (unless
+            (local-variable-p '--ecc-auto-response--original-mode-line)
           (setq-local --ecc-auto-response--original-mode-line
                       (if (local-variable-p 'mode-line-format)
                           mode-line-format
                         (default-value 'mode-line-format))))
-        
+
         ;; Always recreate to ensure it's properly added
         (let ((has-indicator nil))
-            ;; Create the indicator with pulse effect
-            (let ((indicator '(:eval (when --ecc-auto-response--enabled
-                                       (propertize " [AUTO] "
-                                                   'face (if --ecc-auto-response--pulse-state
-                                                            'ecc-auto-indicator-face
-                                                          '(:background "#400000" :foreground "#ffffff" :weight bold))
-                                                   'help-echo "Auto-response is active")))))
-              ;; Use the stored original format
-              (let ((original --ecc-auto-response--original-mode-line))
-                (if (listp original)
-                    (let ((new-format (copy-sequence original))
-                          (buffer-id-pos (cl-position 'mode-line-buffer-identification original)))
-                      (if buffer-id-pos
-                          ;; Insert after buffer identification
-                          (setq mode-line-format
-                                (append (cl-subseq new-format 0 (1+ buffer-id-pos))
-                                        (list indicator)
-                                        (cl-subseq new-format (1+ buffer-id-pos))))
-                        ;; If no buffer-id found, prepend
-                        (setq mode-line-format (cons indicator new-format))))
-                  ;; If original is not a list, make it one
-                  (setq mode-line-format (list indicator original))))))
-    ;; Remove AUTO indicator and restore original
-    (when (local-variable-p '--ecc-auto-response--original-mode-line)
-      (setq mode-line-format --ecc-auto-response--original-mode-line)
-      (kill-local-variable '--ecc-auto-response--original-mode-line)))
-  (force-mode-line-update)))
+          ;; Create the indicator with pulse effect
+          (let ((indicator '(:eval (when
+                                       --ecc-auto-response--enabled
+                                     (propertize " [AUTO] "
+                                                 'face (if
+                                                           --ecc-auto-response--pulse-state
+                                                           'ecc-auto-indicator-face
+                                                         '(:background
+                                                           "#400000"
+                                                           :foreground
+                                                           "#ffffff"
+                                                           :weight
+                                                           bold))
+                                                 'help-echo
+                                                 "Auto-response is active")))))
+            ;; Use the stored original format
+            (let
+                ((original --ecc-auto-response--original-mode-line))
+              (if (listp original)
+                  (let ((new-format (copy-sequence original))
+                        (buffer-id-pos
+                         (cl-position
+                          'mode-line-buffer-identification original)))
+                    (if buffer-id-pos
+                        ;; Insert after buffer identification
+                        (setq mode-line-format
+                              (append
+                               (cl-subseq new-format 0
+                                          (1+ buffer-id-pos))
+                               (list indicator)
+                               (cl-subseq new-format
+                                          (1+ buffer-id-pos))))
+                      ;; If no buffer-id found, prepend
+                      (setq mode-line-format
+                            (cons indicator new-format))))
+                ;; If original is not a list, make it one
+                (setq mode-line-format (list indicator original))))))
+        ;; Remove AUTO indicator and restore original
+        (when
+            (local-variable-p '--ecc-auto-response--original-mode-line)
+          (setq mode-line-format
+                --ecc-auto-response--original-mode-line)
+          (kill-local-variable
+           '--ecc-auto-response--original-mode-line))))
+  (force-mode-line-update))
 
 (defun --ecc-auto-response-refresh-all-mode-lines ()
   "Refresh mode-lines for all buffers with auto-response enabled."
@@ -608,9 +720,13 @@ Uses a sliding window approach to count responses within the accumulation window
       (with-current-buffer buffer
         (when --ecc-auto-response--enabled
           ;; Reset mode-line to original first
-          (when (local-variable-p '--ecc-auto-response--original-mode-line)
-            (setq mode-line-format --ecc-auto-response--original-mode-line)
-            (kill-local-variable '--ecc-auto-response--original-mode-line))
+          (when
+              (local-variable-p
+               '--ecc-auto-response--original-mode-line)
+            (setq mode-line-format
+                  --ecc-auto-response--original-mode-line)
+            (kill-local-variable
+             '--ecc-auto-response--original-mode-line))
           ;; Force recreation
           (--ecc-auto-response--update-mode-line)))))
   (message "Refreshed mode-lines for all auto-response buffers"))
@@ -630,7 +746,8 @@ Uses a sliding window approach to count responses within the accumulation window
     (message "Auto-response enabled: %s" --ecc-auto-response--enabled)
     (message "Mode-line format: %s" mode-line-format)
     (when --ecc-auto-response--enabled
-      (message "Face background should be: %s" --ecc-auto-response-mode-line-color))))
+      (message "Face background should be: %s"
+               --ecc-auto-response-mode-line-color))))
 
 (defun --ecc-auto-response-disable-all ()
   "Disable auto-response in all buffers."
@@ -655,7 +772,8 @@ Uses a sliding window approach to count responses within the accumulation window
               (--ecc-auto-response--start-periodic-timer buffer)
             (--ecc-auto-response--stop-periodic-timer))))))
   (message "Periodic return sending %s"
-           (if --ecc-auto-response-periodic-enabled "enabled" "disabled")))
+           (if --ecc-auto-response-periodic-enabled "enabled"
+             "disabled")))
 
 ;; Removed circular alias - ecc-refresh-timers is defined in ecc.el
 
@@ -663,19 +781,26 @@ Uses a sliding window approach to count responses within the accumulation window
   "Diagnose auto-response issues in current buffer."
   (interactive)
   (if (not --ecc-auto-response--enabled)
-      (message "Auto-response is not enabled in this buffer. Use C-c C-a to enable.")
+      (message
+       "Auto-response is not enabled in this buffer. Use C-c C-a to enable.")
     (let ((state (--ecc-state-detection-detect)))
       (message "=== Auto-Response Diagnosis ===")
       (message "Buffer: %s" (buffer-name))
-      (message "Auto-response enabled: %s" --ecc-auto-response--enabled)
+      (message "Auto-response enabled: %s"
+               --ecc-auto-response--enabled)
       (message "Current state: %s" (or state "none"))
-      (message "Last state: %s" (or --ecc-auto-response--last-state "none"))
-      (message "Time since last response: %s seconds" 
+      (message "Last state: %s"
+               (or --ecc-auto-response--last-state "none"))
+      (message "Time since last response: %s seconds"
                (round (- (float-time) --ecc-auto-response--last-time)))
-      (message "Expected response: %s" 
-               (or (cdr (assq state --ecc-auto-response-responses)) "none"))
-      (message "Timer running: %s" (if --ecc-auto-response--timer "yes" "no"))
-      (message "Registered buffers: %d" (hash-table-count --ecc-auto-response--registered-buffers))
+      (message "Expected response: %s"
+               (or (cdr (assq state --ecc-auto-response-responses))
+                   "none"))
+      (message "Timer running: %s"
+               (if --ecc-auto-response--timer "yes" "no"))
+      (message "Registered buffers: %d"
+               (hash-table-count
+                --ecc-auto-response--registered-buffers))
       (message "===============================")
       ;; Try to process manually
       (when (and state --ecc-auto-response--timer)
@@ -686,8 +811,8 @@ Uses a sliding window approach to count responses within the accumulation window
 (when
     (not load-file-name)
   (--ecc-debug-message "ecc-auto-response.el loaded."
-           (file-name-nondirectory
-            (or load-file-name buffer-file-name))))
+                       (file-name-nondirectory
+                        (or load-file-name buffer-file-name))))
 
 
 (provide 'ecc-auto-response)

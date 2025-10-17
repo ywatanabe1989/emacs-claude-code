@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-08-26 22:20:39>
+;;; Timestamp: <2025-10-02 08:40:50>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -33,11 +33,11 @@
 ;; ----------------------------------------
 
 (defvar --ecc-state-detection-patterns
-  '((:initial-waiting . ("│ > Try "))
-    (:waiting . ("│ >                            "))
+  '((:initial-waiting . ("> Try "))
+    (:waiting . (">  "))
     (:y/n . ("❯ 1. Yes"))
     (:y/y/n . (" 2. Yes, and" " 2. Yes, allow"))
-    (:running . ("(esc to interrupt)")))
+    (:running . ("(esc to interrupt")))
   "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
 
 (defvar --ecc-state-detection--flash-overlays nil

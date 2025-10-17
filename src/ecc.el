@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-06-04 08:47:04>
+;;; Timestamp: <2025-08-31 06:23:28>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -32,6 +32,7 @@
 (require 'ecc-auto-periodical)
 (require 'ecc-vterm-yank-as-file)
 (require 'ecc-host-switch)
+(require 'ecc-encouragement)
 
 
 ;; 3. Main entry point
