@@ -144,6 +144,19 @@ Returns the absolute path of the created file."
   "Get content from system clipboard or kill-ring.
 Returns the content as a string, or nil if both are empty."
   (or
+   ;; Try WSL clipboard first (Windows clipboard via powershell.exe)
+   (when (and (executable-find "powershell.exe")
+              (getenv "WSL_DISTRO_NAME"))
+     (let ((clipboard
+            (shell-command-to-string
+             "powershell.exe -command 'Get-Clipboard' 2> /dev/null")))
+       (when (and clipboard (> (length clipboard) 0))
+         (setq clipboard (replace-regexp-in-string "\r" "" clipboard))
+         ;; Remove trailing newline if exists
+         (when (string-suffix-p "\n" clipboard)
+           (setq clipboard (substring clipboard 0 -1)))
+         (when (> (length clipboard) 0)
+           clipboard))))
    ;; Try different clipboard selection types
    (when (fboundp 'gui-get-selection)
      (or (gui-get-selection 'CLIPBOARD 'STRING)
