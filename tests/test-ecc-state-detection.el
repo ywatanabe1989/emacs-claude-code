@@ -53,8 +53,8 @@
   (should (string= (--ecc-state-detection-get-name :y/n) "Y/N")))
 
 (ert-deftest test-ecc-state-detection-get-name-waiting ()
-  "Test that :waiting state converts to 'Continue' name."
-  (should (string= (--ecc-state-detection-get-name :waiting) "Continue")))
+  "Test that :waiting state converts to 'Waiting' name."
+  (should (string= (--ecc-state-detection-get-name :waiting) "Waiting")))
 
 
 (provide 'test-ecc-state-detection)

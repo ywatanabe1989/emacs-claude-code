@@ -42,6 +42,8 @@
     (define-key map (kbd "q") 'quit-window)
     (define-key map (kbd "g") 'ecc-list-buffers)
     (define-key map (kbd "a") '--ecc-buffer-list-toggle-auto-response)
+    (define-key map (kbd "e") '--ecc-buffer-list-enable-auto-response)
+    (define-key map (kbd "D") '--ecc-buffer-list-disable-auto-response)
     (define-key map (kbd "r") '--ecc-buffer-list-toggle-auto-refresh)
     (define-key map (kbd "d") '--ecc-buffer-list-kill-buffer)
     (define-key map (kbd "m") '--ecc-buffer-list-mark)
@@ -64,6 +66,8 @@ Shows all vterm-mode buffers with their auto-response status.
 In the buffer list:
 - RET/SPC: Jump to buffer
 - a: Toggle auto-response for buffer
+- e: Enable auto-response for buffer
+- D: Disable auto-response for buffer
 - g: Refresh list
 - q: Quit"
   (interactive)
@@ -188,6 +192,8 @@ In the buffer list:
           (insert "  RET/SPC  - Jump to buffer\n")
           (insert "  o        - Display buffer in other window\n")
           (insert "  a        - Toggle auto-response\n")
+          (insert "  e        - Enable auto-response\n")
+          (insert "  D        - Disable auto-response\n")
           (insert "  d        - Kill buffer(s)\n")
           (insert "  m        - Mark buffer\n")
           (insert "  u        - Unmark buffer\n")
@@ -264,6 +270,32 @@ In the buffer list:
             (ecc-list-buffers)
             (--ecc-debug-message "Toggled auto-response for: %s"
                                  (buffer-name buffer)))
+        (message "Buffer no longer exists")))))
+
+(defun --ecc-buffer-list-enable-auto-response ()
+  "Enable auto-response for the buffer on the current line."
+  (interactive)
+  (let ((buffer (--ecc-buffer-list-get-buffer-at-point)))
+    (when buffer
+      (if (buffer-live-p buffer)
+          (progn
+            (with-current-buffer buffer
+              (--ecc-auto-response-enable-buffer))
+            (ecc-list-buffers)
+            (message "Enabled auto-response for: %s" (buffer-name buffer)))
+        (message "Buffer no longer exists")))))
+
+(defun --ecc-buffer-list-disable-auto-response ()
+  "Disable auto-response for the buffer on the current line."
+  (interactive)
+  (let ((buffer (--ecc-buffer-list-get-buffer-at-point)))
+    (when buffer
+      (if (buffer-live-p buffer)
+          (progn
+            (with-current-buffer buffer
+              (--ecc-auto-response-disable-buffer))
+            (ecc-list-buffers)
+            (message "Disabled auto-response for: %s" (buffer-name buffer)))
         (message "Buffer no longer exists")))))
 
 (defun --ecc-buffer-list-toggle-auto-refresh ()

@@ -55,13 +55,13 @@
   "Test that safe interval is positive."
   (should (> --ecc-auto-response-safe-interval 0)))
 
-(ert-deftest test-ecc-auto-response-throttle-duration-is-number ()
-  "Test that throttle duration is a number."
-  (should (numberp --ecc-auto-response-throttle-duration)))
+(ert-deftest test-ecc-auto-response-same-state-delay-is-number ()
+  "Test that same-state delay is a number."
+  (should (numberp --ecc-auto-response-same-state-delay)))
 
-(ert-deftest test-ecc-auto-response-throttle-duration-positive ()
-  "Test that throttle duration is positive."
-  (should (> --ecc-auto-response-throttle-duration 0)))
+(ert-deftest test-ecc-auto-response-same-state-delay-positive ()
+  "Test that same-state delay is positive."
+  (should (> --ecc-auto-response-same-state-delay 0)))
 
 (ert-deftest test-ecc-auto-response-responses-is-list ()
   "Test that response alist is a list."

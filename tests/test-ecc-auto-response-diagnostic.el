@@ -27,14 +27,14 @@
         (princ (format "Sent positions: %s\n" --ecc-auto-response--sent-positions))
         (princ "\n--- Throttle Check ---\n")
         (princ (format "Should throttle: %s\n" throttle-check))
-        (princ (format "Throttle duration: %.1f seconds\n" --ecc-auto-response-throttle-duration))
-        (princ (format "Response timestamps in window: %s\n" 
-                      (let ((window-start (- current-time --ecc-auto-response-accumulation-window)))
+        (princ (format "Same-state delay: %.1f seconds\n" --ecc-auto-response-same-state-delay))
+        (princ (format "Response timestamps in window: %s\n"
+                      (let ((window-start (- current-time --ecc-auto-response-burst-window)))
                         (cl-count-if (lambda (ts) (>= ts window-start))
                                      --ecc-auto-response--response-timestamps))))
-        (princ (format "Accumulation threshold: %d responses in %.1f seconds\n" 
-                      --ecc-auto-response-accumulation-threshold
-                      --ecc-auto-response-accumulation-window))
+        (princ (format "Burst limit: %d responses in %.1f seconds\n"
+                      --ecc-auto-response-burst-limit
+                      --ecc-auto-response-burst-window))
         (princ "\n--- Timer Status ---\n")
         (princ (format "Global timer active: %s\n" 
                       (if --ecc-auto-response--timer "yes" "no")))
