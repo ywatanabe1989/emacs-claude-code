@@ -14,8 +14,10 @@
 ;; 2. Configuration
 ;; ----------------------------------------
 
-(defcustom --ecc-state-detection-buffer-size 2048
-  "Number of characters to check from end of buffer for prompt detection."
+(defcustom --ecc-state-detection-buffer-size 512
+  "Number of characters to check from end of buffer for prompt detection.
+Reduced from 2048 to 512 for better performance with multiple buffers.
+Claude prompts typically appear in the last few hundred characters."
   :type 'integer
   :group 'ecc)
 
@@ -64,17 +66,7 @@
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
-    ;; Check for running pattern first (highest priority)
-    (let
-        ((running-patterns
-          (cdr (assq :running --ecc-state-detection-patterns))))
-      (when running-patterns
-        (dolist (pattern running-patterns)
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state :running")
-            (throw 'found :running)))))
-
-    ;; Check for Y/Y/N pattern first (must come before Y/N check)
+    ;; Check for Y/Y/N pattern FIRST (highest priority - permission prompts are most actionable)
     (let
         ((yyn-patterns
           (cdr (assq :y/y/n --ecc-state-detection-patterns))))
@@ -85,11 +77,31 @@
              "Matched state :y/y/n with pattern: %s" pattern)
             (throw 'found :y/y/n)))))
 
+    ;; Check for Y/N pattern (second priority, must come before running check)
+    (let
+        ((yn-patterns
+          (cdr (assq :y/n --ecc-state-detection-patterns))))
+      (when yn-patterns
+        (dolist (pattern yn-patterns)
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message "Matched state :y/n")
+            (throw 'found :y/n)))))
+
+    ;; Check for running pattern (lower priority than permission prompts)
+    (let
+        ((running-patterns
+          (cdr (assq :running --ecc-state-detection-patterns))))
+      (when running-patterns
+        (dolist (pattern running-patterns)
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message "Matched state :running")
+            (throw 'found :running)))))
+
     ;; Check for other exact pattern matches
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
             (patterns (cdr pattern-pair)))
-        (unless (memq state '(:y/y/n :running))
+        (unless (memq state '(:y/y/n :y/n :running))
           (dolist (pattern patterns)
             (when (string-match-p (regexp-quote pattern) text)
               (--ecc-debug-message "Matched state %s" state)
@@ -109,7 +121,7 @@
   (cond
    ((eq state :y/y/n) "Y/Y/N")
    ((eq state :y/n) "Y/N")
-   ((eq state :waiting) "Continue")
+   ((eq state :waiting) "Waiting")
    ((eq state :initial-waiting) "Initial-Waiting")
    ((eq state :running) "Running")
    (t (format "%s" state))))

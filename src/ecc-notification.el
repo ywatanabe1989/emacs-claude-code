@@ -119,7 +119,7 @@
         (setq --ecc-notification--mode-line-format mode-line-format))
       ;; Create version with thunder icon
       (setq mode-line-format
-            (list '(:propertize " ⚡ CLAUDE " face (:background "red4" :foreground "gray85" :weight bold))
+            (list '(:propertize " ⚡ CLAUDE " face (:background "#700000" :foreground "gray85" :weight bold))
                   --ecc-notification--mode-line-format))
       (force-mode-line-update))))
 

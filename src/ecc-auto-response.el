@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-24 15:53:59>
+;;; Timestamp: <2025-10-24 16:28:33>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -26,7 +26,7 @@
 ;; Define the face globally
 
 (defface ecc-auto-indicator-face
-  '((t :background "red4" :foreground "#ffffff" :weight bold))
+  '((t :background "#700000" :foreground "#ffffff" :weight bold))
   "Face for AUTO indicator in mode-line."
   :group 'ecc)
 
@@ -76,7 +76,7 @@ perceived performance but may delay auto-responses slightly."
   :type 'float
   :group 'ecc)
 
-(defcustom --ecc-auto-response-mode-line-color "red4"
+(defcustom --ecc-auto-response-mode-line-color "#700000"
   "Background color for mode-line when auto-response is enabled."
   :type 'color
   :group 'ecc)
@@ -240,7 +240,7 @@ Used when `--ecc-auto-response-max-buffers-per-cycle' is set.")
       (--ecc-auto-response--start-timer))
     ;; Play buzzer sound
     (beep)
-    ;; Don't show thunder icon - we have permanent [AUTO] indicator
+    ;; Don't show thunder icon - we have permanent ⚡ AUTO CLAUDE indicator
     ;; (when (fboundp '--ecc-notification--flash-mode-line)
     ;;   (--ecc-notification--flash-mode-line buf))
     ;; Force immediate update
@@ -263,7 +263,7 @@ Used when `--ecc-auto-response-max-buffers-per-cycle' is set.")
     (--ecc-debug-message "Auto-response enabled for buffer: %s"
                          (buffer-name buf))
     (--ecc-debug-message
-     "Auto-response enabled - look for pulsing red [AUTO] in mode-line")))
+     "Auto-response enabled - look for pulsing red ⚡ AUTO CLAUDE in mode-line")))
 
 (defun --ecc-auto-response-disable-buffer (&optional buffer)
   "Disable auto-response for BUFFER."
@@ -621,7 +621,7 @@ Only blocks if position is similar AND state hasn't changed."
       (--ecc-auto-response--send-to-buffer buffer response state)
       ;; Play buzzer sound when sending auto-response
       (beep)
-      ;; Don't show thunder CLAUDE icon - we have permanent [AUTO] indicator
+      ;; Don't show thunder CLAUDE icon - we have permanent ⚡ AUTO CLAUDE indicator
       ;; (when (fboundp '--ecc-notification-notify)
       ;;   (--ecc-notification-notify state buffer))
       ;; Trigger auto-periodical check if available
@@ -675,21 +675,23 @@ send ESC first to clear partial input."
       ;; Main sending sequence
       (sit-for --ecc-auto-response-safe-interval)
 
-      ;; Send ESC first ONLY for free text responses (not for "1", "2" selections)
-      (when (and --ecc-auto-response-send-escape-first
-                 is-free-response)
-        (when (derived-mode-p 'vterm-mode)
-          (vterm-send-escape))
-        (sit-for --ecc-auto-response-safe-interval))
+      ;; Don't send ESC before encouragement words - it interferes with the prompt
+      ;; (when (and --ecc-auto-response-send-escape-first
+      ;;            is-free-response)
+      ;;   (when (derived-mode-p 'vterm-mode)
+      ;;     (vterm-send-escape))
+      ;;   (sit-for --ecc-auto-response-safe-interval))
 
       ;; Auto Message
-      (--ecc-auto-response--flash-yellow buffer)  ; Flash yellow when sending
       (funcall text-sender)
       (sit-for --ecc-auto-response-safe-interval)
 
       ;; Return
       (funcall return-sender)
-      (sit-for --ecc-auto-response-safe-interval)))
+      (sit-for --ecc-auto-response-safe-interval)
+
+      ;; Show encouragement
+      (--ecc-auto-response--show-encouragement buffer text)))
   (--ecc-debug-message "Sent response to %s: %s"
                        (buffer-name buffer)
                        text))
@@ -724,18 +726,46 @@ send ESC first to clear partial input."
     (setq --ecc-auto-response--pulse-timer nil)))
 
 (defun --ecc-auto-response--flash-yellow (buffer)
-  "Flash the mode-line indicator yellow for 0.1 seconds in BUFFER."
+  "Flash the mode-line indicator dark for 0.5 seconds in BUFFER."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq-local --ecc-auto-response--yellow-flash-state t)
       (force-mode-line-update)
-      (run-with-timer 0.1 nil
+      (run-with-timer 0.5 nil
                       (lambda (buf)
                         (when (buffer-live-p buf)
                           (with-current-buffer buf
-                            (setq-local --ecc-auto-response--yellow-flash-state nil)
+                            (setq-local
+                             --ecc-auto-response--yellow-flash-state
+                             nil)
                             (force-mode-line-update))))
                       buffer))))
+
+(defun --ecc-auto-response--show-encouragement (buffer text)
+  "Highlight the sent TEXT in BUFFER with yellow background."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (save-excursion
+        ;; Search backward for the sent text in the buffer
+        (goto-char (point-max))
+        (when (search-backward text nil t)
+          (let
+              ((overlay
+                (make-overlay (match-beginning 0) (match-end 0))))
+            ;; Highlight the actual sent text in yellow
+            (overlay-put overlay 'face
+                         '(:background "#8B7500" :foreground "#000000"
+                                       :weight bold))
+            (overlay-put overlay 'priority 1000)
+            ;; ;; Show message in echo area
+            ;; (message (propertize (format "✓ Sent: %s" text)
+            ;;                     'face '(:foreground "#90EE90")))
+            ;; Remove highlight after 2 seconds
+            (run-with-timer 2.0 nil
+                            (lambda (ov)
+                              (when (overlayp ov)
+                                (delete-overlay ov)))
+                            overlay)))))))
 
 ;; 13. Visual mode management
 ;; ----------------------------------------
@@ -793,11 +823,16 @@ send ESC first to clear partial input."
           ;; Create the indicator with pulse effect
           (let ((indicator '(:eval (when
                                        --ecc-auto-response--enabled
-                                     (propertize " [AUTO] "
+                                     (propertize " ⚡ AUTO CLAUDE "
                                                  'face (cond
-                                                        ;; Yellow flash when sending
+                                                        ;; Dark flash when sending
                                                         (--ecc-auto-response--yellow-flash-state
-                                                         '(:background "yellow" :foreground "#000000" :weight bold))
+                                                         '(:background
+                                                           "#1a0f00"
+                                                           :foreground
+                                                           "#888888"
+                                                           :weight
+                                                           bold))
                                                         ;; Normal pulse
                                                         (--ecc-auto-response--pulse-state
                                                          'ecc-auto-indicator-face)
