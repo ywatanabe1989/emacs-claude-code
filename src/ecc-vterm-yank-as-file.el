@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-25 11:43:56>
+;;; Timestamp: <2025-10-18 22:37:50>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -141,10 +141,23 @@ Returns the absolute path of the created file."
 ;;     (car kill-ring)))
 
 (defun --ecc-get-kill-ring-content ()
-  "Get content from system clipboard or kill-ring.
-Returns the content as a string, or nil if both are empty."
+  "Get content from kill-ring or system clipboard.
+Returns the content as a string, or nil if both are empty.
+Optimized to check fast sources first (kill-ring) before slow ones (PowerShell)."
   (or
-   ;; Try WSL clipboard first (Windows clipboard via powershell.exe)
+   ;; Try kill-ring first (fastest, most common in Emacs)
+   (when kill-ring (car kill-ring))
+   ;; Try current-kill with no error
+   (ignore-errors (current-kill 0 t))
+   ;; Try different clipboard selection types (fast)
+   (when (fboundp 'gui-get-selection)
+     (or (gui-get-selection 'CLIPBOARD 'STRING)
+         (gui-get-selection 'PRIMARY 'STRING)
+         (gui-get-selection 'SECONDARY 'STRING)))
+   ;; Try x-get-clipboard for older systems (fast)
+   (when (fboundp 'x-get-clipboard)
+     (x-get-clipboard))
+   ;; Try WSL clipboard last (slow - spawns PowerShell process)
    (when (and (executable-find "powershell.exe")
               (getenv "WSL_DISTRO_NAME"))
      (let ((clipboard
@@ -156,19 +169,7 @@ Returns the content as a string, or nil if both are empty."
          (when (string-suffix-p "\n" clipboard)
            (setq clipboard (substring clipboard 0 -1)))
          (when (> (length clipboard) 0)
-           clipboard))))
-   ;; Try different clipboard selection types
-   (when (fboundp 'gui-get-selection)
-     (or (gui-get-selection 'CLIPBOARD 'STRING)
-         (gui-get-selection 'PRIMARY 'STRING)
-         (gui-get-selection 'SECONDARY 'STRING)))
-   ;; Try x-get-clipboard for older systems
-   (when (fboundp 'x-get-clipboard)
-     (x-get-clipboard))
-   ;; Try current-kill with no error
-   (ignore-errors (current-kill 0 t))
-   ;; Fallback to kill-ring
-   (when kill-ring (car kill-ring))))
+           clipboard))))))
 
 (defun --ecc-write-content-to-file (content filepath)
   "Write CONTENT to FILEPATH."
@@ -191,18 +192,14 @@ Returns local file path on remote host on success, nil on failure."
   (let* ((local-file (--ecc-create-temp-file t content))
          (target-dir (if (fboundp '--ecc-get-yank-directory)
                          (--ecc-get-yank-directory t)
-                                        ; Get remote directory
                        ecc-directory-for-yank-as-file))
          (remote-local-path
           (concat target-dir (file-name-nondirectory local-file))))
     (--ecc-write-content-to-file content local-file)
     (if (and (require 'ecc-remote nil t)
              (fboundp '--ecc-transfer-file-to-remote))
-        (if
-            (--ecc-transfer-file-to-remote local-file ssh-info
-                                           target-dir)
+        (if (--ecc-transfer-file-to-remote local-file ssh-info target-dir)
             remote-local-path
-                                        ; Return local path on remote host
           (progn
             (message "Failed to transfer file to remote server")
             nil))

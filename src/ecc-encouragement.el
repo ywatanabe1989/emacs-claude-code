@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-14 07:30:45>
+;;; Timestamp: <2025-10-19 08:04:10>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-encouragement.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -35,13 +35,13 @@
     "What assumptions are we making?")
   "Self-critical reflection phrases.")
 
-(defvar ecc-encouragement-phrases-challenges
-  '("This is tough, but you're tougher."
-    "You're not alone in this."
-    "Take it one day at a time."
-    "You've gotten through tough times before, and you'll get through this too."
-    "It's okay to rest.")
-  "Phrases for facing challenges.")
+;; (defvar ecc-encouragement-phrases-challenges
+;;   '("This is tough, but you're tougher."
+;;     "You're not alone in this."
+;;     "Take it one day at a time."
+;;     "You've gotten through tough times before, and you'll get through this too."
+;;     "It's okay to rest.")
+;;   "Phrases for facing challenges.")
 
 (defvar ecc-encouragement-phrases-confidence
   '("You're braver than you believe, stronger than you seem, and smarter than you think."
@@ -245,7 +245,7 @@
 (defvar ecc-encouragement-phrases
   (append ecc-encouragement-phrases-general
           ;; ecc-encouragement-phrases-critical
-          ecc-encouragement-phrases-challenges
+          ;; ecc-encouragement-phrases-challenges
           ecc-encouragement-phrases-confidence
           ecc-encouragement-phrases-motivational
           ;; ecc-encouragement-phrases-simplicity
