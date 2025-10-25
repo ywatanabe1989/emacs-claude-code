@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-02 08:40:50>
+;;; Timestamp: <2025-10-24 18:15:17>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -14,19 +14,28 @@
 ;; 2. Configuration
 ;; ----------------------------------------
 
-(defcustom --ecc-state-detection-buffer-size 512
+;; Define face for detection highlighting (works in monochrome/no-color mode)
+
+(defface ecc-state-detection-flash-face
+  '((t :inverse-video t :weight bold :underline t))
+  "Face for flashing detected Claude prompt states.
+Uses inverse-video and underline to work in monochrome/no-color vterm modes."
+  :group 'ecc)
+
+(defcustom --ecc-state-detection-buffer-size 2048
   "Number of characters to check from end of buffer for prompt detection.
 Reduced from 2048 to 512 for better performance with multiple buffers.
 Claude prompts typically appear in the last few hundred characters."
   :type 'integer
   :group 'ecc)
 
-(defcustom --ecc-state-detection-flash-duration 0.5
+(defcustom --ecc-state-detection-flash-duration 3.0
   "Duration in seconds to flash the detected text."
   :type 'number
   :group 'ecc)
 
-(defcustom --ecc-state-detection-flash-face 'highlight
+(defcustom --ecc-state-detection-flash-face
+  'ecc-state-detection-flash-face
   "Face to use for flashing detected text."
   :type 'face
   :group 'ecc)
@@ -127,7 +136,7 @@ Claude prompts typically appear in the last few hundred characters."
    (t (format "%s" state))))
 
 (defun --ecc-state-detection-flash-pattern (state &optional buffer)
-  "Flash the detected pattern for STATE in BUFFER."
+  "Flash the entire line containing the detected pattern for STATE in BUFFER."
   (with-current-buffer (or buffer (current-buffer))
     (let
         ((patterns (cdr (assq state --ecc-state-detection-patterns))))
@@ -144,10 +153,11 @@ Claude prompts typically appear in the last few hundred characters."
                                            --ecc-state-detection-buffer-size)
                                         (point-min))
                                        t)
-                  (let
-                      ((overlay
-                        (make-overlay (match-beginning 0)
-                                      (match-end 0))))
+                  ;; Highlight the entire line instead of just the pattern
+                  (let* ((line-start (line-beginning-position))
+                         (line-end (min (point-max)
+                                       (1+ (line-end-position))))
+                         (overlay (make-overlay line-start line-end)))
                     (overlay-put overlay 'face
                                  --ecc-state-detection-flash-face)
                     (overlay-put overlay 'priority 1000)

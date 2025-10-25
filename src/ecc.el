@@ -33,6 +33,7 @@
 (require 'ecc-vterm-yank-as-file)
 (require 'ecc-host-switch)
 (require 'ecc-encouragement)
+(require 'ecc-anti-flicker)
 
 
 ;; 3. Main entry point
@@ -40,7 +41,7 @@
 
 ;;;###autoload
 (defun --ecc-create-vterm ()
-  "Create a new vterm buffer with Claude auto-response enabled."
+  "Create a new vterm buffer with Claude auto-response and anti-flicker enabled."
   (interactive)
   (--ecc-debug-message "Creating new Claude vterm buffer...")
   (require 'vterm nil t)
@@ -48,6 +49,9 @@
       (user-error "vterm is not installed")
     (let ((buffer (vterm "*Claude-vterm*")))
       (with-current-buffer buffer
+        ;; Enable anti-flicker optimizations first
+        (--ecc-anti-flicker-enable buffer)
+        ;; Then enable auto-response
         (--ecc-auto-response-enable-buffer))
       (--ecc-debug-message "Created vterm buffer: %s" (buffer-name buffer))
       buffer)))

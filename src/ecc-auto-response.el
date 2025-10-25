@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-24 16:31:50>
+;;; Timestamp: <2025-10-24 18:36:41>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -480,6 +480,8 @@ that many buffers per cycle in round-robin fashion for better performance."
                       content-hash)
           (let ((state (--ecc-state-detection-detect)))
             (when state
+              ;; Flash/highlight the detected pattern
+              (--ecc-state-detection-flash-pattern state buffer)
               (when --ecc-auto-response-verbose-logging
                 (--ecc-debug-message "Processing buffer %s: state=%s"
                                      (buffer-name buffer) state))
@@ -726,12 +728,12 @@ send ESC first to clear partial input."
     (setq --ecc-auto-response--pulse-timer nil)))
 
 (defun --ecc-auto-response--flash-yellow (buffer)
-  "Flash the mode-line indicator dark for 3.0 seconds in BUFFER."
+  "Flash the mode-line indicator dark for 5.0 seconds in BUFFER."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq-local --ecc-auto-response--yellow-flash-state t)
       (force-mode-line-update)
-      (run-with-timer 3.0 nil
+      (run-with-timer 5.0 nil
                       (lambda (buf)
                         (when (buffer-live-p buf)
                           (with-current-buffer buf

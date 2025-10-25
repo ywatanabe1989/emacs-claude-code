@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-07-01 05:53:04>
+;;; Timestamp: <2025-10-26 09:01:12>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-remote.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -18,46 +18,60 @@
 ;; ----------------------------------------
 
 (defun --ecc-ensure-directory-exists (directory &optional ssh-info)
-  "Create DIRECTORY if it doesn't exist.
+  "Create DIRECTORY if it doesn't exist, then verify it exists.
 
 If SSH-INFO is provided, creates directory on remote host via SSH.
-SSH-INFO should be an alist with keys: user, host, port."
+SSH-INFO should be an alist with keys: user, host, port.
+Returns t if directory exists after creation, nil otherwise."
   (if ssh-info
       ;; Remote directory creation
       (let* ((user (cdr (assoc 'user ssh-info)))
              (host (cdr (assoc 'host ssh-info)))
              (port (cdr (assoc 'port ssh-info)))
-             (mkdir-cmd (format "ssh %s -p %s %s@%s 'mkdir -p %s'"
-                                ecc-remote-scp-options
-                                port user host
-                                directory))
-                                        ; Don't quote - allow tilde expansion
-             (check-cmd (format "ssh %s -p %s %s@%s 'test -d %s'"
-                                ecc-remote-scp-options
-                                port user host
-                                (shell-quote-argument directory))))
+             (mkdir-cmd (format
+                         "ssh %s -p %s %s@%s \"mkdir -p %s 2>/dev/null && test -d %s && echo DIR_EXISTS\""
+                         ecc-remote-ssh-options
+                         port user host
+                         directory
+                         directory)))
         (message "Creating remote directory: %s@%s:%s" user host
                  directory)
-        (message "SSH command: %s" mkdir-cmd)
-        (let ((result (shell-command mkdir-cmd)))
-          (if (not (= result 0))
-              (message
-               "Warning: Failed to create remote directory (exit code %d)"
-               result)
-            (message "Remote directory created successfully")))))
-  ;; Local directory creation
-  (unless (file-exists-p directory)
-    (make-directory directory t)))
+        (let
+            ((output (string-trim (shell-command-to-string mkdir-cmd))))
+          (if (string-match-p "DIR_EXISTS" output)
+              (progn
+                (message "Remote directory verified: %s@%s:%s" user
+                         host directory)
+                t)
+            (progn
+              (message "Warning: Failed to verify remote directory")
+              nil))))
+    ;; Local directory creation
+    (unless (file-exists-p directory)
+      (make-directory directory t))
+    t))
 
                                         ; Directory configuration unified - using ecc-directory-for-yank-as-file for both local and remote
 
 (defcustom ecc-remote-use-scp t
-  "Whether to use scp for remote file transfer."
+  "Whether to use scp for remote file transfer.
+NOTE: Currently using rsync instead for better reliability."
   :type 'boolean
   :group 'ecc)
 
-(defcustom ecc-remote-scp-options "-o StrictHostKeyChecking=no"
-  "Additional options for scp command."
+(defcustom ecc-remote-ssh-options
+  "-T -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+  "Additional options for ssh commands only.
+-T: Disable pseudo-terminal allocation (prevents remote .bashrc from running)
+-o LogLevel=ERROR: Only show critical SSH errors"
+  :type 'string
+  :group 'ecc)
+
+(defcustom ecc-remote-scp-options
+  "-o StrictHostKeyChecking=no -o LogLevel=ERROR -q"
+  "Additional options for scp command only (do not use -T here, it's invalid for scp).
+-o LogLevel=ERROR: Only show critical SSH errors
+-q: Quiet mode (suppress progress meter and non-error messages)"
   :type 'string
   :group 'ecc)
 
@@ -222,35 +236,49 @@ Example:
     remote-path))
 
 (defun --ecc-transfer-file-to-remote (local-file ssh-info target-dir)
-  "Transfer LOCAL-FILE to remote server using scp.
+  "Transfer LOCAL-FILE to remote server using scp, then verify it exists.
 
 SSH-INFO contains connection details, TARGET-DIR is the remote directory.
 Returns t on success, nil on failure."
-  (when (and ecc-remote-use-scp ssh-info)
+  (when ssh-info
     (let* ((user (cdr (assoc 'user ssh-info)))
            (host (cdr (assoc 'host ssh-info)))
            (port (cdr (assoc 'port ssh-info)))
            (filename (file-name-nondirectory local-file))
-           (remote-target (format "%s@%s:%s" user host target-dir))
-           (scp-cmd (format "scp %s -P %s %s %s%s"
+           (remote-path (concat target-dir filename))
+           (remote-target
+            (format "%s@%s:%s%s" user host target-dir filename))
+           (scp-cmd (format "scp %s -P %s %s %s"
                             ecc-remote-scp-options
                             port
                             (shell-quote-argument local-file)
-                            remote-target
-                            filename)))
+                            remote-target))
+           (verify-cmd (format
+                        "ssh %s -p %s %s@%s \"test -f %s && echo FILE_EXISTS\""
+                        ecc-remote-ssh-options
+                        port user host
+                        remote-path)))
       (message "Transferring file to %s@%s:%s..." user host target-dir)
       ;; First ensure remote directory exists
-      (--ecc-ensure-directory-exists target-dir ssh-info)
-      ;; Then transfer the file
-      (let ((result (shell-command scp-cmd)))
-        (if (= result 0)
-            (progn
-              (message "File transferred successfully to %s"
-                       remote-target)
-              t)
+      (if (not (--ecc-ensure-directory-exists target-dir ssh-info))
           (progn
-            (message "SCP failed with exit code %d" result)
-            nil))))))
+            (message "Cannot transfer file: directory creation failed")
+            nil)
+        ;; Transfer the file with scp (ignore exit code)
+        (shell-command scp-cmd)
+        ;; Verify file exists
+        (let
+            ((output
+              (string-trim (shell-command-to-string verify-cmd))))
+          (if (string-match-p "FILE_EXISTS" output)
+              (progn
+                (message "File verified at %s@%s:%s" user host
+                         remote-path)
+                t)
+            (progn
+              (message "Transfer failed: file not found at %s@%s:%s"
+                       user host remote-path)
+              nil)))))))
 
 ;; 8. Cleanup functionality
 ;; ----------------------------------------
@@ -272,7 +300,7 @@ Otherwise prompts for server selection."
              (host (cadr host-info))
              (cleanup-cmd (format
                            "ssh %s -p 22 %s@%s 'find %s -name \"kill-ring-*.tmp\" -mtime +1 -delete'"
-                           ecc-remote-scp-options
+                           ecc-remote-ssh-options
                            user host
                            (shell-quote-argument
                             (--ecc-get-yank-directory t)))))
