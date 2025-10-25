@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-18 22:37:50>
+;;; Timestamp: <2025-10-26 10:08:17>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -142,34 +142,12 @@ Returns the absolute path of the created file."
 
 (defun --ecc-get-kill-ring-content ()
   "Get content from kill-ring or system clipboard.
-Returns the content as a string, or nil if both are empty.
-Optimized to check fast sources first (kill-ring) before slow ones (PowerShell)."
-  (or
-   ;; Try kill-ring first (fastest, most common in Emacs)
-   (when kill-ring (car kill-ring))
-   ;; Try current-kill with no error
-   (ignore-errors (current-kill 0 t))
-   ;; Try different clipboard selection types (fast)
-   (when (fboundp 'gui-get-selection)
-     (or (gui-get-selection 'CLIPBOARD 'STRING)
-         (gui-get-selection 'PRIMARY 'STRING)
-         (gui-get-selection 'SECONDARY 'STRING)))
-   ;; Try x-get-clipboard for older systems (fast)
-   (when (fboundp 'x-get-clipboard)
-     (x-get-clipboard))
-   ;; Try WSL clipboard last (slow - spawns PowerShell process)
-   (when (and (executable-find "powershell.exe")
-              (getenv "WSL_DISTRO_NAME"))
-     (let ((clipboard
-            (shell-command-to-string
-             "powershell.exe -command 'Get-Clipboard' 2> /dev/null")))
-       (when (and clipboard (> (length clipboard) 0))
-         (setq clipboard (replace-regexp-in-string "\r" "" clipboard))
-         ;; Remove trailing newline if exists
-         (when (string-suffix-p "\n" clipboard)
-           (setq clipboard (substring clipboard 0 -1)))
-         (when (> (length clipboard) 0)
-           clipboard))))))
+Uses the same approach as my/smart-yank: current-kill for clipboard integration.
+Returns the content as a string, or nil if empty."
+  ;; Use current-kill like my/smart-yank does - it handles clipboard integration
+  (condition-case nil
+      (current-kill 0 t)
+    (error nil)))
 
 (defun --ecc-write-content-to-file (content filepath)
   "Write CONTENT to FILEPATH."
@@ -198,7 +176,9 @@ Returns local file path on remote host on success, nil on failure."
     (--ecc-write-content-to-file content local-file)
     (if (and (require 'ecc-remote nil t)
              (fboundp '--ecc-transfer-file-to-remote))
-        (if (--ecc-transfer-file-to-remote local-file ssh-info target-dir)
+        (if
+            (--ecc-transfer-file-to-remote local-file ssh-info
+                                           target-dir)
             remote-local-path
           (progn
             (message "Failed to transfer file to remote server")

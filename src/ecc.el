@@ -34,6 +34,7 @@
 (require 'ecc-host-switch)
 (require 'ecc-encouragement)
 (require 'ecc-anti-flicker)
+(require 'ecc-smart-yank)
 
 
 ;; 3. Main entry point
