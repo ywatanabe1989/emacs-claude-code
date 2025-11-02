@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-26 10:08:17>
+;;; Timestamp: <2025-10-31 12:11:19>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -11,7 +11,7 @@
 ;; 1. Main entry point
 ;; ----------------------------------------
 
-(defcustom ecc-directory-for-yank-as-file "~/.emacs-claude-code/"
+(defcustom ecc-directory-for-yank-as-file "/tmp/emacs-claude-code/"
   "Default directory for yank-as-file operations, both local and remote.
 This directory will be used for storing temporary files from kill ring content."
   :type 'string
@@ -50,7 +50,7 @@ Example usage:
                 ;; Local file creation (localhost case)
                 (let ((temp-file (--ecc-create-temp-file t content)))
                   (--ecc-write-content-to-file content temp-file)
-                  (--ecc-send-read-command temp-file))
+                  (--ecc-send-read-temp-file temp-file))
               ;; Remote file creation
               (if (require 'ecc-remote nil t)
                   (let
@@ -58,7 +58,7 @@ Example usage:
                         (--ecc-yank-to-remote-with-ssh-info content
                                                             remote-info)))
                     (when remote-file
-                      (--ecc-send-read-command remote-file)))
+                      (--ecc-send-read-temp-file remote-file)))
                 (message "ecc-remote not available")))
           ;; No remote-info provided - prompt user
           (if (require 'ecc-remote nil t)
@@ -70,13 +70,13 @@ Example usage:
                           (--ecc-yank-to-remote-with-ssh-info content
                                                               ssh-info)))
                       (when remote-file
-                        (--ecc-send-read-command remote-file)))
+                        (--ecc-send-read-temp-file remote-file)))
                   ;; nil returned (localhost/cancelled) - create local file
                   (let
                       ((temp-file (--ecc-create-temp-file t content)))
                     (--ecc-write-content-to-file content
                                                  temp-file)
-                    (--ecc-send-read-command temp-file))))
+                    (--ecc-send-read-temp-file temp-file))))
             (message "ecc-remote not available")))))))
 
 ;; Alias for backward compatibility
@@ -155,9 +155,13 @@ Returns the content as a string, or nil if empty."
     (insert content))
   (message "Created temporary file: %s" filepath))
 
-(defun --ecc-send-read-command (filepath)
+(defun --ecc-send-read-temp-file (filepath)
   "Send a Read command with FILEPATH to the vterm buffer."
-  (let ((command (format "Read %s" filepath)))
+  (let
+      ((command
+        (format
+         "Read %s; understand user's intent; and move on to action."
+         filepath)))
     (if (fboundp 'vterm-send-string)
         (progn
           (vterm-send-string command)

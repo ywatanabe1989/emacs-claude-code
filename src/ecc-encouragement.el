@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-19 08:04:10>
+;;; Timestamp: <2025-10-31 22:05:20>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-encouragement.el
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
@@ -132,16 +132,16 @@
     "How maintainable is this?")
   "Self-reflection questions.")
 
-(defvar ecc-encouragement-phrases-iteration
-  '("Done is better than perfect."
-    "Ship it, then improve it."
-    "Iterate to greatness."
-    "Fail fast, learn faster."
-    "Progress over perfection."
-    "Version 1 sucks, but ship it anyway."
-    "Release early, release often."
-    "Build, measure, learn.")
-  "Iterative development mindset.")
+;; (defvar ecc-encouragement-phrases-iteration
+;;   '("Done is better than perfect."
+;;     "Ship it, then improve it."
+;;     "Iterate to greatness."
+;;     "Fail fast, learn faster."
+;;     "Progress over perfection."
+;;     "Version 1 sucks, but ship it anyway."
+;;     "Release early, release often."
+;;     "Build, measure, learn.")
+;;   "Iterative development mindset.")
 
 (defvar ecc-encouragement-phrases-plan-verification
   '("Review the plan before execution."
@@ -255,7 +255,7 @@
           ;; ecc-encouragement-phrases-productivity
           ;; ecc-encouragement-phrases-fundamentals
           ;; ecc-encouragement-phrases-reflection
-          ecc-encouragement-phrases-iteration
+          ;; ecc-encouragement-phrases-iteration
           ;; ecc-encouragement-phrases-plan-verification
           ;; ecc-encouragement-phrases-edge-cases
           ecc-encouragement-phrases-context-retention
