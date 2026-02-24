@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-06-04 06:42:45>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-vterm-yank-as-file.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'ert)
 (require 'cl-lib)
@@ -21,9 +21,9 @@
     (should (stringp filepath))))
 
 (ert-deftest test-ecc-vterm-create-temp-file-follows-naming-pattern ()
-  "Test temp file creation function follows kill-ring naming pattern."
-  (let ((filepath (--ecc-create-temp-file)))
-    (should (string-match-p "kill-ring-[0-9]+-[0-9]+\\.tmp$" filepath))))
+  "Test temp file creation function follows content-preview naming pattern."
+  (let ((filepath (--ecc-create-temp-file nil "test content")))
+    (should (string-match-p "test_content_[0-9]+-[0-9]+\\.txt$" filepath))))
 
 (ert-deftest test-ecc-vterm-get-kill-ring-content-empty ()
   "Test getting content from empty kill-ring."
@@ -181,7 +181,7 @@
         (shell-command-args nil))
     ;; Mock shell-command to avoid actual SSH execution
     (cl-letf (((symbol-function 'shell-command)
-               (lambda (command)
+               (lambda (command &optional output-buffer error-buffer)
                  (setq shell-command-called t)
                  (setq shell-command-args command)
                  0))) ; Return success exit code

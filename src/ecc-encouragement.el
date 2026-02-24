@@ -1,10 +1,9 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-31 22:05:20>
+;;; Timestamp: <2026-02-05 01:30:51>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-encouragement.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
+;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'ecc-debug)
 
@@ -242,38 +241,96 @@
     "Professional execution, next.")
   "Workflow continuation phrases.")
 
+(defvar ecc-encouragement-phrases-speak
+  '("/speak-signature")
+  "Workflow reporting commands.")
+
+(defcustom ecc-encouragement-speak-max-count 2
+  "Maximum consecutive speak commands before stopping.
+When the agent finishes and enters an idle loop, speak commands
+accumulate rapidly.  After this many consecutive sends without
+real work in between, `ecc-encouragement-get-random-phrase'
+returns nil so the auto-response system sends nothing."
+  :type 'integer
+  :group 'ecc)
+
+(defcustom ecc-encouragement-min-work-duration 30.0
+  "Minimum seconds between waiting states to consider agent active.
+If less time than this has passed since the last waiting-state
+phrase was sent, it means the agent only briefly processed a speak
+command (idle loop).  If more time has passed, the agent did real
+work, and the consecutive-speak counter resets."
+  :type 'float
+  :group 'ecc)
+
+(defvar ecc-encouragement--speak-count 0
+  "Counter for consecutive speak commands sent during idle loop.")
+
+(defvar ecc-encouragement--last-phrase-time 0
+  "Timestamp of last phrase returned from `ecc-encouragement-get-random-phrase'.")
+
 (defvar ecc-encouragement-phrases
-  (append ecc-encouragement-phrases-general
-          ;; ecc-encouragement-phrases-critical
-          ;; ecc-encouragement-phrases-challenges
-          ecc-encouragement-phrases-confidence
-          ecc-encouragement-phrases-motivational
-          ;; ecc-encouragement-phrases-simplicity
-          ;; ecc-encouragement-phrases-craft
-          ;; ecc-encouragement-phrases-debugging
-          ;; ecc-encouragement-phrases-abstraction
-          ;; ecc-encouragement-phrases-productivity
-          ;; ecc-encouragement-phrases-fundamentals
-          ;; ecc-encouragement-phrases-reflection
-          ;; ecc-encouragement-phrases-iteration
-          ;; ecc-encouragement-phrases-plan-verification
-          ;; ecc-encouragement-phrases-edge-cases
-          ecc-encouragement-phrases-context-retention
-          ;; ecc-encouragement-phrases-code-quality
-          ;; ecc-encouragement-phrases-communication
-          ;; ecc-encouragement-phrases-verification
-          ecc-encouragement-phrases-workflow)
+  (append ;; ecc-encouragement-phrases-general
+   ;; ecc-encouragement-phrases-critical
+   ;; ecc-encouragement-phrases-challenges
+   ;; ecc-encouragement-phrases-confidence
+   ;; ecc-encouragement-phrases-motivational
+   ;; ecc-encouragement-phrases-simplicity
+   ;; ecc-encouragement-phrases-craft
+   ;; ecc-encouragement-phrases-debugging
+   ;; ecc-encouragement-phrases-abstraction
+   ;; ecc-encouragement-phrases-productivity
+   ;; ecc-encouragement-phrases-fundamentals
+   ;; ecc-encouragement-phrases-reflection
+   ;; ecc-encouragement-phrases-iteration
+   ;; ecc-encouragement-phrases-plan-verification
+   ;; ecc-encouragement-phrases-edge-cases
+   ;; ecc-encouragement-phrases-context-retention
+   ;; ecc-encouragement-phrases-code-quality
+   ;; ecc-encouragement-phrases-communication
+   ;; ecc-encouragement-phrases-verification
+   ;; ecc-encouragement-phrases-workflow
+   ecc-encouragement-phrases-speak)
   "List of encouragement phrases to use instead of bot-triggering commands.")
 
 ;; 3. Main Functions
 ;; ----------------------------------------
 
 (defun ecc-encouragement-get-random-phrase ()
-  "Get a random encouragement phrase."
-  (let ((phrase (nth (random (length ecc-encouragement-phrases))
-                     ecc-encouragement-phrases)))
-    (--ecc-debug-message "Selected encouragement phrase: %s" phrase)
-    phrase))
+  "Get a random encouragement phrase, or nil if idle-loop detected.
+Tracks time between consecutive calls.  When the interval is shorter
+than `ecc-encouragement-min-work-duration', it means the agent is in
+an idle loop (just acknowledging speak commands, not doing real work).
+After `ecc-encouragement-speak-max-count' such consecutive idle sends,
+returns nil so the auto-response system stops sending."
+  (let* ((now (float-time))
+         (elapsed (- now ecc-encouragement--last-phrase-time))
+         (agent-did-real-work
+	  (> elapsed ecc-encouragement-min-work-duration)))
+    ;; Reset counter when agent did real work between waits
+    (when agent-did-real-work
+      (setq ecc-encouragement--speak-count 0))
+    ;; Check if idle-loop limit reached
+    (if
+	(>= ecc-encouragement--speak-count
+	    ecc-encouragement-speak-max-count)
+        (progn
+          (--ecc-debug-message
+           "Idle loop detected: speak count %d/%d, suppressing"
+           ecc-encouragement--speak-count
+	   ecc-encouragement-speak-max-count)
+          nil)
+      ;; Pick a phrase and update tracking
+      (let ((phrase (nth (random (length ecc-encouragement-phrases))
+                         ecc-encouragement-phrases)))
+        (setq ecc-encouragement--speak-count
+              (1+ ecc-encouragement--speak-count))
+        (setq ecc-encouragement--last-phrase-time now)
+        (--ecc-debug-message
+         "Selected encouragement phrase: %s (idle count: %d/%d, elapsed: %.1fs)"
+         phrase ecc-encouragement--speak-count
+         ecc-encouragement-speak-max-count elapsed)
+        phrase))))
 
 (defun ecc-encouragement-get-phrase-for-state (state)
   "Get appropriate phrase for STATE, using encouragement if enabled."
@@ -317,11 +374,17 @@
 ;; 5. Hook Integration
 ;; ----------------------------------------
 
+(defun ecc-encouragement-reset-speak-count ()
+  "Reset the speak command counter and timestamp."
+  (setq ecc-encouragement--speak-count 0)
+  (setq ecc-encouragement--last-phrase-time 0)
+  (--ecc-debug-message "Speak counter reset to 0"))
+
 (defun ecc-encouragement-setup ()
   "Setup encouragement system."
   (when ecc-encouragement-enabled
+    (ecc-encouragement-reset-speak-count)
     (ecc-encouragement-update-responses)))
-
 
 (provide 'ecc-encouragement)
 

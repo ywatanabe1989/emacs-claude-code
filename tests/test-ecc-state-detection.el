@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-05-28 07:55:56>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-state-detection.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 
 (require 'ert)
@@ -55,6 +55,16 @@
 (ert-deftest test-ecc-state-detection-get-name-waiting ()
   "Test that :waiting state converts to 'Waiting' name."
   (should (string= (--ecc-state-detection-get-name :waiting) "Waiting")))
+
+(ert-deftest test-ecc-state-detection-suggestion-pattern ()
+  "Test suggestion state detection."
+  (with-temp-buffer
+    (insert "commit these changes                                        ↵ send")
+    (should (eq (--ecc-state-detection-detect) :suggestion))))
+
+(ert-deftest test-ecc-state-detection-get-name-suggestion ()
+  "Test that :suggestion state converts to 'Suggestion' name."
+  (should (string= (--ecc-state-detection-get-name :suggestion) "Suggestion")))
 
 
 (provide 'test-ecc-state-detection)

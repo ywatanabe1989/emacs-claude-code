@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-10-26 10:14:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-smart-yank.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 ;;; Commentary:
 ;; Smart yank with visual diff when replacing regions

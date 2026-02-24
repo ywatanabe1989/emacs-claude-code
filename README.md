@@ -178,6 +178,6 @@ These are reference command templates that can be customized for your project wo
 ---
 
 ## 📧 Contact
-Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+Yusuke Watanabe (ywatanabe@scitex.ai)
 
 <!-- EOF -->

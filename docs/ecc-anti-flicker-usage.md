@@ -276,4 +276,4 @@ Found an improvement or workaround? Please update:
 
 ## License
 
-Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)

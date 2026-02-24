@@ -1,9 +1,9 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-24 18:15:17>
+;;; Timestamp: <2026-02-11 20:36:34>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 
 ;; 1. Dependencies
@@ -45,10 +45,16 @@ Claude prompts typically appear in the last few hundred characters."
 
 (defvar --ecc-state-detection-patterns
   '((:initial-waiting . ("> Try "))
-    (:waiting . (">  "))
+    (:waiting . (">  " "Crunched for" "❯  " "Sautéed for"))
     (:y/n . ("❯ 1. Yes"))
-    (:y/y/n . (" 2. Yes, and" " 2. Yes, allow"))
-    (:running . ("(esc to interrupt")))
+    (:y/y/n
+     . (" 2. Yes, and" " 2. Yes, allow" " 2. Yes, auto-accept edits"))
+    (:running . ("(esc to interrupt"
+                 "❯ Press up"
+                 " tokens)"
+                 "ing…"
+                 ))
+    (:suggestion . ("↵ send")))
   "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
 
 (defvar --ecc-state-detection--flash-overlays nil
@@ -86,7 +92,17 @@ Claude prompts typically appear in the last few hundred characters."
              "Matched state :y/y/n with pattern: %s" pattern)
             (throw 'found :y/y/n)))))
 
-    ;; Check for Y/N pattern (second priority, must come before running check)
+    ;; Check for suggestion pattern (second priority - actionable suggestions)
+    (let
+        ((suggestion-patterns
+          (cdr (assq :suggestion --ecc-state-detection-patterns))))
+      (when suggestion-patterns
+        (dolist (pattern suggestion-patterns)
+          (when (string-match-p (regexp-quote pattern) text)
+            (--ecc-debug-message "Matched state :suggestion")
+            (throw 'found :suggestion)))))
+
+    ;; Check for Y/N pattern (third priority, must come before running check)
     (let
         ((yn-patterns
           (cdr (assq :y/n --ecc-state-detection-patterns))))
@@ -133,6 +149,7 @@ Claude prompts typically appear in the last few hundred characters."
    ((eq state :waiting) "Waiting")
    ((eq state :initial-waiting) "Initial-Waiting")
    ((eq state :running) "Running")
+   ((eq state :suggestion) "Suggestion")
    (t (format "%s" state))))
 
 (defun --ecc-state-detection-flash-pattern (state &optional buffer)
@@ -156,7 +173,7 @@ Claude prompts typically appear in the last few hundred characters."
                   ;; Highlight the entire line instead of just the pattern
                   (let* ((line-start (line-beginning-position))
                          (line-end (min (point-max)
-                                       (1+ (line-end-position))))
+                                        (1+ (line-end-position))))
                          (overlay (make-overlay line-start line-end)))
                     (overlay-put overlay 'face
                                  --ecc-state-detection-flash-face)
@@ -167,6 +184,32 @@ Claude prompts typically appear in the last few hundred characters."
                      --ecc-state-detection-flash-duration nil
                      '--ecc-state-detection--remove-flash-overlays)
                     (setq found t)))))))))))
+
+(defun --ecc-state-detection-flash-all-patterns (&optional buffer)
+  "Flash ALL matching patterns for ALL states in BUFFER.
+This highlights every pattern that matches, useful for debugging."
+  (interactive)
+  (with-current-buffer (or buffer (current-buffer))
+    (--ecc-state-detection--remove-flash-overlays)
+    (let ((search-start (max (- (point-max)
+                                --ecc-state-detection-buffer-size)
+                             (point-min))))
+      (save-excursion
+        (dolist (pattern-pair --ecc-state-detection-patterns)
+          (let ((patterns (cdr pattern-pair)))
+            (dolist (pattern patterns)
+              (goto-char (point-max))
+              (while (search-backward pattern search-start t)
+                (let* ((match-start (match-beginning 0))
+                       (match-end (match-end 0))
+                       (overlay (make-overlay match-start match-end)))
+                  (overlay-put overlay 'face
+                               --ecc-state-detection-flash-face)
+                  (overlay-put overlay 'priority 1000)
+                  (push overlay --ecc-state-detection--flash-overlays))))))
+        ;; Set timer to remove all overlays
+        (run-with-timer --ecc-state-detection-flash-duration nil
+                        '--ecc-state-detection--remove-flash-overlays)))))
 
 (defun --ecc-state-detection--remove-flash-overlays ()
   "Remove all flash overlays."

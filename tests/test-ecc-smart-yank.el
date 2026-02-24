@@ -28,10 +28,11 @@
   (with-temp-buffer
     (insert "old content")
     (kill-new "new content")
-    ;; Select all
-    (set-mark (point-min))
-    (goto-char (point-max))
-    (ecc-smart-yank nil)
+    ;; Select all with transient-mark-mode enabled
+    (let ((transient-mark-mode t))
+      (push-mark (point-min) t t)
+      (goto-char (point-max))
+      (ecc-smart-yank nil))
     (should (string= (buffer-string) "new content"))))
 
 ;; Test diff buffer creation
@@ -40,9 +41,11 @@
   (with-temp-buffer
     (insert "old text")
     (kill-new "new text")
-    (set-mark (point-min))
-    (goto-char (point-max))
-    (ecc-smart-yank nil)
+    ;; Select all with transient-mark-mode enabled
+    (let ((transient-mark-mode t))
+      (push-mark (point-min) t t)
+      (goto-char (point-max))
+      (ecc-smart-yank nil))
     ;; Check that diff buffer was created
     (should (get-buffer "*ECC Yank Diff*"))))
 
@@ -52,9 +55,11 @@
   (with-temp-buffer
     (insert "same text")
     (kill-new "same text")
-    (set-mark (point-min))
-    (goto-char (point-max))
-    (ecc-smart-yank nil)
+    ;; Select all with transient-mark-mode enabled
+    (let ((transient-mark-mode t))
+      (push-mark (point-min) t t)
+      (goto-char (point-max))
+      (ecc-smart-yank nil))
     ;; Buffer should be replaced but no diff shown
     (should (string= (buffer-string) "same text"))))
 

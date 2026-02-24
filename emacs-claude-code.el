@@ -2,10 +2,9 @@
 ;;; Author: ywatanabe
 ;;; Timestamp: <2025-05-28 05:43:59>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/emacs-claude-code.el
-;;; Version: 3.0.1
+;;; Version: 3.2.0
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'cl-lib)
 
@@ -37,7 +36,6 @@
 (--ecc-add-all-to-loadpath)
 
 (require 'ecc)
-
 
 (provide 'emacs-claude-code)
 

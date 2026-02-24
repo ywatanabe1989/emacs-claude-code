@@ -3,14 +3,17 @@
 ;;; Timestamp: <2025-06-04 08:47:05>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-list.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 ;; 1. Dependencies
 ;; ----------------------------------------
 (require 'ecc-debug)
 (require 'ecc-state-detection)
 (require 'ecc-auto-response)
+(require 'ecc-auto-response-beep)
+
+(declare-function ecc-auto-response-running-beep-toggle
+		  "ecc-auto-response-beep" ())
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -50,6 +53,7 @@
     (define-key map (kbd "u") '--ecc-buffer-list-unmark)
     (define-key map (kbd "U") '--ecc-buffer-list-unmark-all)
     (define-key map (kbd "t") '--ecc-buffer-list-toggle-marks)
+    (define-key map (kbd "b") '--ecc-buffer-list-toggle-beep)
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
     map)
@@ -71,6 +75,10 @@ In the buffer list:
 - g: Refresh list
 - q: Quit"
   (interactive)
+  ;; Ensure beep timer is running when enabled (in case it was never started)
+  (when (and ecc-auto-response-running-beep-enabled
+             (fboundp '--ecc-auto-response--start-running-beep-timer))
+    (--ecc-auto-response--start-running-beep-timer))
   (let ((vterm-buffers '())
         (registered-buffers
          (--ecc-auto-response-get-registered-buffers)))
@@ -158,9 +166,12 @@ In the buffer list:
                   (let* ((name (buffer-name buffer))
                          (auto-enabled (with-current-buffer buffer
                                          --ecc-auto-response--enabled))
-                         (current-state (with-current-buffer buffer
-                                          (--ecc-state-detection-detect)))
-                         (state-str (if current-state
+                         (current-state (when auto-enabled
+                                          (with-current-buffer buffer
+                                            (--ecc-state-detection-detect))))
+                         (state-str (if
+					(and auto-enabled
+					     current-state)
                                         (--ecc-state-detection-get-name
                                          current-state)
                                       "None"))
@@ -194,6 +205,7 @@ In the buffer list:
           (insert "  a        - Toggle auto-response\n")
           (insert "  e        - Enable auto-response\n")
           (insert "  D        - Disable auto-response\n")
+          (insert "  b        - Toggle running-beep\n")
           (insert "  d        - Kill buffer(s)\n")
           (insert "  m        - Mark buffer\n")
           (insert "  u        - Unmark buffer\n")
@@ -207,6 +219,11 @@ In the buffer list:
           (when --ecc-buffer-list-auto-refresh
             (insert (format "\nAuto-refresh: ON (every %.1fs)\n"
                             --ecc-buffer-list-refresh-interval)))
+          (insert (format "Running-beep: %s (every %.0fs)\n"
+                          (if ecc-auto-response-running-beep-enabled
+			      "ON"
+			    "off")
+                          ecc-auto-response-running-beep-interval))
 
           ;; Enable the mode
           (--ecc-buffer-list-mode)
@@ -282,7 +299,8 @@ In the buffer list:
             (with-current-buffer buffer
               (--ecc-auto-response-enable-buffer))
             (ecc-list-buffers)
-            (message "Enabled auto-response for: %s" (buffer-name buffer)))
+            (message "Enabled auto-response for: %s"
+		     (buffer-name buffer)))
         (message "Buffer no longer exists")))))
 
 (defun --ecc-buffer-list-disable-auto-response ()
@@ -295,8 +313,15 @@ In the buffer list:
             (with-current-buffer buffer
               (--ecc-auto-response-disable-buffer))
             (ecc-list-buffers)
-            (message "Disabled auto-response for: %s" (buffer-name buffer)))
+            (message "Disabled auto-response for: %s"
+		     (buffer-name buffer)))
         (message "Buffer no longer exists")))))
+
+(defun --ecc-buffer-list-toggle-beep ()
+  "Toggle the global running-beep and refresh the buffer list."
+  (interactive)
+  (ecc-auto-response-running-beep-toggle)
+  (ecc-list-buffers))
 
 (defun --ecc-buffer-list-toggle-auto-refresh ()
   "Toggle automatic refresh of the buffer list."
@@ -430,7 +455,6 @@ In the buffer list:
   (--ecc-debug-message "ecc-list.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
-
 
 (provide 'ecc-list)
 

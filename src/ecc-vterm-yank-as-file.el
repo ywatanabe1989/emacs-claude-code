@@ -1,10 +1,9 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2025-10-31 12:11:19>
+;;; Timestamp: <2026-01-10 10:46:20>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
-
+;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'vterm nil t)
 
@@ -34,7 +33,12 @@ Example usage:
   (ecc-vterm-yank-as-file '((user . \"user\") (host . \"example.com\") (port . \"22\")))
   ;; Use localhost (creates local file)
   (ecc-vterm-yank-as-file '((user . \"user\") (host . \"localhost\") (port . \"22\")))
-  ;; Sends \"Read /path/to/file.tmp\" to vterm"
+
+Output format:
+  1. Read or view (localhost)
+  /path/to/file.txt
+  2. Understand user's intent.
+  3. Move to action."
   (interactive)
   (if (not (derived-mode-p 'vterm-mode))
       (message "This command only works in vterm-mode")
@@ -56,9 +60,11 @@ Example usage:
                   (let
                       ((remote-file
                         (--ecc-yank-to-remote-with-ssh-info content
-                                                            remote-info)))
+                                                            remote-info))
+                       (remote-host (cdr (assoc 'host remote-info))))
                     (when remote-file
-                      (--ecc-send-read-temp-file remote-file)))
+                      (--ecc-send-read-temp-file remote-file
+						 remote-host)))
                 (message "ecc-remote not available")))
           ;; No remote-info provided - prompt user
           (if (require 'ecc-remote nil t)
@@ -68,9 +74,11 @@ Example usage:
                     (let
                         ((remote-file
                           (--ecc-yank-to-remote-with-ssh-info content
-                                                              ssh-info)))
+                                                              ssh-info))
+                         (remote-host (cdr (assoc 'host ssh-info))))
                       (when remote-file
-                        (--ecc-send-read-temp-file remote-file)))
+                        (--ecc-send-read-temp-file remote-file
+						   remote-host)))
                   ;; nil returned (localhost/cancelled) - create local file
                   (let
                       ((temp-file (--ecc-create-temp-file t content)))
@@ -155,17 +163,17 @@ Returns the content as a string, or nil if empty."
     (insert content))
   (message "Created temporary file: %s" filepath))
 
-(defun --ecc-send-read-temp-file (filepath)
-  "Send a Read command with FILEPATH to the vterm buffer."
-  (let
-      ((command
-        (format
-         "Read %s; understand user's intent; and move on to action."
-         filepath)))
+(defun --ecc-send-read-temp-file (filepath &optional hostname)
+  "Send a Read command with FILEPATH to the vterm buffer.
+HOSTNAME is the server name where the file resides.
+If not provided, uses current system's hostname."
+  (let* ((host (or hostname (system-name)))
+         (command
+          (format
+           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action."
+           host filepath)))
     (if (fboundp 'vterm-send-string)
-        (progn
-          (vterm-send-string command)
-          (vterm-send-return))
+        (vterm-send-string command)
       (message "vterm not available, command would be: %s" command))))
 
 (defun --ecc-yank-to-remote-with-ssh-info (content ssh-info)
@@ -202,7 +210,6 @@ Returns local file path on remote host on success, nil on failure."
 ;; ;; Set up keybinding when vterm is loaded
 ;; (with-eval-after-load 'vterm
 ;;   (ecc-vterm-yank-as-file-setup-keybinding))
-
 
 (provide 'ecc-vterm-yank-as-file)
 
