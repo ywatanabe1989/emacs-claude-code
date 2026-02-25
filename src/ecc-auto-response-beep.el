@@ -22,6 +22,7 @@
 ;; 1. Dependencies
 ;; ----------------------------------------
 
+(require 'cl-lib)
 (require 'ecc-debug)
 (require 'ecc-state-detection)
 
@@ -104,11 +105,37 @@ Prevents chattering when multiple events fire close together."
 ;; 4. Core Beep (always-available fallback)
 ;; ----------------------------------------
 
+(defcustom ecc-auto-response-beep-running-hz 800
+  "Frequency (Hz) for the periodic running-state beep."
+  :type 'integer
+  :group 'ecc)
+
+(defcustom ecc-auto-response-beep-sent-hz 1200
+  "Frequency (Hz) for the response-sent beep."
+  :type 'integer
+  :group 'ecc)
+
+(defcustom ecc-auto-response-beep-duration-ms 100
+  "Duration in milliseconds for beep tones."
+  :type 'integer
+  :group 'ecc)
+
 (defun --ecc-auto-response--force-beep ()
   "Ring the bell unconditionally, bypassing `ring-bell-function' if ignore."
   (let ((ring-bell-function nil)
         (visible-bell nil))
     (ding t)))
+
+(defun --ecc-auto-response--tone-beep (hz &optional duration-ms)
+  "Play a tone at HZ frequency for DURATION-MS milliseconds.
+Uses Linux `beep' command if available, falls back to `ding'."
+  (let ((dur (or duration-ms ecc-auto-response-beep-duration-ms)))
+    (cond
+     ((executable-find "beep")
+      (start-process "ecc-tone" nil "beep" "-f" (number-to-string hz)
+                     "-l" (number-to-string dur)))
+     (t
+      (--ecc-auto-response--force-beep)))))
 
 ;; 5. Pre-recorded Audio
 ;; ----------------------------------------
@@ -178,11 +205,18 @@ Falls back to beep if file missing or no player found."
      ecc-auto-response-beep-cooldown))
 
 (defun --ecc-auto-response--do-notify (event)
-  "Fire notification for EVENT and record the timestamp."
+  "Fire notification for EVENT and record the timestamp.
+Uses TTS if enabled, then tone beep with per-event frequency, then plain ding."
   (setq --ecc-auto-response--last-notify-time (float-time))
-  (if ecc-auto-response-tts-enabled
-      (--ecc-auto-response--play-audio event)
-    (--ecc-auto-response--force-beep)))
+  (cond
+   (ecc-auto-response-tts-enabled
+    (--ecc-auto-response--play-audio event))
+   ((string= event "running")
+    (--ecc-auto-response--tone-beep ecc-auto-response-beep-running-hz))
+   ((string= event "sent")
+    (--ecc-auto-response--tone-beep ecc-auto-response-beep-sent-hz))
+   (t
+    (--ecc-auto-response--force-beep))))
 
 (defun --ecc-auto-response--notify-running ()
   "Notify that Claude is running (called by periodic timer).
@@ -200,8 +234,10 @@ Suppressed if within `ecc-auto-response-beep-cooldown' of last notify."
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--running-beep-check ()
-  "Notify once if any auto-enabled buffer is currently in the :running state."
-  (when ecc-auto-response-running-beep-enabled
+  "Notify once if any auto-enabled buffer is currently in the :running state.
+Suppressed when a send is in progress."
+  (when (and ecc-auto-response-running-beep-enabled
+             (not (bound-and-true-p --ecc-auto-response--sending-p)))
     (catch 'notified
       (dolist (buffer (--ecc-auto-response-get-registered-buffers))
         (when (buffer-live-p buffer)
@@ -212,14 +248,16 @@ Suppressed if within `ecc-auto-response-beep-cooldown' of last notify."
               (throw 'notified t))))))))
 
 (defun --ecc-auto-response--start-running-beep-timer ()
-  "Start the single global running-beep timer if not already running."
-  (unless --ecc-auto-response--running-beep-timer
-    (setq --ecc-auto-response--running-beep-timer
-          (run-with-timer ecc-auto-response-running-beep-interval
-                          ecc-auto-response-running-beep-interval
-                          '--ecc-auto-response--running-beep-check))
-    (--ecc-debug-message "Running-beep timer started (every %s s)"
-                         ecc-auto-response-running-beep-interval)))
+  "Start the single global running-beep timer.
+Cancels any existing timer first to prevent duplicates."
+  (when --ecc-auto-response--running-beep-timer
+    (cancel-timer --ecc-auto-response--running-beep-timer))
+  (setq --ecc-auto-response--running-beep-timer
+        (run-with-timer ecc-auto-response-running-beep-interval
+                        ecc-auto-response-running-beep-interval
+                        '--ecc-auto-response--running-beep-check))
+  (--ecc-debug-message "Running-beep timer started (every %s s)"
+                       ecc-auto-response-running-beep-interval))
 
 (defun --ecc-auto-response--stop-running-beep-timer ()
   "Stop the running-beep timer if no auto-enabled buffers remain."
@@ -275,7 +313,43 @@ Suppressed if within `ecc-auto-response-beep-cooldown' of last notify."
     (message "Regenerating ECC audio files in %s"
              ecc-auto-response-audio-dir)))
 
-;; Auto-start timer on load
+;; 9. Timer Lifecycle Management
+;; ----------------------------------------
+
+(defvar --ecc-auto-response--all-timer-vars
+  '(--ecc-auto-response--running-beep-timer
+    --ecc-auto-response--timer
+    --ecc-auto-response--periodic-timer
+    --ecc-auto-response--pulse-timer)
+  "All global timer variables managed by ECC auto-response.
+Used for lifecycle cleanup to prevent orphaned timers.")
+
+(defun ecc-auto-response-cleanup-timers ()
+  "Cancel ALL ECC auto-response timers (tracked and orphaned).
+Prevents timer accumulation that can hang Emacs."
+  (interactive)
+  (let ((cancelled 0))
+    ;; 1. Cancel all tracked timer variables
+    (dolist (var --ecc-auto-response--all-timer-vars)
+      (when (and (boundp var) (symbol-value var))
+        (cancel-timer (symbol-value var))
+        (set var nil)
+        (cl-incf cancelled)))
+    ;; 2. Scan timer-list for orphaned ECC timers (named functions)
+    (dolist (timer timer-list)
+      (let ((fn (timer--function timer)))
+        (when (and (symbolp fn)
+                   (string-match-p
+		    "ecc-auto-response\\|ecc-state-detection"
+                    (symbol-name fn)))
+          (cancel-timer timer)
+          (cl-incf cancelled))))
+    (when (called-interactively-p 'interactive)
+      (message "ECC: cancelled %d timer(s)" cancelled))
+    cancelled))
+
+;; Clean up before starting fresh on load
+(ecc-auto-response-cleanup-timers)
 (run-with-timer
  0.5 nil
  (lambda ()

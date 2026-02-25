@@ -78,6 +78,16 @@
 
 (defvar-local --ecc-auto-response--last-periodic-time 0)
 
+(defvar --ecc-auto-response--sending-p nil
+  "Non-nil while actively sending a response.
+Prevents re-entrant processing during `sit-for' delays.")
+
+(defvar --ecc-auto-response-send-retry-max 8
+  "Maximum retries if sent command was not accepted (state unchanged).")
+
+(defvar --ecc-auto-response-send-verify-delay 2.0
+  "Seconds to wait before checking if sent command was accepted.")
+
 ;; 2. Main Timer Management
 ;; ----------------------------------------
 
@@ -170,40 +180,42 @@
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--process-all-buffers ()
-  "Process registered buffers for auto-response."
-  (--ecc-auto-response-cleanup-registry)
-  (let* ((all-buffers (--ecc-auto-response-get-registered-buffers))
-         (total-count (length all-buffers))
-         (buffers-to-process
-          (if (and --ecc-auto-response-max-buffers-per-cycle
-                   (> total-count
-                      --ecc-auto-response-max-buffers-per-cycle))
-              (let* ((start-idx (mod
-                                 --ecc-auto-response--buffer-rotation-index
-                                 total-count))
-                     (end-idx (min (+ start-idx
-                                      --ecc-auto-response-max-buffers-per-cycle)
+  "Process registered buffers for auto-response.
+Skips processing when a send is in progress to prevent re-entrant chattering."
+  (unless --ecc-auto-response--sending-p
+    (--ecc-auto-response-cleanup-registry)
+    (let* ((all-buffers (--ecc-auto-response-get-registered-buffers))
+           (total-count (length all-buffers))
+           (buffers-to-process
+            (if (and --ecc-auto-response-max-buffers-per-cycle
+                     (> total-count
+			--ecc-auto-response-max-buffers-per-cycle))
+		(let* ((start-idx (mod
+                                   --ecc-auto-response--buffer-rotation-index
                                    total-count))
-                     (selected
-                      (cl-subseq all-buffers start-idx end-idx)))
-                (setq --ecc-auto-response--buffer-rotation-index
-                      (mod (+ start-idx
-                              --ecc-auto-response-max-buffers-per-cycle)
-                           total-count))
-                (when --ecc-auto-response-verbose-logging
-                  (--ecc-debug-message
-                   "Timer tick: processing %d/%d buffers (rotation idx: %d->%d)"
-                   (length selected) total-count start-idx
-                   --ecc-auto-response--buffer-rotation-index))
-                selected)
-            (when --ecc-auto-response-verbose-logging
-              (--ecc-debug-message
-               "Timer tick: processing all %d buffers"
-               total-count))
-            all-buffers)))
-    (dolist (buffer buffers-to-process)
-      (when (buffer-live-p buffer)
-        (--ecc-auto-response--process-buffer buffer)))))
+                       (end-idx (min (+ start-idx
+					--ecc-auto-response-max-buffers-per-cycle)
+                                     total-count))
+                       (selected
+			(cl-subseq all-buffers start-idx end-idx)))
+                  (setq --ecc-auto-response--buffer-rotation-index
+			(mod (+ start-idx
+				--ecc-auto-response-max-buffers-per-cycle)
+                             total-count))
+                  (when --ecc-auto-response-verbose-logging
+                    (--ecc-debug-message
+                     "Timer tick: processing %d/%d buffers (rotation idx: %d->%d)"
+                     (length selected) total-count start-idx
+                     --ecc-auto-response--buffer-rotation-index))
+                  selected)
+              (when --ecc-auto-response-verbose-logging
+		(--ecc-debug-message
+		 "Timer tick: processing all %d buffers"
+		 total-count))
+              all-buffers)))
+      (dolist (buffer buffers-to-process)
+	(when (buffer-live-p buffer)
+          (--ecc-auto-response--process-buffer buffer))))))
 
 (defun --ecc-auto-response--process-buffer (buffer)
   "Process BUFFER for auto-response."
@@ -322,7 +334,9 @@
 ;; ----------------------------------------
 
 (defun --ecc-auto-response--send-response (state buffer)
-  "Send appropriate response for STATE in BUFFER."
+  "Send appropriate response for STATE in BUFFER.
+Sets `--ecc-auto-response--sending-p' to prevent re-entrant processing.
+Retries up to `--ecc-auto-response-send-retry-max' times if state unchanged."
   (let ((response (if (and
                        (fboundp
                         'ecc-encouragement-get-phrase-for-state)
@@ -332,12 +346,46 @@
     (when response
       (with-current-buffer buffer
         (--ecc-auto-response--update-tracking state))
-      (--ecc-auto-response--send-to-buffer buffer response state)
+      (let ((--ecc-auto-response--sending-p t))
+        (--ecc-auto-response--send-to-buffer buffer response state)
+        ;; Verify state changed; retry return if stuck
+        (--ecc-auto-response--verify-send buffer state))
       (when ecc-auto-response-running-beep-enabled
         (--ecc-auto-response--notify-sent))
       (when (fboundp 'ecc-auto-periodical-setup-hook)
         (with-current-buffer buffer
           (ecc-auto-periodical-setup-hook))))))
+
+(defun --ecc-auto-response--verify-send (buffer original-state)
+  "Verify that BUFFER accepted the sent command by checking state change.
+If state is still ORIGINAL-STATE after delay, retry sending return."
+  (when (and (buffer-live-p buffer)
+             (memq original-state '(:waiting :initial-waiting)))
+    (let ((retries 0))
+      (while (< retries --ecc-auto-response-send-retry-max)
+        (sit-for --ecc-auto-response-send-verify-delay)
+        (let ((new-state (with-current-buffer buffer
+                           (--ecc-state-detection-detect))))
+          (if (not (eq new-state original-state))
+              (progn
+                (--ecc-debug-message
+                 "Send verified: state changed %s -> %s"
+                 original-state new-state)
+                (setq retries --ecc-auto-response-send-retry-max))
+            (setq retries (1+ retries))
+            (--ecc-debug-message
+             "Send retry %d/%d: state still %s, resending return"
+             retries --ecc-auto-response-send-retry-max
+             original-state)
+            (with-current-buffer buffer
+              (cond
+               ((derived-mode-p 'vterm-mode)
+                (when (fboundp 'vterm-send-return)
+                  (vterm-send-return)))
+               ((derived-mode-p 'comint-mode)
+                (comint-send-input))
+               (t
+                (insert "\n"))))))))))
 
 (defun --ecc-auto-response--update-tracking (state)
   "Update tracking variables for STATE."
