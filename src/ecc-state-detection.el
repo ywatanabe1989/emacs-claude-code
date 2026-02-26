@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-26 12:22:10>
+;;; Timestamp: <2026-02-26 12:23:51>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
@@ -85,9 +85,10 @@ Includes completion messages and prompt chars with spacing variants."
 
 (defcustom --ecc-state-detection-running-patterns
   '("(esc to interrupt"
-	" tokens"
+	"tokens ·"
+    "· thinking"
 	"ing…"
-	"thought for")
+	" thought for ")
   "Patterns indicating Claude is running."
   :type '(repeat string) :group 'ecc)
 
