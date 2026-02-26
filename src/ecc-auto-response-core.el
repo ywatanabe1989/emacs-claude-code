@@ -17,6 +17,7 @@
 (require 'ecc-notification)
 (require 'ecc-auto-response-logging)
 (require 'ecc-auto-response-ui)
+(require 'ecc-auto-response-retry)
 
 ;; Function stubs (defined in ecc-auto-response.el)
 (declare-function --ecc-auto-response-get-registered-buffers
@@ -86,12 +87,6 @@ Prevents re-entrant processing during `sit-for' delays.")
   "Timestamp when `--ecc-auto-response--sending-p' was set to t.
 Used by watchdog to detect stuck sending state.")
 
-(defvar --ecc-auto-response-send-retry-max 8
-  "Maximum retries if sent command was not accepted (state unchanged).")
-
-(defvar --ecc-auto-response-send-verify-delay 2.0
-  "Seconds to wait before checking if sent command was accepted.")
-
 (defvar --ecc-auto-response-sending-timeout 30.0
   "Maximum seconds the sending-p guard can remain active.
 After this, watchdog forcibly clears it to prevent permanent lockout.")
@@ -106,6 +101,16 @@ Reset when state changes.  Used to detect stuck states.")
 (defvar --ecc-auto-response-stuck-state-threshold 15.0
   "Seconds an actionable state can persist before watchdog forces a re-send.
 If a :y/n or :y/y/n state persists this long, the send clearly failed.")
+
+(defvar-local --ecc-auto-response--nil-state-start nil
+  "Timestamp when nil state was first seen while auto is enabled.
+Used to trigger wider-window re-detection.")
+
+(defvar --ecc-auto-response-nil-state-retry-interval 5.0
+  "Seconds of nil-state before retrying detection with wider buffer window.")
+
+(defvar --ecc-auto-response-nil-state-wide-multiplier 4
+  "Multiplier for buffer-size when retrying detection on nil-state.")
 
 ;; 2. Main Timer Management
 ;; ----------------------------------------
@@ -248,7 +253,8 @@ Watchdog: forcibly clears stuck sending-p after timeout."
 
 (defun --ecc-auto-response--process-buffer (buffer)
   "Process BUFFER for auto-response.
-Tracks state duration; forces re-send if an actionable state persists too long."
+Tracks state duration; forces re-send if an actionable state persists too long.
+When state is nil and auto is enabled, retries with wider buffer window."
   (with-current-buffer buffer
     (when --ecc-auto-response--enabled
       (let* ((buffer-content (buffer-substring-no-properties
@@ -261,63 +267,84 @@ Tracks state duration; forces re-send if an actionable state persists too long."
                                  (= content-hash
                                     --ecc-auto-response--last-content-hash))))
         (setq-local --ecc-auto-response--last-content-hash
-                    content-hash)
+		    content-hash)
         (let ((state (--ecc-state-detection-detect)))
+          ;; Nil-state retry: widen detection window after timeout
+          (when (and (null state) --ecc-auto-response--enabled)
+            (if --ecc-auto-response--nil-state-start
+                (when (>
+		       (- (float-time)
+			  --ecc-auto-response--nil-state-start)
+                       --ecc-auto-response-nil-state-retry-interval)
+                  (setq state
+			(--ecc-auto-response--detect-wide buffer))
+                  (when state
+                    (--ecc-debug-message
+                     "Wide detection found state %s after %.0fs nil"
+                     state (- (float-time)
+                              --ecc-auto-response--nil-state-start))))
+              (setq-local --ecc-auto-response--nil-state-start
+			  (float-time))))
+          ;; Clear nil-state tracker when state is found
+          (when state
+            (setq-local --ecc-auto-response--nil-state-start nil))
           ;; Track state duration for watchdog
-          (if
-	      (and state
-		   (eq state
-		       --ecc-auto-response--state-first-seen-state))
-              ;; Same state persists -- check if stuck
-              (when (and
-		     (memq state
-			   '(:y/n :y/y/n :waiting :initial-waiting))
-                     --ecc-auto-response--state-first-seen-time
-                     (> (- (float-time)
-                           --ecc-auto-response--state-first-seen-time)
-                        --ecc-auto-response-stuck-state-threshold))
-                ;; State has persisted too long -- force re-send
-                (--ecc-debug-message
-                 "WATCHDOG: state %s stuck for %.0fs, forcing re-send"
-                 state (- (float-time)
-                          --ecc-auto-response--state-first-seen-time))
-                ;; Reset tracking so it tries again
-                (setq-local --ecc-auto-response--state-first-seen-time
-                            (float-time))
-                (setq-local --ecc-auto-response--sent-positions nil)
-                (--ecc-auto-response--send-response state buffer))
-            ;; State changed -- reset tracking
-            (setq-local --ecc-auto-response--state-first-seen-state
-			state)
-            (setq-local --ecc-auto-response--state-first-seen-time
-                        (when state (float-time))))
-          ;; Normal processing
+          (--ecc-auto-response--track-state-duration state buffer)
+          ;; Normal processing -- actionable states always pass through
           (when (or (not content-unchanged)
-                    (memq state '(:waiting :initial-waiting)))
+                    (memq state '(:waiting :initial-waiting
+					   :y/y/n :y/n :suggestion)))
             (when state
               (--ecc-state-detection-flash-all-patterns buffer)
-              (when --ecc-auto-response-verbose-logging
-                (--ecc-debug-message "Processing buffer %s: state=%s"
-                                     (buffer-name buffer) state))
-              (when --ecc-auto-response-verbose-logging
-                (ecc-auto-response-log-state-detection state
-                                                       buffer-content))
-              (cond
-               ((eq state :running)
-                (when --ecc-auto-response-verbose-logging
-                  (--ecc-debug-message
-                   "Claude is running, skipping auto-response")
-                  (ecc-auto-response-log 'info
-                                         "Claude is running, skipping auto-response")))
-               ((not (--ecc-auto-response--already-sent-p))
-                (when --ecc-auto-response-verbose-logging
-                  (--ecc-debug-message
-                   "State detected, checking throttle for %s" state))
-                (unless (--ecc-auto-response--should-throttle-p state)
-                  (when --ecc-auto-response-verbose-logging
-                    (--ecc-debug-message
-                     "Not throttled, sending response for %s" state))
-                  (--ecc-auto-response--send-response state buffer)))))))))))
+              (--ecc-auto-response--dispatch-state state buffer
+                                                   buffer-content))))))))
+
+(defun --ecc-auto-response--detect-wide (buffer)
+  "Retry state detection in BUFFER with wider buffer window.
+Uses multiplied buffer-size to catch prompts further from point-max."
+  (with-current-buffer buffer
+    (let ((--ecc-state-detection-buffer-size
+           (* --ecc-state-detection-buffer-size
+              --ecc-auto-response-nil-state-wide-multiplier)))
+      (--ecc-debug-message "Wide detection: checking last %d chars"
+                           --ecc-state-detection-buffer-size)
+      (--ecc-state-detection-detect))))
+
+(defun --ecc-auto-response--track-state-duration (state buffer)
+  "Track STATE duration in BUFFER; force re-send if stuck too long."
+  (with-current-buffer buffer
+    (if
+	(and state
+	     (eq state --ecc-auto-response--state-first-seen-state))
+        ;; Same state persists -- check if stuck
+        (when (and
+	       (memq state '(:y/n :y/y/n :waiting :initial-waiting))
+               --ecc-auto-response--state-first-seen-time
+               (> (- (float-time)
+                     --ecc-auto-response--state-first-seen-time)
+                  --ecc-auto-response-stuck-state-threshold))
+          (--ecc-debug-message
+           "WATCHDOG: state %s stuck for %.0fs, forcing re-send"
+           state
+	   (- (float-time) --ecc-auto-response--state-first-seen-time))
+          (setq-local --ecc-auto-response--state-first-seen-time
+		      (float-time))
+          (setq-local --ecc-auto-response--sent-positions nil)
+          (--ecc-auto-response--send-response state buffer))
+      ;; State changed -- reset tracking
+      (setq-local --ecc-auto-response--state-first-seen-state state)
+      (setq-local --ecc-auto-response--state-first-seen-time
+                  (when state (float-time))))))
+
+(defun --ecc-auto-response--dispatch-state (state buffer content)
+  "Dispatch response for STATE in BUFFER.  CONTENT is for logging."
+  (cond
+   ((eq state :running)
+    (when --ecc-auto-response-verbose-logging
+      (--ecc-debug-message "Claude is running, skipping auto-response")))
+   ((not (--ecc-auto-response--already-sent-p))
+    (unless (--ecc-auto-response--should-throttle-p state)
+      (--ecc-auto-response--send-response state buffer)))))
 
 ;; 5. Throttle Detection
 ;; ----------------------------------------
@@ -395,7 +422,7 @@ Tracks state duration; forces re-send if an actionable state persists too long."
 (defun --ecc-auto-response--send-response (state buffer)
   "Send appropriate response for STATE in BUFFER.
 Sets `--ecc-auto-response--sending-p' to prevent re-entrant processing.
-Retries up to `--ecc-auto-response-send-retry-max' times if state unchanged."
+Delegates retry/verify to `ecc-auto-response-retry'."
   (let ((response (if (and
                        (fboundp
                         'ecc-encouragement-get-phrase-for-state)
@@ -420,37 +447,6 @@ Retries up to `--ecc-auto-response-send-retry-max' times if state unchanged."
         (with-current-buffer buffer
           (ecc-auto-periodical-setup-hook))))))
 
-(defun --ecc-auto-response--verify-send (buffer original-state)
-  "Verify that BUFFER accepted the sent command by checking state change.
-If state is still ORIGINAL-STATE after delay, retry sending return."
-  (when (and (buffer-live-p buffer)
-             (memq original-state '(:waiting :initial-waiting)))
-    (let ((retries 0))
-      (while (< retries --ecc-auto-response-send-retry-max)
-        (sit-for --ecc-auto-response-send-verify-delay)
-        (let ((new-state (with-current-buffer buffer
-                           (--ecc-state-detection-detect))))
-          (if (not (eq new-state original-state))
-              (progn
-                (--ecc-debug-message
-                 "Send verified: state changed %s -> %s"
-                 original-state new-state)
-                (setq retries --ecc-auto-response-send-retry-max))
-            (setq retries (1+ retries))
-            (--ecc-debug-message
-             "Send retry %d/%d: state still %s, resending return"
-             retries --ecc-auto-response-send-retry-max
-             original-state)
-            (with-current-buffer buffer
-              (cond
-               ((derived-mode-p 'vterm-mode)
-                (when (fboundp 'vterm-send-return)
-                  (vterm-send-return)))
-               ((derived-mode-p 'comint-mode)
-                (comint-send-input))
-               (t
-                (insert "\n"))))))))))
-
 (defun --ecc-auto-response--update-tracking (state)
   "Update tracking variables for STATE."
   (let ((current-time (float-time)))
@@ -463,34 +459,6 @@ If state is still ORIGINAL-STATE after delay, retry sending return."
           (cl-remove-if (lambda (pos-time)
                           (> (- current-time (cdr pos-time)) 60))
                         --ecc-auto-response--sent-positions))))
-
-(defun --ecc-auto-response--send-to-buffer (buffer text state)
-  "Send TEXT to BUFFER for STATE."
-  (with-current-buffer buffer
-    (let ((text-sender (cond
-                        ((derived-mode-p 'vterm-mode)
-                         (lambda () (vterm-send-string text)))
-                        ((derived-mode-p 'comint-mode)
-                         (lambda () (insert text)))
-                        (t
-                         (lambda () (insert text)))))
-          (return-sender (lambda ()
-                           (cond
-                            ((derived-mode-p 'vterm-mode)
-                             (vterm-send-return))
-                            ((derived-mode-p 'comint-mode)
-                             (comint-send-input))
-                            (t
-                             (insert "\n"))))))
-      (sit-for --ecc-auto-response-safe-interval)
-      (funcall text-sender)
-      (sit-for --ecc-auto-response-safe-interval)
-      (funcall return-sender)
-      (sit-for --ecc-auto-response-safe-interval)
-      (--ecc-auto-response--show-encouragement buffer text)))
-  (--ecc-debug-message "Sent response to %s: %s"
-                       (buffer-name buffer)
-                       text))
 
 (provide 'ecc-auto-response-core)
 

@@ -170,15 +170,8 @@ In the buffer list:
                                      "-"))
                          (state-dur
                           (with-current-buffer buffer
-                            (if (and
-				 (boundp
-				  '--ecc-auto-response--state-first-seen-time)
-                                 --ecc-auto-response--state-first-seen-time
-                                 current-state)
-                                (format "%.0fs"
-                                        (- (float-time)
-                                           --ecc-auto-response--state-first-seen-time))
-                              "-")))
+                            (--ecc-buffer-list--format-duration
+                             current-state auto-enabled)))
                          (marked
                           (member buffer
                                   --ecc-buffer-list--marked-buffers))
@@ -218,6 +211,19 @@ In the buffer list:
 
 ;; 5. Status Panel Rendering
 ;; ----------------------------------------
+
+(defun --ecc-buffer-list--format-duration (state auto-on)
+  "Format state duration.  Shows nil:Ns when auto ON but state unknown."
+  (cond
+   ((and (boundp '--ecc-auto-response--state-first-seen-time)
+         --ecc-auto-response--state-first-seen-time state)
+    (format "%.0fs"
+	    (- (float-time) --ecc-auto-response--state-first-seen-time)))
+   ((and auto-on (boundp '--ecc-auto-response--nil-state-start)
+         --ecc-auto-response--nil-state-start)
+    (format "nil:%.0fs"
+	    (- (float-time) --ecc-auto-response--nil-state-start)))
+   (t "-")))
 
 (defun --ecc-buffer-list--timer-str (var-sym interval-var)
   "Return status string for timer VAR-SYM with INTERVAL-VAR."
@@ -492,14 +498,10 @@ In the buffer list:
 
 (defun --ecc-buffer-list--refresh-if-visible (buffer)
   "Refresh BUFFER if it's still visible."
-  (save-window-excursion
-    (when (and (buffer-live-p buffer)
-               (get-buffer-window buffer))
-      (with-current-buffer buffer
-        (let ((inhibit-read-only t)
-              (pos (point)))
-          (ecc-list-buffers)
-          (goto-char pos))))))
+  (when (and (buffer-live-p buffer) (get-buffer-window buffer))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t) (pos (point)))
+        (ecc-list-buffers) (goto-char pos)))))
 
 (defun --ecc-buffer-list--cleanup ()
   "Clean up when the buffer list is killed."

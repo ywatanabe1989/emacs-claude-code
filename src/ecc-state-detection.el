@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-11 20:36:34>
+;;; Timestamp: <2026-02-26 12:22:10>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
@@ -40,22 +40,76 @@ Claude prompts typically appear in the last few hundred characters."
   :type 'face
   :group 'ecc)
 
-;; 3. Variables
+;; 3. Variables -- Centralized detection tokens -- AGENTS MUST NOT CHANGE THIS SECTION
 ;; ----------------------------------------
 
-(defvar --ecc-state-detection-patterns
-  '((:initial-waiting . ("> Try "))
-    (:waiting . (">  " "Crunched for" "❯  " "Sautéed for"))
-    (:y/n . ("❯ 1. Yes"))
-    (:y/y/n
-     . (" 2. Yes, and" " 2. Yes, allow" " 2. Yes, auto-accept edits"))
-    (:running . ("(esc to interrupt"
-                 "❯ Press up"
-                 " tokens)"
-                 "ing…"
-                 ))
-    (:suggestion . ("↵ send")))
-  "Alist mapping state symbols to detection patterns. Note that space around > are non-breaking space.")
+(defcustom --ecc-state-detection-prompt-char "❯ "
+  "Primary prompt character used by Claude Code CLI."
+  :type 'string :group 'ecc)
+
+(defcustom --ecc-state-detection-waiting-patterns
+  '("Crunched for"
+	"Sautéed for"
+	"Cogitated for"
+	"Whipped up"
+    "Brewed for"
+	"Cooked for"
+	"Marinated for"
+	"Stewed for"
+    "Baked for"
+	"Simmered for"
+	"Crafted for"
+	"Distilled for"
+    "❯ "
+	"❯ "
+	"> "
+	"> ")
+  "Explicit patterns that indicate Claude is waiting for input.
+Includes completion messages and prompt chars with spacing variants."
+  :type '(repeat string) :group 'ecc)
+
+(defcustom --ecc-state-detection-permission-patterns
+  '(" 2. Yes, and"
+	" 2. Yes, allow"
+	" 2. Yes, auto-accept edits"
+    "2. Yes, and"
+	"2. Yes, allow"
+	"2. Yes, auto-accept")
+  "Patterns indicating a Y/Y/N permission prompt."
+  :type '(repeat string) :group 'ecc)
+
+(defcustom --ecc-state-detection-suggestion-patterns
+  '("↵ send")
+  "Patterns indicating an edit suggestion."
+  :type '(repeat string) :group 'ecc)
+
+(defcustom --ecc-state-detection-running-patterns
+  '("(esc to interrupt"
+	" tokens"
+	"ing…"
+	"thought for")
+  "Patterns indicating Claude is running."
+  :type '(repeat string) :group 'ecc)
+
+(defvar --ecc-state-detection-patterns nil
+  "Alist mapping state symbols to detection patterns.
+Built from centralized variables by `--ecc-state-detection-build-patterns'.")
+
+(defun --ecc-state-detection-build-patterns ()
+  "Build detection patterns from centralized variables."
+  (let ((p --ecc-state-detection-prompt-char))
+    (setq --ecc-state-detection-patterns
+          `((:initial-waiting . (,(concat p " Try ")))
+            (:waiting . (,(concat p "  ")
+                         ,(concat p " ")
+                         ,@--ecc-state-detection-completion-messages))
+            (:y/n . (,(concat p " 1. Yes")))
+            (:y/y/n . ,--ecc-state-detection-permission-patterns)
+            (:running . (,(concat p " Press up")
+                         ,@--ecc-state-detection-running-patterns))
+            (:suggestion . ,--ecc-state-detection-suggestion-patterns)))))
+
+(--ecc-state-detection-build-patterns)
 
 (defvar --ecc-state-detection--flash-overlays nil
   "List of overlays used for flashing detected text.")
@@ -63,16 +117,31 @@ Claude prompts typically appear in the last few hundred characters."
 ;; 4. Main Entry Points
 ;; ----------------------------------------
 
+(defun --ecc-state-detection--normalize-text (text)
+  "Normalize TEXT for reliable pattern matching.
+Replaces non-breaking spaces (U+00A0) with regular spaces and
+collapses multiple whitespace chars into single spaces for matching."
+  (let ((result text))
+    ;; Replace non-breaking spaces with regular spaces
+    (setq result (replace-regexp-in-string "\u00a0" " " result))
+    ;; Replace other Unicode whitespace with regular spaces
+    (setq result
+	      (replace-regexp-in-string
+	       "[\u2000-\u200b\u202f\u205f\u3000]" " " result))
+    result))
+
 (defun --ecc-state-detection-detect (&optional buffer)
   "Detect Claude prompt state in BUFFER or current buffer."
   (with-current-buffer (or buffer (current-buffer))
     (--ecc-debug-message "Detecting state in buffer: %s" (buffer-name))
-    (let ((buffer-text (buffer-substring-no-properties
-                        (max
-                         (- (point-max)
-                            --ecc-state-detection-buffer-size)
-                         (point-min))
-                        (point-max))))
+    (let* ((raw-text (buffer-substring-no-properties
+                      (max
+                       (- (point-max)
+                          --ecc-state-detection-buffer-size)
+                       (point-min))
+                      (point-max)))
+           (buffer-text
+	        (--ecc-state-detection--normalize-text raw-text)))
       (--ecc-state-detection--analyze-text buffer-text))))
 
 ;; 5. Core Functions
@@ -81,7 +150,7 @@ Claude prompts typically appear in the last few hundred characters."
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
-    ;; Check for Y/Y/N pattern FIRST (highest priority - permission prompts are most actionable)
+    ;; Check for Y/Y/N pattern FIRST (highest priority - permission prompts)
     (let
         ((yyn-patterns
           (cdr (assq :y/y/n --ecc-state-detection-patterns))))
@@ -91,6 +160,10 @@ Claude prompts typically appear in the last few hundred characters."
             (--ecc-debug-message
              "Matched state :y/y/n with pattern: %s" pattern)
             (throw 'found :y/y/n)))))
+    ;; Regex fallback for Y/Y/N (handles vterm whitespace variations)
+    (when (string-match-p "2\\.\\s-*Yes,\\s-*and" text)
+      (--ecc-debug-message "Matched state :y/y/n with regex fallback")
+      (throw 'found :y/y/n))
 
     ;; Check for suggestion pattern (second priority - actionable suggestions)
     (let
@@ -131,6 +204,11 @@ Claude prompts typically appear in the last few hundred characters."
             (when (string-match-p (regexp-quote pattern) text)
               (--ecc-debug-message "Matched state %s" state)
               (throw 'found state))))))
+    ;; Regex fallbacks for waiting (handles vterm char/spacing variations)
+    (when (string-match-p "❯[ \t\u00a0]" text)
+      (--ecc-debug-message
+       "Matched state :waiting with regex (❯ + space)")
+      (throw 'found :waiting))
     nil))
 
 ;; 6. Helper/Utility Functions
