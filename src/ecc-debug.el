@@ -5,7 +5,6 @@
 
 ;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
-
 ;; 1. Dependencies
 ;; ----------------------------------------
 ;; No dependencies for this module
@@ -24,6 +23,15 @@
 (defvar --ecc-debug-prefix "[ECC] "
   "Prefix for debug messages.")
 
+(defcustom --ecc-debug-log-max 30
+  "Maximum number of recent events to keep in the debug log ring."
+  :type 'integer
+  :group 'ecc)
+
+(defvar --ecc-debug-log nil
+  "List of recent debug events (newest first).
+Each entry is (TIMESTAMP . MESSAGE).")
+
 ;; 4. Main Entry Points
 ;; ----------------------------------------
 
@@ -38,9 +46,23 @@
 ;; ----------------------------------------
 
 (defun --ecc-debug-message (format-string &rest args)
-  "Output a debug message if debugging is enabled."
-  (when --ecc-debug-enabled
-    (apply #'message (concat --ecc-debug-prefix format-string) args)))
+  "Output a debug message if debugging is enabled.
+Always records to the event log ring for display in the buffer list."
+  (let ((msg (apply #'format format-string args)))
+    ;; Always log to ring (for buffer list display)
+    (push (cons (float-time) msg) --ecc-debug-log)
+    (when (> (length --ecc-debug-log) --ecc-debug-log-max)
+      (setq --ecc-debug-log
+	    (seq-take --ecc-debug-log --ecc-debug-log-max)))
+    ;; Only print to *Messages* when debug enabled
+    (when --ecc-debug-enabled
+      (message "%s%s" --ecc-debug-prefix msg))))
+
+(defun --ecc-debug-log-clear ()
+  "Clear the debug event log."
+  (interactive)
+  (setq --ecc-debug-log nil)
+  (message "ECC debug log cleared"))
 
 ;; 6. Helper/Utility Functions
 ;; ----------------------------------------
@@ -51,7 +73,6 @@
   (--ecc-debug-message "ecc-debug.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
-
 
 (provide 'ecc-debug)
 

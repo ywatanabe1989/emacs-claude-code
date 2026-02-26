@@ -16,7 +16,7 @@ Three key parameters control the throttling behavior:
 
 | Parameter | Default Value | Description |
 |-----------|--------------|-------------|
-| `--ecc-auto-response-same-state-delay` | 0.3 seconds | Minimum time between responses to the same state |
+| `--ecc-auto-response-same-state-delay` | 1.5 seconds | Minimum time between responses to the same state |
 | `--ecc-auto-response-burst-limit` | 10 responses | Maximum responses allowed within the time window |
 | `--ecc-auto-response-burst-window` | 3 seconds | Time window for counting burst responses |
 
@@ -130,5 +130,34 @@ You can adjust these settings in your Emacs configuration:
 | **Burst Window** | Time frame for counting | 3s ⏰ | Wide time frame |
 
 **Result:** Responsive auto mode that prevents infinite loops while allowing rapid legitimate interactions.
+
+---
+
+## Audio Notifications
+
+The auto-response system provides audio feedback via async subprocess calls (never blocks Emacs).
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `ecc-auto-response-running-beep-enabled` | t | Enable/disable audio notifications |
+| `ecc-auto-response-running-beep-interval` | 3.0s | Heartbeat interval when Claude is running |
+| `ecc-auto-response-beep-running-hz` | 400 Hz | Low tone for periodic heartbeat |
+| `ecc-auto-response-beep-sent-hz` | 1400 Hz | High tone when response is sent |
+| `ecc-auto-response-beep-cooldown` | 2.0s | Min seconds between consecutive beeps |
+| `ecc-auto-response-tts-enabled` | nil | Use pre-recorded TTS audio files |
+
+Audio priority chain: `play` (sox) > `beep` > `paplay` > idle-timer `ding`
+
+---
+
+## Watchdog & Reliability
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--ecc-auto-response-stuck-state-threshold` | 15.0s | Force re-send if actionable state persists this long |
+| `--ecc-auto-response-sending-timeout` | 30.0s | Force-clear sending guard if stuck |
+| `--ecc-auto-response-send-retry-max` | 8 | Max retries for verify-send loop |
+
+The buffer list dashboard (`M-x ecc-list-buffers`) shows all timer statuses, state durations, and a live event log for debugging.
 
 <!-- EOF -->

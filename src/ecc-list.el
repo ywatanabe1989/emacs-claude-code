@@ -54,6 +54,7 @@
     (define-key map (kbd "U") '--ecc-buffer-list-unmark-all)
     (define-key map (kbd "t") '--ecc-buffer-list-toggle-marks)
     (define-key map (kbd "b") '--ecc-buffer-list-toggle-beep)
+    (define-key map (kbd "c") '--ecc-buffer-list-clear-log)
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
     map)
@@ -104,126 +105,101 @@ In the buffer list:
 
           (if vterm-buffers
               (progn
-                (insert (format "%-3s %-30s %-15s %-12s %s\n"
-                                " " "Buffer Name" "Auto-Response"
-                                "Last Sent" "State"))
-                (insert (format "%-3s %-30s %-15s %-12s %s\n"
+                (insert (format "%-3s %-30s %-4s %-10s %-12s %-8s\n"
+                                " " "Buffer Name" "Auto"
+                                "State" "Last Sent" "Duration"))
+                (insert (format "%-3s %-30s %-4s %-10s %-12s %-8s\n"
                                 "───"
                                 "─────────────────────────────"
-                                "──────────────"
+                                "────"
+                                "──────────"
                                 "────────────"
-                                "─────"))
+                                "────────"))
 
-                ;; Sort buffers: last sent -> state not None -> created at
+                ;; Sort buffers: enabled first, then by last sent time
                 (setq vterm-buffers (sort vterm-buffers
                                           (lambda (a b)
-                                            (let ((time-a
-                                                   (with-current-buffer
-                                                       a
+                                            (let ((en-a
+						   (with-current-buffer
+						       a
+                                                     --ecc-auto-response--enabled))
+                                                  (en-b
+						   (with-current-buffer
+						       b
+                                                     --ecc-auto-response--enabled))
+                                                  (time-a
+						   (with-current-buffer
+						       a
                                                      --ecc-auto-response--last-time))
                                                   (time-b
-                                                   (with-current-buffer
-                                                       b
-                                                     --ecc-auto-response--last-time))
-                                                  (state-a
-                                                   (with-current-buffer
-                                                       a
-                                                     (--ecc-state-detection-detect)))
-                                                  (state-b
-                                                   (with-current-buffer
-                                                       b
-                                                     (--ecc-state-detection-detect))))
+						   (with-current-buffer
+						       b
+                                                     --ecc-auto-response--last-time)))
                                               (cond
-                                               ;; Both have sent times - sort by time (newer first)
+                                               ((and en-a (not en-b))
+						t)
+                                               ((and en-b (not en-a))
+						nil)
                                                ((and time-a time-b
                                                      (> time-a 0)
-                                                     (> time-b 0))
+						     (> time-b 0))
                                                 (> time-a time-b))
-                                               ;; Only a has sent time
                                                ((and time-a
-                                                     (> time-a 0))
-                                                t)
-                                               ;; Only b has sent time
+						     (> time-a 0))
+						t)
                                                ((and time-b
-                                                     (> time-b 0))
-                                                nil)
-                                               ;; Neither has sent time, check states
-                                               ((and state-a
-                                                     (not state-b))
-                                                t)
-                                               ((and state-b
-                                                     (not state-a))
-                                                nil)
-                                               ;; Both have states or both have no states
-                                               ;; Sort by buffer creation order (older buffers first)
-                                               (t (<
-                                                   (buffer-chars-modified-tick
-                                                    a)
-                                                   (buffer-chars-modified-tick
-                                                    b))))))))
+						     (> time-b 0))
+						nil)
+                                               (t nil))))))
 
                 (dolist (buffer vterm-buffers)
                   (let* ((name (buffer-name buffer))
                          (auto-enabled (with-current-buffer buffer
                                          --ecc-auto-response--enabled))
-                         (current-state (when auto-enabled
-                                          (with-current-buffer buffer
-                                            (--ecc-state-detection-detect))))
-                         (state-str (if
-					(and auto-enabled
-					     current-state)
+                         (current-state (with-current-buffer buffer
+                                          (--ecc-state-detection-detect)))
+                         (state-str (if current-state
                                         (--ecc-state-detection-get-name
                                          current-state)
-                                      "None"))
+                                      "-"))
                          (last-time (with-current-buffer buffer
                                       --ecc-auto-response--last-time))
                          (time-str (if (and last-time (> last-time 0))
                                        (format-time-string "%H:%M:%S"
                                                            last-time)
-                                     "Never"))
+                                     "-"))
+                         (state-dur
+                          (with-current-buffer buffer
+                            (if (and
+				 (boundp
+				  '--ecc-auto-response--state-first-seen-time)
+                                 --ecc-auto-response--state-first-seen-time
+                                 current-state)
+                                (format "%.0fs"
+                                        (- (float-time)
+                                           --ecc-auto-response--state-first-seen-time))
+                              "-")))
                          (marked
                           (member buffer
                                   --ecc-buffer-list--marked-buffers))
                          (mark-str (if marked "*" " ")))
                     (insert (propertize
-                             (format "%-3s %-30s %-15s %-12s %s\n"
-                                     mark-str
-                                     (if (> (length name) 29)
-                                         (concat (substring name 0 26)
-                                                 "...")
-                                       name)
-                                     (if auto-enabled "Enabled"
-                                       "Disabled")
-                                     time-str
-                                     state-str)
+                             (format
+			      "%-3s %-30s %-4s %-10s %-12s %-8s\n"
+                              mark-str
+                              (if (> (length name) 29)
+                                  (concat (substring name 0 26)
+                                          "...")
+                                name)
+                              (if auto-enabled "ON" "off")
+                              state-str
+                              time-str
+                              state-dur)
                              '--ecc-buffer buffer)))))
             (insert "No vterm buffers found.\n"))
 
-          (insert "\nCommands:\n")
-          (insert "  RET/SPC  - Jump to buffer\n")
-          (insert "  o        - Display buffer in other window\n")
-          (insert "  a        - Toggle auto-response\n")
-          (insert "  e        - Enable auto-response\n")
-          (insert "  D        - Disable auto-response\n")
-          (insert "  b        - Toggle running-beep\n")
-          (insert "  d        - Kill buffer(s)\n")
-          (insert "  m        - Mark buffer\n")
-          (insert "  u        - Unmark buffer\n")
-          (insert "  U        - Unmark all buffers\n")
-          (insert "  t        - Toggle marks\n")
-          (insert "  g        - Refresh list\n")
-          (insert "  r        - Toggle auto-refresh\n")
-          (insert "  q        - Quit\n")
-          (insert "  n/p      - Next/previous line\n")
-
-          (when --ecc-buffer-list-auto-refresh
-            (insert (format "\nAuto-refresh: ON (every %.1fs)\n"
-                            --ecc-buffer-list-refresh-interval)))
-          (insert (format "Running-beep: %s (every %.0fs)\n"
-                          (if ecc-auto-response-running-beep-enabled
-			      "ON"
-			    "off")
-                          ecc-auto-response-running-beep-interval))
+          ;; Status panel
+          (--ecc-buffer-list--insert-status-panel)
 
           ;; Enable the mode
           (--ecc-buffer-list-mode)
@@ -240,7 +216,86 @@ In the buffer list:
       ;; Display the buffer
       (pop-to-buffer list-buffer))))
 
-;; 5. Core Functions
+;; 5. Status Panel Rendering
+;; ----------------------------------------
+
+(defun --ecc-buffer-list--timer-str (var-sym interval-var)
+  "Return status string for timer VAR-SYM with INTERVAL-VAR."
+  (if (and (boundp var-sym) (symbol-value var-sym))
+      (format "ACTIVE (%.0fs)"
+	      (if (boundp interval-var) (symbol-value interval-var) 0))
+    "stopped"))
+
+(defun --ecc-buffer-list--insert-status-panel ()
+  "Insert timers, config, and recent events into the buffer list."
+  (insert "\nTimers:\n")
+  (insert (format "  Main:     %s\n"
+                  (--ecc-buffer-list--timer-str
+		   '--ecc-auto-response--timer
+		   '--ecc-auto-response-interval)))
+  (insert (format "  Periodic: %s\n"
+                  (--ecc-buffer-list--timer-str
+		   '--ecc-auto-response--periodic-timer
+		   '--ecc-auto-response-periodic-interval)))
+  (insert (format "  Beep:     %s\n"
+                  (--ecc-buffer-list--timer-str
+		   '--ecc-auto-response--running-beep-timer
+		   'ecc-auto-response-running-beep-interval)))
+  (insert (format "  Pulse:    %s  Sending: %s\n"
+                  (if
+		      (and (boundp '--ecc-auto-response--pulse-timer)
+			   --ecc-auto-response--pulse-timer)
+		      "ACTIVE"
+		    "stopped")
+                  (if
+		      (and (boundp '--ecc-auto-response--sending-p)
+			   --ecc-auto-response--sending-p)
+                      (format "LOCKED %.0fs" (- (float-time)
+                                                (if
+						    (boundp
+						     '--ecc-auto-response--sending-p-timestamp)
+                                                    --ecc-auto-response--sending-p-timestamp
+						  (float-time))))
+                    "clear")))
+  (insert (format
+	   "\nConfig: Beep %s (%dHz/%dHz)  TTS %s  Cooldown %.1fs  Stuck %.0fs\n"
+           (if ecc-auto-response-running-beep-enabled "ON"
+	     "off")
+           ecc-auto-response-beep-running-hz
+	   ecc-auto-response-beep-sent-hz
+           (if ecc-auto-response-tts-enabled "ON" "off")
+           ecc-auto-response-beep-cooldown
+           (if
+	       (boundp
+		'--ecc-auto-response-stuck-state-threshold)
+	       --ecc-auto-response-stuck-state-threshold
+	     15.0)))
+  ;; Recent events
+  (insert "\nRecent Events (c=clear):\n")
+  (if --ecc-debug-log
+      (dolist (entry (seq-take --ecc-debug-log 12))
+        (insert (format "  %s  %s\n"
+                        (format-time-string "%H:%M:%S" (car entry))
+                        (let ((m (cdr entry)))
+			  (if (> (length m) 68)
+			      (concat (substring m 0 65) "...")
+			    m)))))
+    (insert "  (no events)\n"))
+  ;; Keys & auto-refresh
+  (insert
+   "\nKeys: RET=jump o=other a=toggle e=on D=off b=beep c=clear-log g=refresh r=auto q=quit\n")
+  (when --ecc-buffer-list-auto-refresh
+    (insert
+     (format "Auto-refresh: ON (every %.1fs)\n"
+	     --ecc-buffer-list-refresh-interval))))
+
+(defun --ecc-buffer-list-clear-log ()
+  "Clear the debug event log and refresh."
+  (interactive)
+  (--ecc-debug-log-clear)
+  (ecc-list-buffers))
+
+;; 6. Mode & Buffer Commands
 ;; ----------------------------------------
 
 (define-derived-mode --ecc-buffer-list-mode special-mode
@@ -450,16 +505,4 @@ In the buffer list:
   "Clean up when the buffer list is killed."
   (--ecc-buffer-list--cancel-refresh-timer))
 
-(when
-    (not load-file-name)
-  (--ecc-debug-message "ecc-list.el loaded."
-                       (file-name-nondirectory
-                        (or load-file-name buffer-file-name))))
-
 (provide 'ecc-list)
-
-(when
-    (not load-file-name)
-  (message "ecc-list.el loaded."
-           (file-name-nondirectory
-            (or load-file-name buffer-file-name))))

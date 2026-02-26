@@ -11,7 +11,9 @@ Emacs interface for Claude Code with intelligent auto-response and enhanced vter
 ## 🚀 Key Features
 - **🤖 Auto-Response**: Automatically responds to Claude prompts (INITIAL WAITING, Y/N, Y/Y/N, and WAITING states)
 - **⏰ Periodic Auto-Response**: Sends periodic commands based on number of interactions
-- **📊 Buffer Management**: Centralized dashboard to monitor all Claude sessions 
+- **📊 Buffer Dashboard**: Centralized dashboard with timer status, config, state duration, and live debug log
+- **🔔 Audio Notifications**: Async beep tones (400Hz heartbeat / 1400Hz sent), pre-recorded TTS, cooldown debounce
+- **🛡️ Watchdog**: Stuck-state detection with auto re-send; sending guard with timeout; timer lifecycle management
 - **📋 Yank-as-File**: Yank large contents as file for clean terminal, with remote supported
 
 ---
@@ -22,35 +24,32 @@ Emacs interface for Claude Code with intelligent auto-response and enhanced vter
 
 *Real-time demonstration of auto-response functionality*
 
-## 📋 Buffer List Management
+## 📋 Buffer List Dashboard
 
 ``` plaintext
 ECC Claude Buffer List
 =====================
 
-    Buffer Name                Auto-Response   Last Sent    State
-─── ─────────────────────────  ──────────────  ──────────── ─────
-    my-awesome-buffer-1        Enabled         10:22:54     Continue
-    my-awesome-buffer-2        Enabled         09:18:34     None
-    my-awesome-buffer-3        Disabled        Never        Y/N
-    my-awesome-buffer-4        Disabled        Never        Running
-    my-awesome-buffer-5        Disabled        Never        Continue
-    my-awesome-buffer-6        Enabled         08:45:12     None
+    Buffer Name                    Auto State      Last Sent    Duration
+─── ─────────────────────────────  ──── ──────────  ──────────── ────────
+    my-awesome-buffer-1            ON   Running     10:22:54     45s
+    my-awesome-buffer-2            ON   Y/Y/N       09:18:34     3s
+    my-awesome-buffer-3            off  -           -            -
 
-Commands:
-  RET/SPC  - Jump to buffer
-  o        - Display buffer in other window
-  a        - Toggle auto-response
-  d        - Kill buffer(s)
-  m        - Mark buffer
-  u        - Unmark buffer
-  U        - Unmark all buffers
-  t        - Toggle marks
-  g        - Refresh list
-  r        - Toggle auto-refresh
-  q        - Quit
-  n/p      - Next/previous line
+Timers:
+  Main:     ACTIVE (2s)
+  Periodic: ACTIVE (300s)
+  Beep:     ACTIVE (3s)
+  Pulse:    ACTIVE  Sending: clear
 
+Config: Beep ON (400Hz/1400Hz)  TTS off  Cooldown 2.0s  Stuck 15s
+
+Recent Events (c=clear):
+  10:22:55  Matched state :running with pattern: (esc to interrupt
+  10:22:54  Sent response to my-awesome-buffer-1: 2
+  10:22:53  Matched state :y/y/n with pattern:  2. Yes, and
+
+Keys: RET=jump o=other a=toggle e=on D=off b=beep c=clear-log g=refresh r=auto q=quit
 Auto-refresh: ON (every 2.0s)
 ```
 
@@ -80,9 +79,12 @@ Add to your `init.el`:
 ### Essential Commands
 | Command | Description |
 |---------|-------------|
-| `M-x ecc-list-buffers` | Show all Claude buffers with status |
+| `M-x ecc-list-buffers` | Show buffer dashboard with timers, config, and debug log |
 | `M-x ecc-auto-toggle` | Toggle auto-response for current vterm buffer |
 | `M-x ecc-auto-periodical-toggle` | Toggle periodic auto-response commands |
+| `M-x ecc-auto-response-running-beep-toggle` | Toggle audio heartbeat notifications |
+| `M-x ecc-auto-response-tts-toggle` | Toggle pre-recorded TTS sounds |
+| `M-x ecc-auto-response-cleanup-timers` | Cancel all ECC timers (emergency cleanup) |
 | `M-x ecc-vterm-yank-as-file` | Yank clipboard content as file (supports remote hosts) |
 
 ### Basic Configuration

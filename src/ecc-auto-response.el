@@ -48,6 +48,8 @@
 		  "ecc-auto-response-beep" ())
 (declare-function --ecc-auto-response--do-notify
 		  "ecc-auto-response-beep" (event))
+(declare-function ecc-auto-response-cleanup-timers
+		  "ecc-auto-response-beep" ())
 (declare-function --ecc-notification--remove-thunder-icon
 		  "ecc-notification" ())
 (declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical"
@@ -267,19 +269,29 @@
      "Auto-response enabled - look for pulsing red ⚡ AUTO CLAUDE in mode-line")))
 
 (defun --ecc-auto-response-disable-buffer (&optional buffer)
-  "Disable auto-response for BUFFER."
+  "Disable auto-response for BUFFER.
+When no auto-enabled buffers remain, cleans up ALL timers."
   (let ((buf (or buffer (current-buffer))))
     (--ecc-auto-response-unregister-buffer buf)
     (with-current-buffer buf
       (setq-local --ecc-auto-response--enabled nil)
-      (--ecc-auto-response--stop-periodic-timer)
-      (--ecc-auto-response--stop-pulse-timer)
       (--ecc-auto-response--restore-visual-modes)
       (when (fboundp '--ecc-notification--remove-thunder-icon)
         (--ecc-notification--remove-thunder-icon))
       (--ecc-auto-response--update-mode-line))
-    ;; Stop running-beep timer if no buffers remain enabled
-    (--ecc-auto-response--stop-running-beep-timer)
+    ;; Check if ANY registered buffer still has auto mode enabled
+    (let ((any-enabled nil))
+      (dolist (b (--ecc-auto-response-get-registered-buffers))
+        (when (and (buffer-live-p b)
+                   (buffer-local-value '--ecc-auto-response--enabled b))
+          (setq any-enabled t)))
+      (if any-enabled
+          ;; Some buffers still active -- only stop beep timer conditionally
+          (--ecc-auto-response--stop-running-beep-timer)
+        ;; No buffers remain -- full cleanup of ALL timers
+        (ecc-auto-response-cleanup-timers)
+        (--ecc-debug-message
+         "All auto-response buffers disabled, all timers cleaned up")))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"
                          (buffer-name buf))))
 

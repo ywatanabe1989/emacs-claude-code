@@ -44,7 +44,7 @@ in the :running state, and also when a response is sent."
   :type 'boolean
   :group 'ecc)
 
-(defcustom ecc-auto-response-running-beep-interval 10.0
+(defcustom ecc-auto-response-running-beep-interval 3.0
   "Interval in seconds between running-state audio notifications."
   :type 'float
   :group 'ecc)
@@ -91,7 +91,7 @@ Set to a custom directory to override the bundled sounds."
 (defvar --ecc-auto-response--last-notify-time 0.0
   "Timestamp of the last audio notification, used for debouncing.")
 
-(defcustom ecc-auto-response-beep-cooldown 5.0
+(defcustom ecc-auto-response-beep-cooldown 2.0
   "Minimum seconds between consecutive audio notifications.
 Prevents chattering when multiple events fire close together."
   :type 'float
@@ -102,15 +102,15 @@ Prevents chattering when multiple events fire close together."
     ("sent"    . "ecc-sent.mp3"))
   "Alist mapping event names to audio filenames.")
 
-;; 4. Core Beep (always-available fallback)
+;; 4. Core Beep (always-available, fully async)
 ;; ----------------------------------------
 
-(defcustom ecc-auto-response-beep-running-hz 800
+(defcustom ecc-auto-response-beep-running-hz 400
   "Frequency (Hz) for the periodic running-state beep."
   :type 'integer
   :group 'ecc)
 
-(defcustom ecc-auto-response-beep-sent-hz 1200
+(defcustom ecc-auto-response-beep-sent-hz 1400
   "Frequency (Hz) for the response-sent beep."
   :type 'integer
   :group 'ecc)
@@ -120,22 +120,81 @@ Prevents chattering when multiple events fire close together."
   :type 'integer
   :group 'ecc)
 
+(defvar --ecc-auto-response--beep-in-progress nil
+  "Non-nil while an async beep process is running.
+Prevents overlapping beep processes that cause chattering.")
+
 (defun --ecc-auto-response--force-beep ()
-  "Ring the bell unconditionally, bypassing `ring-bell-function' if ignore."
-  (let ((ring-bell-function nil)
-        (visible-bell nil))
-    (ding t)))
+  "Ring the bell asynchronously via subprocess.
+Never blocks Emacs.  Uses `play' (sox), `beep', or `paplay' in that order."
+  (unless --ecc-auto-response--beep-in-progress
+    (setq --ecc-auto-response--beep-in-progress t)
+    (cond
+     ;; sox/play: synthesize a short tone
+     ((executable-find "play")
+      (let ((proc (start-process "ecc-beep" nil "play" "-q" "-n"
+                                 "synth" "0.1" "sine" "600")))
+        (set-process-sentinel proc
+                              (lambda (_p _e)
+                                (setq
+				 --ecc-auto-response--beep-in-progress
+				 nil)))))
+     ;; paplay with system sound
+     ((and (executable-find "paplay")
+           (file-exists-p
+	    "/usr/share/sounds/freedesktop/stereo/bell.oga"))
+      (let ((proc (start-process "ecc-beep" nil "paplay"
+                                 "/usr/share/sounds/freedesktop/stereo/bell.oga")))
+        (set-process-sentinel proc
+                              (lambda (_p _e)
+                                (setq
+				 --ecc-auto-response--beep-in-progress
+				 nil)))))
+     ;; Last resort: schedule ding on next idle (still brief but non-blocking now)
+     (t
+      (run-with-idle-timer
+       0 nil
+       (lambda ()
+         (let ((ring-bell-function nil)
+               (visible-bell nil))
+           (ding t))
+         (setq --ecc-auto-response--beep-in-progress nil)))))))
 
 (defun --ecc-auto-response--tone-beep (hz &optional duration-ms)
   "Play a tone at HZ frequency for DURATION-MS milliseconds.
-Uses Linux `beep' command if available, falls back to `ding'."
-  (let ((dur (or duration-ms ecc-auto-response-beep-duration-ms)))
-    (cond
-     ((executable-find "beep")
-      (start-process "ecc-tone" nil "beep" "-f" (number-to-string hz)
-                     "-l" (number-to-string dur)))
-     (t
-      (--ecc-auto-response--force-beep)))))
+Fully asynchronous -- never blocks Emacs."
+  (unless --ecc-auto-response--beep-in-progress
+    (setq --ecc-auto-response--beep-in-progress t)
+    (let ((dur (or duration-ms ecc-auto-response-beep-duration-ms))
+          (dur-sec (format "%.3f"
+                           (/ (float (or duration-ms
+                                         ecc-auto-response-beep-duration-ms))
+                              1000.0))))
+      (cond
+       ;; sox/play: synthesize tone with exact frequency
+       ((executable-find "play")
+        (let ((proc (start-process "ecc-tone" nil "play" "-q" "-n"
+                                   "synth" dur-sec "sine"
+                                   (number-to-string hz))))
+          (set-process-sentinel proc
+                                (lambda (_p _e)
+                                  (setq
+				   --ecc-auto-response--beep-in-progress
+				   nil)))))
+       ;; beep: PC speaker with frequency
+       ((executable-find "beep")
+        (let ((proc (start-process "ecc-tone" nil "beep"
+                                   "-f" (number-to-string hz)
+                                   "-l" (number-to-string dur))))
+          (set-process-sentinel proc
+                                (lambda (_p _e)
+                                  (setq
+				   --ecc-auto-response--beep-in-progress
+				   nil)))))
+       ;; Fallback
+       (t
+        (setq --ecc-auto-response--beep-in-progress nil)
+        (--ecc-auto-response--force-beep))))))
 
 ;; 5. Pre-recorded Audio
 ;; ----------------------------------------
@@ -348,13 +407,8 @@ Prevents timer accumulation that can hang Emacs."
       (message "ECC: cancelled %d timer(s)" cancelled))
     cancelled))
 
-;; Clean up before starting fresh on load
+;; Clean up orphaned timers on load (prevents accumulation from reloads)
 (ecc-auto-response-cleanup-timers)
-(run-with-timer
- 0.5 nil
- (lambda ()
-   (when ecc-auto-response-running-beep-enabled
-     (--ecc-auto-response--start-running-beep-timer))))
 
 (provide 'ecc-auto-response-beep)
 

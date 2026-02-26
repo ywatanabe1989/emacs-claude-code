@@ -82,11 +82,30 @@
   "Non-nil while actively sending a response.
 Prevents re-entrant processing during `sit-for' delays.")
 
+(defvar --ecc-auto-response--sending-p-timestamp 0
+  "Timestamp when `--ecc-auto-response--sending-p' was set to t.
+Used by watchdog to detect stuck sending state.")
+
 (defvar --ecc-auto-response-send-retry-max 8
   "Maximum retries if sent command was not accepted (state unchanged).")
 
 (defvar --ecc-auto-response-send-verify-delay 2.0
   "Seconds to wait before checking if sent command was accepted.")
+
+(defvar --ecc-auto-response-sending-timeout 30.0
+  "Maximum seconds the sending-p guard can remain active.
+After this, watchdog forcibly clears it to prevent permanent lockout.")
+
+(defvar-local --ecc-auto-response--state-first-seen-time nil
+  "Timestamp when the current actionable state was first detected.
+Reset when state changes.  Used to detect stuck states.")
+
+(defvar-local --ecc-auto-response--state-first-seen-state nil
+  "The state that was first seen at `--ecc-auto-response--state-first-seen-time'.")
+
+(defvar --ecc-auto-response-stuck-state-threshold 15.0
+  "Seconds an actionable state can persist before watchdog forces a re-send.
+If a :y/n or :y/y/n state persists this long, the send clearly failed.")
 
 ;; 2. Main Timer Management
 ;; ----------------------------------------
@@ -181,7 +200,17 @@ Prevents re-entrant processing during `sit-for' delays.")
 
 (defun --ecc-auto-response--process-all-buffers ()
   "Process registered buffers for auto-response.
-Skips processing when a send is in progress to prevent re-entrant chattering."
+Skips processing when a send is in progress to prevent re-entrant chattering.
+Watchdog: forcibly clears stuck sending-p after timeout."
+  ;; Watchdog: clear stuck sending-p guard
+  (when (and --ecc-auto-response--sending-p
+             (>
+	      (- (float-time) --ecc-auto-response--sending-p-timestamp)
+              --ecc-auto-response-sending-timeout))
+    (--ecc-debug-message
+     "WATCHDOG: sending-p stuck for %.0fs, forcibly clearing"
+     (- (float-time) --ecc-auto-response--sending-p-timestamp))
+    (setq --ecc-auto-response--sending-p nil))
   (unless --ecc-auto-response--sending-p
     (--ecc-auto-response-cleanup-registry)
     (let* ((all-buffers (--ecc-auto-response-get-registered-buffers))
@@ -218,7 +247,8 @@ Skips processing when a send is in progress to prevent re-entrant chattering."
           (--ecc-auto-response--process-buffer buffer))))))
 
 (defun --ecc-auto-response--process-buffer (buffer)
-  "Process BUFFER for auto-response."
+  "Process BUFFER for auto-response.
+Tracks state duration; forces re-send if an actionable state persists too long."
   (with-current-buffer buffer
     (when --ecc-auto-response--enabled
       (let* ((buffer-content (buffer-substring-no-properties
@@ -233,6 +263,35 @@ Skips processing when a send is in progress to prevent re-entrant chattering."
         (setq-local --ecc-auto-response--last-content-hash
                     content-hash)
         (let ((state (--ecc-state-detection-detect)))
+          ;; Track state duration for watchdog
+          (if
+	      (and state
+		   (eq state
+		       --ecc-auto-response--state-first-seen-state))
+              ;; Same state persists -- check if stuck
+              (when (and
+		     (memq state
+			   '(:y/n :y/y/n :waiting :initial-waiting))
+                     --ecc-auto-response--state-first-seen-time
+                     (> (- (float-time)
+                           --ecc-auto-response--state-first-seen-time)
+                        --ecc-auto-response-stuck-state-threshold))
+                ;; State has persisted too long -- force re-send
+                (--ecc-debug-message
+                 "WATCHDOG: state %s stuck for %.0fs, forcing re-send"
+                 state (- (float-time)
+                          --ecc-auto-response--state-first-seen-time))
+                ;; Reset tracking so it tries again
+                (setq-local --ecc-auto-response--state-first-seen-time
+                            (float-time))
+                (setq-local --ecc-auto-response--sent-positions nil)
+                (--ecc-auto-response--send-response state buffer))
+            ;; State changed -- reset tracking
+            (setq-local --ecc-auto-response--state-first-seen-state
+			state)
+            (setq-local --ecc-auto-response--state-first-seen-time
+                        (when state (float-time))))
+          ;; Normal processing
           (when (or (not content-unchanged)
                     (memq state '(:waiting :initial-waiting)))
             (when state
@@ -346,10 +405,15 @@ Retries up to `--ecc-auto-response-send-retry-max' times if state unchanged."
     (when response
       (with-current-buffer buffer
         (--ecc-auto-response--update-tracking state))
-      (let ((--ecc-auto-response--sending-p t))
-        (--ecc-auto-response--send-to-buffer buffer response state)
-        ;; Verify state changed; retry return if stuck
-        (--ecc-auto-response--verify-send buffer state))
+      (setq --ecc-auto-response--sending-p t
+            --ecc-auto-response--sending-p-timestamp (float-time))
+      (unwind-protect
+          (progn
+            (--ecc-auto-response--send-to-buffer buffer response state)
+            ;; Verify state changed; retry return if stuck
+            (--ecc-auto-response--verify-send buffer state))
+        ;; ALWAYS clear sending-p, even on error
+        (setq --ecc-auto-response--sending-p nil))
       (when ecc-auto-response-running-beep-enabled
         (--ecc-auto-response--notify-sent))
       (when (fboundp 'ecc-auto-periodical-setup-hook)
