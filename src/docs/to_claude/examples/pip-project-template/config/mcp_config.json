@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "calculator-basic": {
+      "command": "python",
+      "args": ["-m", "pip_project_template", "serve01", "--transport", "stdio"],
+      "env": {
+        "PYTHONPATH": "."
+      }
+    },
+    "calculator-enhanced": {
+      "command": "python",
+      "args": ["-m", "pip_project_template", "serve02", "--transport", "stdio"],
+      "env": {
+        "PYTHONPATH": "."
+      }
+    },
+    "http-calculator": {
+      "url": "http://localhost:8081/mcp",
+      "transport": "http"
+    },
+    "sse-calculator": {
+      "url": "http://localhost:8082",
+      "transport": "sse"
+    }
+  },
+  "defaults": {
+    "timeout": 30,
+    "retries": 3
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/mcp.log"
+  }
+}

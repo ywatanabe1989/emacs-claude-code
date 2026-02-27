@@ -1,0 +1,65 @@
+# Timestamp: "2025-08-27 03:18:16 (ywatanabe)"
+# File: ./.pre-commit-config.yaml
+# .pre-commit-config.yaml
+repos:
+  # Code quality - Ruff (replaces flake8, black, isort, etc.)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.0  # Updated version
+    hooks:
+      - id: ruff         # Linting
+        args: [--fix]
+      - id: ruff-format  # Formatting
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0  # Updated version
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --python-version=3.11]
+        additional_dependencies: [types-requests, pandas-stubs]
+        files: ^src/
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args: [-r, src/, -ll]  # Only check src/, low severity
+
+  # Local hooks
+  - repo: local
+    hooks:
+      # Fast GitHub Actions (cached) for pre-push
+      - id: fast-act
+        name: Fast GitHub Actions (cached)
+        entry: ./tests/github_actions/run_fast_ci.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+        
+      # Check agreement using Python script
+      - id: check-agreement
+        name: Check src-test-example agreement
+        entry: python tests/custom/test_src_test_agreement.py
+        language: python
+        additional_dependencies: [pandas]
+        pass_filenames: false
+        always_run: true
+        
+      # Quick smoke tests
+      - id: smoke-tests
+        name: Run smoke tests
+        entry: bash -c 'pytest tests/ -k "smoke or test_import" --tb=line -q --maxfail=1'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
+      # Check for debug code
+      - id: no-debug-code
+        name: Check for debug code
+        entry: bash -c '! grep -rn "import pdb\|pdb.set_trace\|breakpoint()\|print(.*DEBUG" src/ || (echo "Debug code found!" && false)'
+        language: system
+        pass_filenames: false
+
+# EOF
