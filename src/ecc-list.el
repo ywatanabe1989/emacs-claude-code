@@ -64,8 +64,9 @@
 ;; ----------------------------------------
 ;;;###autoload
 
-(defun ecc-list-buffers ()
+(defun ecc-list-buffers (&optional no-focus)
   "Display a list of vterm buffers with their auto-response status.
+When NO-FOCUS is non-nil, update contents without stealing focus.
 Shows all vterm-mode buffers with their auto-response status.
 
 In the buffer list:
@@ -206,8 +207,9 @@ In the buffer list:
         (when --ecc-buffer-list-auto-refresh
           (--ecc-buffer-list--setup-refresh-timer)))
 
-      ;; Display the buffer
-      (pop-to-buffer list-buffer))))
+      ;; Display the buffer only on interactive call (not auto-refresh)
+      (unless no-focus
+        (pop-to-buffer list-buffer)))))
 
 ;; 5. Status Panel Rendering
 ;; ----------------------------------------
@@ -497,11 +499,11 @@ In the buffer list:
     (--ecc-debug-message "Buffer list auto-refresh timer cancelled")))
 
 (defun --ecc-buffer-list--refresh-if-visible (buffer)
-  "Refresh BUFFER if it's still visible."
+  "Refresh BUFFER if it's still visible.  Never steals focus."
   (when (and (buffer-live-p buffer) (get-buffer-window buffer))
     (with-current-buffer buffer
       (let ((inhibit-read-only t) (pos (point)))
-        (ecc-list-buffers) (goto-char pos)))))
+        (ecc-list-buffers t) (goto-char pos)))))
 
 (defun --ecc-buffer-list--cleanup ()
   "Clean up when the buffer list is killed."

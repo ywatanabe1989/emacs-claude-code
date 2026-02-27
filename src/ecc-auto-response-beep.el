@@ -37,7 +37,7 @@
 ;; 2. Configuration
 ;; ----------------------------------------
 
-(defcustom ecc-auto-response-running-beep-enabled t
+(defcustom ecc-auto-response-running-beep-enabled nil
   "Whether to enable audio notifications for auto-response.
 Plays a sound at regular intervals when any auto-enabled buffer is
 in the :running state, and also when a response is sent."

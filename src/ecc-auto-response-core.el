@@ -292,8 +292,8 @@ When state is nil and auto is enabled, retries with wider buffer window."
           (--ecc-auto-response--track-state-duration state buffer)
           ;; Normal processing -- actionable states always pass through
           (when (or (not content-unchanged)
-                    (memq state '(:waiting :initial-waiting
-					   :y/y/n :y/n :suggestion)))
+                    (memq state '(:waiting
+				  :y/y/n :y/n :suggestion)))
             (when state
               (--ecc-state-detection-flash-all-patterns buffer)
               (--ecc-auto-response--dispatch-state state buffer
@@ -318,7 +318,7 @@ Uses multiplied buffer-size to catch prompts further from point-max."
 	     (eq state --ecc-auto-response--state-first-seen-state))
         ;; Same state persists -- check if stuck
         (when (and
-	       (memq state '(:y/n :y/y/n :waiting :initial-waiting))
+	       (memq state '(:y/n :y/y/n :waiting))
                --ecc-auto-response--state-first-seen-time
                (> (- (float-time)
                      --ecc-auto-response--state-first-seen-time)
@@ -342,6 +342,8 @@ Uses multiplied buffer-size to catch prompts further from point-max."
    ((eq state :running)
     (when --ecc-auto-response-verbose-logging
       (--ecc-debug-message "Claude is running, skipping auto-response")))
+   ((eq state :user-typing)
+    (--ecc-debug-message "User is typing, suppressing auto-response"))
    ((not (--ecc-auto-response--already-sent-p))
     (unless (--ecc-auto-response--should-throttle-p state)
       (--ecc-auto-response--send-response state buffer)))))
@@ -422,11 +424,23 @@ Uses multiplied buffer-size to catch prompts further from point-max."
 (defun --ecc-auto-response--send-response (state buffer)
   "Send appropriate response for STATE in BUFFER.
 Sets `--ecc-auto-response--sending-p' to prevent re-entrant processing.
-Delegates retry/verify to `ecc-auto-response-retry'."
+Delegates retry/verify to `ecc-auto-response-retry'.
+When Y/N detected, re-checks after delay to confirm it is not Y/Y/N
+\(CLI renders options progressively)."
+  ;; Y/N confirmation: wait and re-detect to avoid sending "1" for Y/Y/N
+  (when (eq state :y/n)
+    (sit-for 1.0)
+    (when (buffer-live-p buffer)
+      (let ((recheck (with-current-buffer buffer
+                       (--ecc-state-detection-detect))))
+        (when (eq recheck :y/y/n)
+          (--ecc-debug-message
+           "Y/N upgraded to Y/Y/N after re-check delay")
+          (setq state :y/y/n)))))
   (let ((response (if (and
                        (fboundp
                         'ecc-encouragement-get-phrase-for-state)
-                       (memq state '(:waiting :initial-waiting)))
+                       (memq state '(:waiting)))
                       (ecc-encouragement-get-phrase-for-state state)
                     (cdr (assq state --ecc-auto-response-responses)))))
     (when response

@@ -1,10 +1,9 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-26 12:23:51>
+;;; Timestamp: <2026-02-27 03:40:47>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
-
 
 ;; 1. Dependencies
 ;; ----------------------------------------
@@ -44,52 +43,88 @@ Claude prompts typically appear in the last few hundred characters."
 ;; ----------------------------------------
 
 (defcustom --ecc-state-detection-prompt-char "❯ "
-  "Primary prompt character used by Claude Code CLI."
+  "Primary prompt character used by Claude Code CLI.
+
+AGENTS ARE NOT PERMITTED TO EDIT"
   :type 'string :group 'ecc)
 
 (defcustom --ecc-state-detection-waiting-patterns
   '("Crunched for"
-	"Sautéed for"
-	"Cogitated for"
-	"Whipped up"
+    "Sautéed for"
+    "Cogitated for"
+    "Whipped up"
     "Brewed for"
-	"Cooked for"
-	"Marinated for"
-	"Stewed for"
+    "Cooked for"
+    "Marinated for"
+    "Stewed for"
     "Baked for"
-	"Simmered for"
-	"Crafted for"
-	"Distilled for"
+    "Simmered for"
+    "Crafted for"
+    "Distilled for"
     "❯ "
-	"❯ "
-	"> "
-	"> ")
+    "❯ "
+    "> "
+    "> "
+    "❯ ")
+
   "Explicit patterns that indicate Claude is waiting for input.
-Includes completion messages and prompt chars with spacing variants."
+Includes completion messages and prompt chars with spacing variants.
+
+AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
-(defcustom --ecc-state-detection-permission-patterns
-  '(" 2. Yes, and"
-	" 2. Yes, allow"
-	" 2. Yes, auto-accept edits"
-    "2. Yes, and"
-	"2. Yes, allow"
-	"2. Yes, auto-accept")
-  "Patterns indicating a Y/Y/N permission prompt."
+(defcustom --ecc-state-detection-y/n-patterns
+  '("❯ 1. Yes"
+    "❯ 1. Yes")
+  "Patterns indicating a Y/N prompt (2 choices: Yes / No).
+
+AGENTS ARE NOT PERMITTED TO EDIT"
+  :type '(repeat string) :group 'ecc)
+
+(defcustom --ecc-state-detection-y/y/n-patterns
+  '("2. Yes, and"
+    "2. Yes, allow"
+    "2. Yes, auto-accept"
+    "2. Yes, don't ask"
+    "2. Yes, and don't")
+  "Patterns indicating a Y/Y/N prompt (3 choices: Yes / Yes-and / No).
+Y/Y/N is prioritized over Y/N in detection so the correct option is sent.
+
+AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
 (defcustom --ecc-state-detection-suggestion-patterns
   '("↵ send")
-  "Patterns indicating an edit suggestion."
+  "Patterns indicating an edit suggestion.
+
+AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
+
+(defvar --ecc-state-detection-user-typing-patterns
+  (let ((prefixes '("❯ "))
+        (chars (number-sequence 33 126)))
+    (apply #'append
+           (mapcar (lambda (prefix)
+                     (mapcar (lambda (c)
+                               (concat prefix (char-to-string c)))
+                             chars))
+                   prefixes)))
+  "Patterns indicating user is typing at the prompt.
+Programmatically generated: each prompt prefix combined with every
+printable non-space ASCII character (codes 33-126).
+E.g., \"❯ a\", \"❯ b\", ..., \"❯ /\", \"❯ 0\", etc.
+
+AGENTS ARE NOT PERMITTED TO EDIT")
 
 (defcustom --ecc-state-detection-running-patterns
   '("(esc to interrupt"
-	"tokens ·"
+    "tokens ·"
     "· thinking"
-	"ing…"
-	" thought for ")
-  "Patterns indicating Claude is running."
+    "ing…"
+    "· thought for ")
+  "Patterns indicating Claude is running.
+
+AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
 (defvar --ecc-state-detection-patterns nil
@@ -97,18 +132,14 @@ Includes completion messages and prompt chars with spacing variants."
 Built from centralized variables by `--ecc-state-detection-build-patterns'.")
 
 (defun --ecc-state-detection-build-patterns ()
-  "Build detection patterns from centralized variables."
-  (let ((p --ecc-state-detection-prompt-char))
-    (setq --ecc-state-detection-patterns
-          `((:initial-waiting . (,(concat p " Try ")))
-            (:waiting . (,(concat p "  ")
-                         ,(concat p " ")
-                         ,@--ecc-state-detection-completion-messages))
-            (:y/n . (,(concat p " 1. Yes")))
-            (:y/y/n . ,--ecc-state-detection-permission-patterns)
-            (:running . (,(concat p " Press up")
-                         ,@--ecc-state-detection-running-patterns))
-            (:suggestion . ,--ecc-state-detection-suggestion-patterns)))))
+  "Build detection patterns from centralized variables only."
+  (setq --ecc-state-detection-patterns
+        `((:waiting . ,--ecc-state-detection-waiting-patterns)
+          (:y/n . ,--ecc-state-detection-y/n-patterns)
+          (:y/y/n . ,--ecc-state-detection-y/y/n-patterns)
+          (:user-typing . ,--ecc-state-detection-user-typing-patterns)
+          (:running . ,--ecc-state-detection-running-patterns)
+          (:suggestion . ,--ecc-state-detection-suggestion-patterns))))
 
 (--ecc-state-detection-build-patterns)
 
@@ -127,8 +158,8 @@ collapses multiple whitespace chars into single spaces for matching."
     (setq result (replace-regexp-in-string "\u00a0" " " result))
     ;; Replace other Unicode whitespace with regular spaces
     (setq result
-	      (replace-regexp-in-string
-	       "[\u2000-\u200b\u202f\u205f\u3000]" " " result))
+	  (replace-regexp-in-string
+	   "[\u2000-\u200b\u202f\u205f\u3000]" " " result))
     result))
 
 (defun --ecc-state-detection-detect (&optional buffer)
@@ -142,74 +173,102 @@ collapses multiple whitespace chars into single spaces for matching."
                        (point-min))
                       (point-max)))
            (buffer-text
-	        (--ecc-state-detection--normalize-text raw-text)))
+	    (--ecc-state-detection--normalize-text raw-text)))
       (--ecc-state-detection--analyze-text buffer-text))))
 
 ;; 5. Core Functions
 ;; ----------------------------------------
 
+(defun --ecc-state-detection--match-pattern-p (pattern text)
+  "Match PATTERN against TEXT literally.
+Both are normalized to handle Unicode whitespace variations."
+  (string-match-p
+   (regexp-quote (--ecc-state-detection--normalize-text pattern))
+   text))
+
+(defun --ecc-state-detection--match-patterns (patterns text)
+  "Try each pattern in PATTERNS against TEXT.
+Return the first matching pattern, or nil."
+  (cl-some (lambda (pattern)
+             (when
+		 (--ecc-state-detection--match-pattern-p
+		  pattern text)
+               pattern))
+           patterns))
+
+(defun --ecc-state-detection--user-typing-p (text)
+  "Check if TEXT indicates the user is actively typing.
+Checks the last line of TEXT against `--ecc-state-detection-user-typing-patterns'.
+Each pattern is a prompt prefix + single printable char (e.g., \"❯ a\")."
+  (let* ((last-line (car (last (split-string text "\n" t))))
+         (normalized (when last-line
+                       (--ecc-state-detection--normalize-text
+			last-line))))
+    (when normalized
+      (--ecc-state-detection--match-patterns
+       --ecc-state-detection-user-typing-patterns
+       normalized))))
+
 (defun --ecc-state-detection--analyze-text (text)
   "Analyze TEXT to detect Claude prompt state."
   (catch 'found
     ;; Check for Y/Y/N pattern FIRST (highest priority - permission prompts)
-    (let
-        ((yyn-patterns
-          (cdr (assq :y/y/n --ecc-state-detection-patterns))))
-      (when yyn-patterns
-        (dolist (pattern yyn-patterns)
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message
-             "Matched state :y/y/n with pattern: %s" pattern)
-            (throw 'found :y/y/n)))))
-    ;; Regex fallback for Y/Y/N (handles vterm whitespace variations)
-    (when (string-match-p "2\\.\\s-*Yes,\\s-*and" text)
-      (--ecc-debug-message "Matched state :y/y/n with regex fallback")
-      (throw 'found :y/y/n))
+    (let* ((yyn-patterns
+            (cdr (assq :y/y/n --ecc-state-detection-patterns)))
+           (match (--ecc-state-detection--match-patterns
+                   yyn-patterns text)))
+      (when match
+        (--ecc-debug-message
+         "Matched state :y/y/n with pattern: %s" match)
+        (throw 'found :y/y/n)))
 
-    ;; Check for suggestion pattern (second priority - actionable suggestions)
-    (let
-        ((suggestion-patterns
-          (cdr (assq :suggestion --ecc-state-detection-patterns))))
-      (when suggestion-patterns
-        (dolist (pattern suggestion-patterns)
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state :suggestion")
-            (throw 'found :suggestion)))))
+    ;; Check for suggestion pattern (second priority)
+    (let* ((suggestion-patterns
+            (cdr (assq :suggestion --ecc-state-detection-patterns)))
+           (match (--ecc-state-detection--match-patterns
+                   suggestion-patterns text)))
+      (when match
+        (--ecc-debug-message "Matched state :suggestion with: %s"
+			     match)
+        (throw 'found :suggestion)))
 
-    ;; Check for Y/N pattern (third priority, must come before running check)
-    (let
-        ((yn-patterns
-          (cdr (assq :y/n --ecc-state-detection-patterns))))
-      (when yn-patterns
-        (dolist (pattern yn-patterns)
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state :y/n")
-            (throw 'found :y/n)))))
+    ;; Check for Y/N pattern (third priority, must come before running)
+    (let* ((yn-patterns
+            (cdr (assq :y/n --ecc-state-detection-patterns)))
+           (match (--ecc-state-detection--match-patterns
+                   yn-patterns text)))
+      (when match
+        (--ecc-debug-message "Matched state :y/n with: %s" match)
+        (throw 'found :y/n)))
 
-    ;; Check for running pattern (lower priority than permission prompts)
-    (let
-        ((running-patterns
-          (cdr (assq :running --ecc-state-detection-patterns))))
-      (when running-patterns
-        (dolist (pattern running-patterns)
-          (when (string-match-p (regexp-quote pattern) text)
-            (--ecc-debug-message "Matched state :running")
-            (throw 'found :running)))))
+    ;; Check for running pattern
+    (let* ((running-patterns
+            (cdr (assq :running --ecc-state-detection-patterns)))
+           (match (--ecc-state-detection--match-patterns
+                   running-patterns text)))
+      (when match
+        (--ecc-debug-message "Matched state :running with: %s" match)
+        (throw 'found :running)))
 
-    ;; Check for other exact pattern matches
+    ;; Check for user-typing (BEFORE waiting -- prompt with text after it)
+    (let ((typing-match (--ecc-state-detection--user-typing-p text)))
+      (when typing-match
+        (--ecc-debug-message
+         "Matched state :user-typing with prefix: %s" typing-match)
+        (throw 'found :user-typing)))
+
+    ;; Check for other pattern matches (includes :waiting)
     (dolist (pattern-pair --ecc-state-detection-patterns)
       (let ((state (car pattern-pair))
             (patterns (cdr pattern-pair)))
-        (unless (memq state '(:y/y/n :y/n :running))
-          (dolist (pattern patterns)
-            (when (string-match-p (regexp-quote pattern) text)
-              (--ecc-debug-message "Matched state %s" state)
+        (unless (memq state '(:y/y/n :y/n :running :suggestion
+                                     :user-typing))
+          (let ((match (--ecc-state-detection--match-patterns
+                        patterns text)))
+            (when match
+              (--ecc-debug-message "Matched state %s with: %s"
+                                   state match)
               (throw 'found state))))))
-    ;; Regex fallbacks for waiting (handles vterm char/spacing variations)
-    (when (string-match-p "❯[ \t\u00a0]" text)
-      (--ecc-debug-message
-       "Matched state :waiting with regex (❯ + space)")
-      (throw 'found :waiting))
     nil))
 
 ;; 6. Helper/Utility Functions
@@ -226,7 +285,7 @@ collapses multiple whitespace chars into single spaces for matching."
    ((eq state :y/y/n) "Y/Y/N")
    ((eq state :y/n) "Y/N")
    ((eq state :waiting) "Waiting")
-   ((eq state :initial-waiting) "Initial-Waiting")
+   ((eq state :user-typing) "User-Typing")
    ((eq state :running) "Running")
    ((eq state :suggestion) "Suggestion")
    (t (format "%s" state))))
@@ -342,7 +401,6 @@ This highlights every pattern that matches, useful for debugging."
   (--ecc-debug-message "ecc-state-detection.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
-
 
 (provide 'ecc-state-detection)
 

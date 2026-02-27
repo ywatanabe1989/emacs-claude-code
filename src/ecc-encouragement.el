@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-05 01:30:51>
+;;; Timestamp: <2026-02-27 03:20:13>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-encouragement.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
+
 
 (require 'ecc-debug)
 
@@ -242,10 +243,10 @@
   "Workflow continuation phrases.")
 
 (defvar ecc-encouragement-phrases-speak
-  '("/speak-signature")
+  '("/speak-signature\n")
   "Workflow reporting commands.")
 
-(defcustom ecc-encouragement-speak-max-count 2
+(defcustom ecc-encouragement-speak-max-count 3
   "Maximum consecutive speak commands before stopping.
 When the agent finishes and enters an idle loop, speak commands
 accumulate rapidly.  After this many consecutive sends without
@@ -306,19 +307,19 @@ returns nil so the auto-response system stops sending."
   (let* ((now (float-time))
          (elapsed (- now ecc-encouragement--last-phrase-time))
          (agent-did-real-work
-	  (> elapsed ecc-encouragement-min-work-duration)))
+	      (> elapsed ecc-encouragement-min-work-duration)))
     ;; Reset counter when agent did real work between waits
     (when agent-did-real-work
       (setq ecc-encouragement--speak-count 0))
     ;; Check if idle-loop limit reached
     (if
-	(>= ecc-encouragement--speak-count
-	    ecc-encouragement-speak-max-count)
+	    (>= ecc-encouragement--speak-count
+	        ecc-encouragement-speak-max-count)
         (progn
           (--ecc-debug-message
            "Idle loop detected: speak count %d/%d, suppressing"
            ecc-encouragement--speak-count
-	   ecc-encouragement-speak-max-count)
+	       ecc-encouragement-speak-max-count)
           nil)
       ;; Pick a phrase and update tracking
       (let ((phrase (nth (random (length ecc-encouragement-phrases))
@@ -347,8 +348,7 @@ returns nil so the auto-response system stops sending."
     (setq --ecc-auto-response-responses
           `((:y/n . "1")
             (:y/y/n . "2")
-            (:waiting . ,(ecc-encouragement-get-random-phrase))
-            (:initial-waiting . ,(ecc-encouragement-get-random-phrase)))))
+            (:waiting . ,(ecc-encouragement-get-random-phrase)))))
   (--ecc-debug-message "Updated auto-responses with encouragement: %s"
                        ecc-encouragement-enabled))
 
@@ -385,6 +385,7 @@ returns nil so the auto-response system stops sending."
   (when ecc-encouragement-enabled
     (ecc-encouragement-reset-speak-count)
     (ecc-encouragement-update-responses)))
+
 
 (provide 'ecc-encouragement)
 

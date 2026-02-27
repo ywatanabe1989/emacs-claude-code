@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-20 15:10:00>
+;;; Timestamp: <2026-02-28 02:45:36>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-auto-response.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
+
 
 ;; 1. Dependencies
 ;; ----------------------------------------
@@ -17,43 +18,43 @@
 
 ;; Declare functions from sub-modules (loaded at end of this file)
 (declare-function --ecc-auto-response--update-mode-line
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response--start-pulse-timer
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response--stop-pulse-timer
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response--disable-visual-modes
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response--restore-visual-modes
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response-refresh-all-mode-lines
-		  "ecc-auto-response-ui" ())
+		          "ecc-auto-response-ui" ())
 (declare-function --ecc-auto-response--start-timer
-		  "ecc-auto-response-core" ())
+		          "ecc-auto-response-core" ())
 (declare-function --ecc-auto-response--stop-timer
-		  "ecc-auto-response-core" ())
+		          "ecc-auto-response-core" ())
 (declare-function --ecc-auto-response--start-periodic-timer
-		  "ecc-auto-response-core" ())
+		          "ecc-auto-response-core" ())
 (declare-function --ecc-auto-response--stop-periodic-timer
-		  "ecc-auto-response-core" ())
+		          "ecc-auto-response-core" ())
 (declare-function --ecc-auto-response--process-all-buffers
-		  "ecc-auto-response-core" ())
+		          "ecc-auto-response-core" ())
 (declare-function --ecc-auto-response--process-buffer
-		  "ecc-auto-response-core" (buffer))
+		          "ecc-auto-response-core" (buffer))
 (declare-function --ecc-auto-response--start-running-beep-timer
-		  "ecc-auto-response-beep" ())
+		          "ecc-auto-response-beep" ())
 (declare-function --ecc-auto-response--stop-running-beep-timer
-		  "ecc-auto-response-beep" ())
+		          "ecc-auto-response-beep" ())
 (declare-function --ecc-auto-response--force-beep
-		  "ecc-auto-response-beep" ())
+		          "ecc-auto-response-beep" ())
 (declare-function --ecc-auto-response--do-notify
-		  "ecc-auto-response-beep" (event))
+		          "ecc-auto-response-beep" (event))
 (declare-function ecc-auto-response-cleanup-timers
-		  "ecc-auto-response-beep" ())
+		          "ecc-auto-response-beep" ())
 (declare-function --ecc-notification--remove-thunder-icon
-		  "ecc-notification" ())
+		          "ecc-notification" ())
 (declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical"
-		  ())
+		          ())
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -139,10 +140,9 @@
   :group 'ecc)
 
 (defcustom --ecc-auto-response-responses
-  '((:y/n . "1")
-    (:y/y/n . "2")
-    (:waiting . "/auto")
-    (:initial-waiting . "/understand-guidelines"))
+  '((:y/n . "1\n")
+    (:y/y/n . "2\n")
+    (:waiting . "/speak\n"))
   "Alist of auto-responses for different Claude states."
   :type '(alist :key-type symbol :value-type string)
   :group 'ecc)
@@ -420,6 +420,7 @@ When no auto-enabled buffers remain, cleans up ALL timers."
   (--ecc-debug-message "ecc-auto-response.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
+
 
 (provide 'ecc-auto-response)
 
