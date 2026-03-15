@@ -1,0 +1,52 @@
+# Timestamp: "2025-08-27 11:45:23 (ywatanabe)"
+# File: ./.github/workflows/validation.yml
+# .github/workflows/validation.yml
+name: Validation
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -e ".[dev]"
+    
+    - name: Run linting
+      run: |
+        ruff check src/
+    
+    - name: Run tests with coverage
+      run: |
+        pytest tests/ -v
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: tests/reports/coverage.json
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        
+    - name: Upload validation results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: validation-results
+        path: |
+          tests/reports/coverage.json
+
+# EOF

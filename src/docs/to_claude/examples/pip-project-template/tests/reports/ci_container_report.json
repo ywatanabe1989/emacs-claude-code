@@ -1,0 +1,8 @@
+{
+  "workflow": "HPC CI Validation",
+  "status": "2 -eq 0 && echo 'success' || echo 'failure')",
+  "hpc_mode": "apptainer",
+  "failed_steps": ["tests","agreement"],
+  "cache_dir": "/home/ywatanabe/.ci_container_cache",
+  "timestamp": "2025-08-27T11:49:43+10:00"
+}

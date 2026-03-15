@@ -1,0 +1,56 @@
+# Timestamp: "2025-08-27 02:40:00 (ywatanabe)"
+# File: ./.github/workflows/notification.yml
+name: CI Notification
+
+on:
+  workflow_run:
+    workflows: ["Validation"]
+    types:
+      - completed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    
+    steps:
+    - name: Send notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ github.event.workflow_run.conclusion }}
+        text: |
+          CI Pipeline ${{ github.event.workflow_run.conclusion }} for ${{ github.repository }}
+          Branch: ${{ github.event.workflow_run.head_branch }}
+          Commit: ${{ github.event.workflow_run.head_sha }}
+          Run: ${{ github.event.workflow_run.html_url }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always() && env.SLACK_WEBHOOK_URL != ''
+      
+    - name: Send email notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "CI Pipeline ${{ github.event.workflow_run.conclusion }} - ${{ github.repository }}"
+        body: |
+          Hello!
+          
+          Your CI pipeline has ${{ github.event.workflow_run.conclusion }}.
+          
+          Details:
+          - Repository: ${{ github.repository }}
+          - Branch: ${{ github.event.workflow_run.head_branch }}
+          - Commit: ${{ github.event.workflow_run.head_sha }}
+          - Workflow: ${{ github.event.workflow_run.name }}
+          - Status: ${{ github.event.workflow_run.conclusion }}
+          - View Run: ${{ github.event.workflow_run.html_url }}
+          
+          Best regards,
+          GitHub Actions
+        to: ${{ secrets.EMAIL_TO }}
+        from: ${{ secrets.EMAIL_FROM }}
+      if: always() && env.EMAIL_USERNAME != ''
+
+# EOF

@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-10-24 18:45:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-anti-flicker.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 ;;; Commentary:
 ;; Anti-flicker optimizations for Claude Code in vterm.

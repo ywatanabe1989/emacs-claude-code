@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-05-28 07:20:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-notification.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'ert)
 (require 'ecc-notification)

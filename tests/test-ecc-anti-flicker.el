@@ -3,7 +3,7 @@
 ;;; Timestamp: <2025-10-24 18:50:00>
 ;;; File: /home/ywatanabe/.dotfiles/.emacs.d/lisp/emacs-claude-code/tests/test-ecc-anti-flicker.el
 
-;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@alumni.u-tokyo.ac.jp)
+;;; Copyright (C) 2025 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 (require 'ert)
 (require 'ecc-anti-flicker)
@@ -37,10 +37,15 @@
 
 ;; Buffer-local variables tests
 (ert-deftest test-ecc-anti-flicker-variables-are-buffer-local ()
-  "Test that key variables are buffer-local."
-  (should (local-variable-p '--ecc-anti-flicker--enabled))
-  (should (local-variable-p '--ecc-anti-flicker--check-timer))
-  (should (local-variable-p '--ecc-anti-flicker--last-warning-time)))
+  "Test that key variables are defined with defvar-local (automatically buffer-local)."
+  (with-temp-buffer
+    ;; Set the variables to trigger buffer-local creation
+    (setq --ecc-anti-flicker--enabled t)
+    (setq --ecc-anti-flicker--check-timer nil)
+    (setq --ecc-anti-flicker--last-warning-time 0)
+    (should (local-variable-p '--ecc-anti-flicker--enabled))
+    (should (local-variable-p '--ecc-anti-flicker--check-timer))
+    (should (local-variable-p '--ecc-anti-flicker--last-warning-time))))
 
 ;; Status function tests
 (ert-deftest test-ecc-anti-flicker-status-function-exists ()
