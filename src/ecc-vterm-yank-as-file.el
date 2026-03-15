@@ -170,8 +170,8 @@ If not provided, uses current system's hostname."
   (let* ((host (or hostname (system-name)))
          (command
           (format
-           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action."
-           host filepath)))
+           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action.\n4. If the file not found, please check by ssh ($ ssh %s cat %s)"
+           host filepath host filepath)))
     (if (fboundp 'vterm-send-string)
         (vterm-send-string command)
       (message "vterm not available, command would be: %s" command))))

@@ -5,7 +5,6 @@
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
-
 (require 'ecc-debug)
 
 ;; 1. Configuration
@@ -243,10 +242,10 @@
   "Workflow continuation phrases.")
 
 (defvar ecc-encouragement-phrases-speak
-  '("/speak-signature\n")
+  '("/speak")
   "Workflow reporting commands.")
 
-(defcustom ecc-encouragement-speak-max-count 3
+(defcustom ecc-encouragement-speak-max-count 100
   "Maximum consecutive speak commands before stopping.
 When the agent finishes and enters an idle loop, speak commands
 accumulate rapidly.  After this many consecutive sends without
@@ -307,19 +306,19 @@ returns nil so the auto-response system stops sending."
   (let* ((now (float-time))
          (elapsed (- now ecc-encouragement--last-phrase-time))
          (agent-did-real-work
-	      (> elapsed ecc-encouragement-min-work-duration)))
+	  (> elapsed ecc-encouragement-min-work-duration)))
     ;; Reset counter when agent did real work between waits
     (when agent-did-real-work
       (setq ecc-encouragement--speak-count 0))
     ;; Check if idle-loop limit reached
     (if
-	    (>= ecc-encouragement--speak-count
-	        ecc-encouragement-speak-max-count)
+	(>= ecc-encouragement--speak-count
+	    ecc-encouragement-speak-max-count)
         (progn
           (--ecc-debug-message
            "Idle loop detected: speak count %d/%d, suppressing"
            ecc-encouragement--speak-count
-	       ecc-encouragement-speak-max-count)
+	   ecc-encouragement-speak-max-count)
           nil)
       ;; Pick a phrase and update tracking
       (let ((phrase (nth (random (length ecc-encouragement-phrases))
@@ -385,7 +384,6 @@ returns nil so the auto-response system stops sending."
   (when ecc-encouragement-enabled
     (ecc-encouragement-reset-speak-count)
     (ecc-encouragement-update-responses)))
-
 
 (provide 'ecc-encouragement)
 

@@ -443,13 +443,16 @@ When Y/N detected, re-checks after delay to confirm it is not Y/Y/N
                        (memq state '(:waiting)))
                       (ecc-encouragement-get-phrase-for-state state)
                     (cdr (assq state --ecc-auto-response-responses)))))
-    (when response
+    (when (and response
+               (not (and (eq state :waiting)
+                         (--ecc-auto-response--response-accumulated-p
+                          buffer response))))
       (with-current-buffer buffer
         (--ecc-auto-response--update-tracking state))
       (setq --ecc-auto-response--sending-p t
             --ecc-auto-response--sending-p-timestamp (float-time))
       (unwind-protect
-          (progn
+          (catch 'abort-send
             (--ecc-auto-response--send-to-buffer buffer response state)
             ;; Verify state changed; retry return if stuck
             (--ecc-auto-response--verify-send buffer state))

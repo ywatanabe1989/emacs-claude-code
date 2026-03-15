@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-02-27 03:40:47>
+;;; Timestamp: <2026-03-16 04:44:36>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
+
 
 ;; 1. Dependencies
 ;; ----------------------------------------
@@ -74,8 +75,7 @@ AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
 (defcustom --ecc-state-detection-y/n-patterns
-  '("❯ 1. Yes"
-    "❯ 1. Yes")
+  '("❯ 1. Yes")
   "Patterns indicating a Y/N prompt (2 choices: Yes / No).
 
 AGENTS ARE NOT PERMITTED TO EDIT"
@@ -158,8 +158,8 @@ collapses multiple whitespace chars into single spaces for matching."
     (setq result (replace-regexp-in-string "\u00a0" " " result))
     ;; Replace other Unicode whitespace with regular spaces
     (setq result
-	  (replace-regexp-in-string
-	   "[\u2000-\u200b\u202f\u205f\u3000]" " " result))
+	      (replace-regexp-in-string
+	       "[\u2000-\u200b\u202f\u205f\u3000]" " " result))
     result))
 
 (defun --ecc-state-detection-detect (&optional buffer)
@@ -173,7 +173,7 @@ collapses multiple whitespace chars into single spaces for matching."
                        (point-min))
                       (point-max)))
            (buffer-text
-	    (--ecc-state-detection--normalize-text raw-text)))
+	        (--ecc-state-detection--normalize-text raw-text)))
       (--ecc-state-detection--analyze-text buffer-text))))
 
 ;; 5. Core Functions
@@ -191,8 +191,8 @@ Both are normalized to handle Unicode whitespace variations."
 Return the first matching pattern, or nil."
   (cl-some (lambda (pattern)
              (when
-		 (--ecc-state-detection--match-pattern-p
-		  pattern text)
+		         (--ecc-state-detection--match-pattern-p
+		          pattern text)
                pattern))
            patterns))
 
@@ -203,7 +203,7 @@ Each pattern is a prompt prefix + single printable char (e.g., \"❯ a\")."
   (let* ((last-line (car (last (split-string text "\n" t))))
          (normalized (when last-line
                        (--ecc-state-detection--normalize-text
-			last-line))))
+			            last-line))))
     (when normalized
       (--ecc-state-detection--match-patterns
        --ecc-state-detection-user-typing-patterns
@@ -229,7 +229,7 @@ Each pattern is a prompt prefix + single printable char (e.g., \"❯ a\")."
                    suggestion-patterns text)))
       (when match
         (--ecc-debug-message "Matched state :suggestion with: %s"
-			     match)
+			                 match)
         (throw 'found :suggestion)))
 
     ;; Check for Y/N pattern (third priority, must come before running)
@@ -401,6 +401,7 @@ This highlights every pattern that matches, useful for debugging."
   (--ecc-debug-message "ecc-state-detection.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
+
 
 (provide 'ecc-state-detection)
 
