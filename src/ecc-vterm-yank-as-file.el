@@ -1,9 +1,10 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-01-10 10:46:20>
+;;; Timestamp: <2026-03-18 10:50:00>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
+
 
 (require 'vterm nil t)
 
@@ -64,7 +65,7 @@ Output format:
                        (remote-host (cdr (assoc 'host remote-info))))
                     (when remote-file
                       (--ecc-send-read-temp-file remote-file
-						 remote-host)))
+						                         remote-host)))
                 (message "ecc-remote not available")))
           ;; No remote-info provided - prompt user
           (if (require 'ecc-remote nil t)
@@ -78,7 +79,7 @@ Output format:
                          (remote-host (cdr (assoc 'host ssh-info))))
                       (when remote-file
                         (--ecc-send-read-temp-file remote-file
-						   remote-host)))
+						                           remote-host)))
                   ;; nil returned (localhost/cancelled) - create local file
                   (let
                       ((temp-file (--ecc-create-temp-file t content)))
@@ -170,7 +171,7 @@ If not provided, uses current system's hostname."
   (let* ((host (or hostname (system-name)))
          (command
           (format
-           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action.\n4. If the file not found, please check by ssh ($ ssh %s cat %s)"
+           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action.\n(4. If the file not found on your machine, please check by ssh ($ ssh %s cat %s))"
            host filepath host filepath)))
     (if (fboundp 'vterm-send-string)
         (vterm-send-string command)
@@ -210,6 +211,7 @@ Returns local file path on remote host on success, nil on failure."
 ;; ;; Set up keybinding when vterm is loaded
 ;; (with-eval-after-load 'vterm
 ;;   (ecc-vterm-yank-as-file-setup-keybinding))
+
 
 (provide 'ecc-vterm-yank-as-file)
 
