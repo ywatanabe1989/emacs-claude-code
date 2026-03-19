@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-03-16 04:44:36>
+;;; Timestamp: <2026-03-18 07:24:44>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-state-detection.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
@@ -66,7 +66,10 @@ AGENTS ARE NOT PERMITTED TO EDIT"
     "❯ "
     "> "
     "> "
-    "❯ ")
+    "❯ "
+    ;; Codex
+    "› "
+    "› Find")
 
   "Explicit patterns that indicate Claude is waiting for input.
 Includes completion messages and prompt chars with spacing variants.
@@ -75,7 +78,9 @@ AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
 (defcustom --ecc-state-detection-y/n-patterns
-  '("❯ 1. Yes")
+  '("❯ 1. Yes"
+    "› 1. Yes, proceed (y)" ;; Codex
+    )
   "Patterns indicating a Y/N prompt (2 choices: Yes / No).
 
 AGENTS ARE NOT PERMITTED TO EDIT"
@@ -101,7 +106,7 @@ AGENTS ARE NOT PERMITTED TO EDIT"
   :type '(repeat string) :group 'ecc)
 
 (defvar --ecc-state-detection-user-typing-patterns
-  (let ((prefixes '("❯ "))
+  (let ((prefixes '("❯ " "› "))
         (chars (number-sequence 33 126)))
     (apply #'append
            (mapcar (lambda (prefix)
@@ -121,7 +126,10 @@ AGENTS ARE NOT PERMITTED TO EDIT")
     "tokens ·"
     "· thinking"
     "ing…"
-    "· thought for ")
+    "· thought for "
+    ;; Codex
+    "• esc to interrupt)"
+    )
   "Patterns indicating Claude is running.
 
 AGENTS ARE NOT PERMITTED TO EDIT"

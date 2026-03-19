@@ -1,37 +1,70 @@
 <!-- ---
-!-- Timestamp: 2025-07-03 08:54:56
+!-- Timestamp: 2026-03-18 07:30:00
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/README.md
 !-- --- -->
 
 # Emacs Claude Code
 
-Emacs interface for Claude Code with intelligent auto-response and enhanced vterm integration.
+Emacs interface for Claude Code and Codex CLI with intelligent auto-response and enhanced vterm integration.
 
-## 🚀 Key Features
-- **🤖 Auto-Response**: Automatically responds to Claude prompts (INITIAL WAITING, Y/N, Y/Y/N, and WAITING states)
-- **⏰ Periodic Auto-Response**: Sends periodic commands based on number of interactions
-- **📊 Buffer Dashboard**: Centralized dashboard with timer status, config, state duration, and live debug log
-- **🔔 Audio Notifications**: Async beep tones (400Hz heartbeat / 1400Hz sent), pre-recorded TTS, cooldown debounce
-- **🛡️ Watchdog**: Stuck-state detection with auto re-send; sending guard with timeout; timer lifecycle management
-- **📋 Yank-as-File**: Yank large contents as file for clean terminal, with remote supported
+Supports both **Claude Code** (`❯` prompt) and **Codex** (`›` prompt) out of the box.
+
+## Key Features
+
+- **Auto-Response** - Automatically responds to CLI prompts (Y/N, Y/Y/N, Waiting states) for both Claude Code and Codex
+- **User-Typing Detection** - Suppresses all auto-responses while you are actively typing at the prompt
+- **Accumulation Guard** - Prevents duplicate command queuing via buffer-content analysis
+- **Periodic Auto-Response** - Sends periodic commands based on number of interactions
+- **Buffer Dashboard** - Centralized dashboard with timer status, config, state duration, and live debug log
+- **Audio Notifications** - Async beep tones (400Hz heartbeat / 1400Hz sent), pre-recorded TTS, cooldown debounce
+- **Watchdog** - Stuck-state detection with auto re-send; sending guard with timeout; timer lifecycle management
+- **Yank-as-File** - Yank large contents as file for clean terminal, with remote host support
 
 ---
 
-## 📺 Examples
+## Supported CLIs
+
+| CLI | Prompt | Y/N Pattern | Y/Y/N Pattern |
+|-----|--------|-------------|---------------|
+| Claude Code | `❯` | `❯ 1. Yes` | `2. Yes, and ...` |
+| Codex | `›` | `› 1. Yes, proceed (y)` | (2-option only) |
+
+Both are detected automatically. No configuration needed.
+
+---
+
+## State Detection
+
+The auto-response system detects these states from the vterm buffer content:
+
+| State | Description | Auto-Response |
+|-------|-------------|---------------|
+| `:y/y/n` | Permission prompt with 3 options (highest priority) | Sends `"2"` + Return |
+| `:y/n` | Permission prompt with 2 options | Sends `"1"` + Return |
+| `:suggestion` | Edit suggestion (`↵ send`) | Sends configured response |
+| `:running` | Claude is processing | Skipped |
+| `:user-typing` | User is typing at prompt | Skipped (all responses suppressed) |
+| `:waiting` | Claude is waiting for input | Sends `/speak` + Return |
+
+Detection priority: Y/Y/N > Suggestion > Y/N > Running > User-Typing > Waiting
+
+---
+
+## Examples
 
 ![Emacs Claude Code Example](./docs/emacs-claude-code-demo.gif)
 
 *Real-time demonstration of auto-response functionality*
 
-## 📋 Buffer List Dashboard
+## Buffer List Dashboard
 
 ``` plaintext
 ECC Claude Buffer List
 =====================
 
     Buffer Name                    Auto State      Last Sent    Duration
-─── ─────────────────────────────  ──── ──────────  ──────────── ────────
+--- -----------------------------  ---- ----------  ------------ --------
     my-awesome-buffer-1            ON   Running     10:22:54     45s
     my-awesome-buffer-2            ON   Y/Y/N       09:18:34     3s
     my-awesome-buffer-3            off  -           -            -
@@ -60,7 +93,7 @@ M-x ecc-list-buffers  ; Open the buffer list dashboard
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 git clone https://github.com/ywatanabe1989/emacs-claude-code.git ~/.emacs.d/lisp/emacs-claude-code
@@ -74,7 +107,7 @@ Add to your `init.el`:
 
 ---
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Essential Commands
 | Command | Description |
@@ -90,12 +123,11 @@ Add to your `init.el`:
 ### Basic Configuration
 
 ```elisp
-;; Enable auto-response patterns
+;; Auto-response mapping (defaults shown)
 (setq --ecc-auto-response-responses
-  '((:y/n . "1")                                     ; Respond "1" to Y/N prompts
-    (:y/y/n . "2")                                   ; Respond "2" to Y/Y/N prompts
-    (:waiting . "/auto")                             ; Send /auto custom command when waiting
-    (:initial-waiting . "/understand-guidelines")))  ; Send /understand-guidelines custom command when startup
+  '((:y/n . "1")        ; Respond "1" to Y/N prompts
+    (:y/y/n . "2")      ; Respond "2" to Y/Y/N prompts
+    (:waiting . "/speak")))  ; Send /speak when waiting
 
 ;;;; Enable yank-as-file for large content
 ;; (--ecc-vterm-utils-enable-yank-advice)
@@ -105,21 +137,19 @@ Add to your `init.el`:
 
 ;; Configure periodic commands (optional)
 (setq ecc-auto-periodical-commands
-  '((10 . "/compact")     ; Run (preset) /compact command every 10 interactions
-    (20 . "/git")))      ; Run (custom) /git command every 20 interactions
+  '((10 . "/compact")     ; Run /compact every 10 interactions
+    (20 . "/git")))       ; Run /git every 20 interactions
 ```
 
 ---
 
-## 💻 Custom Claude Commands
+## Custom CLI Commands
 
 In Claude Code, custom slash commands can be created by adding .md files to `.claude/commands/` in your project or `~/.claude/commands/` for commands that work in any project. See [Anthropic's Official Documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details.
 
-  The default settings of this `emacs-claude-code` assumes that `/auto` ([`./docs/commands/auto.md`](./docs/commands/auto.md)) and `/understand-guidelines` ([`./docs/commands/understand-guidelines.md`](./docs/commands/understand-guidelines.md)) commands are defined as `~/.claude/commands/{auto,understand-cuidelines}.md` (user level) or `./.claude/commands/{auto,understand-cuidelines}.md` (project level; most prioritized).
-
 ---
 
-## 📁 Yank Target Directory
+## Yank Target Directory
 
 Yank-as-file saves content to `~/.emacs-claude-code/` by default. You can customize this directory:
 
@@ -130,12 +160,9 @@ Yank-as-file saves content to `~/.emacs-claude-code/` by default. You can custom
 
 ---
 
-## ⌨️ Optional Keybindings
-
-To set up convenient keybindings:
+## Optional Keybindings
 
 ```elisp
-;; Optional keybindings
 (define-key vterm-mode-map (kbd "C-c C-l") 'ecc-list-buffers)
 (define-key vterm-mode-map (kbd "C-c C-a") 'ecc-auto-toggle)
 (define-key vterm-mode-map (kbd "C-c C-y") 'ecc-vterm-yank-as-file)
@@ -143,12 +170,17 @@ To set up convenient keybindings:
 
 ---
 
-## 📚 Documentation
-See [`./docs/`](./docs/) for detailed guides and configuration options.
+## Technical Documentation
+
+See [`src/README.md`](./src/README.md) for:
+- Auto-response throttling configuration
+- Timing flow diagrams
+- Watchdog and reliability parameters
+- Audio notification settings
 
 ---
 
-## 📎 Appendix: Author's Custom Workflow Reference
+## Appendix: Author's Custom Workflow Reference
 
 ### Bash Commands
 Example bash functions for Claude Code workflow management (see `docs/example_bash_config/`):
@@ -163,15 +195,13 @@ Example bash functions for Claude Code workflow management (see `docs/example_ba
 The `./docs/to_claude/` directory contains project-specific context files that are automatically synced and made read-only by the `cld` command:
 
 - `guidelines/` - Project guidelines and coding standards
-- `bin/` - Project-specific scripts and utilities  
+- `bin/` - Project-specific scripts and utilities
 - `examples/` - Code examples and templates
-
-This directory is synchronized from `~/.claude/to_claude/` and protected with read-only permissions to ensure consistent project context across Claude sessions.
 
 ### Claude Commands
 Custom `/` commands for Claude Code workflow (see `./.claude/commands/`):
 
-- `/auto`, `/understand-guidelines`, `/plan`, `/tests`, `/git`, `/refactor`, `/cleanup`
+- `/auto`, `/plan`, `/tests`, `/git`, `/refactor`, `/cleanup`
 - `/bug-report`, `/feature-request`, `/progress`, `/timeline`, `/finalize`
 - `/worktree`, `/rollback`, `/resolve-conflicts`, `/factor-out`, `/rename`
 
@@ -179,7 +209,7 @@ These are reference command templates that can be customized for your project wo
 
 ---
 
-## 📧 Contact
+## Contact
 Yusuke Watanabe (ywatanabe@scitex.ai)
 
 <!-- EOF -->
