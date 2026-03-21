@@ -437,12 +437,7 @@ When Y/N detected, re-checks after delay to confirm it is not Y/Y/N
           (--ecc-debug-message
            "Y/N upgraded to Y/Y/N after re-check delay")
           (setq state :y/y/n)))))
-  (let ((response (if (and
-                       (fboundp
-                        'ecc-encouragement-get-phrase-for-state)
-                       (memq state '(:waiting)))
-                      (ecc-encouragement-get-phrase-for-state state)
-                    (cdr (assq state --ecc-auto-response-responses)))))
+  (let ((response (cdr (assq state --ecc-auto-response-responses))))
     (when (and response
                (not (and (eq state :waiting)
                          (--ecc-auto-response--response-accumulated-p

@@ -54,6 +54,7 @@
 		  "ecc-notification" ())
 (declare-function ecc-auto-periodical-setup-hook "ecc-auto-periodical"
 		  ())
+(declare-function ecc-tab-highlight--restore "ecc-tab-highlight" ())
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -141,7 +142,7 @@
 (defcustom --ecc-auto-response-responses
   '((:y/n . "1")
     (:y/y/n . "2")
-    (:waiting . "/speak"))
+    (:waiting . "/speak-signature"))
   "Alist of auto-responses for different Claude states."
   :type '(alist :key-type symbol :value-type string)
   :group 'ecc)
@@ -289,6 +290,9 @@ When no auto-enabled buffers remain, cleans up ALL timers."
           (--ecc-auto-response--stop-running-beep-timer)
         ;; No buffers remain -- full cleanup of ALL timers
         (ecc-auto-response-cleanup-timers)
+        ;; Restore tab-bar face
+        (when (fboundp 'ecc-tab-highlight--restore)
+          (ecc-tab-highlight--restore))
         (--ecc-debug-message
          "All auto-response buffers disabled, all timers cleaned up")))
     (--ecc-debug-message "Auto-response disabled for buffer: %s"
