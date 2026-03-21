@@ -242,7 +242,7 @@
   "Workflow continuation phrases.")
 
 (defvar ecc-encouragement-phrases-speak
-  '("/speak")
+  '("/speak-signature")
   "Workflow reporting commands.")
 
 (defcustom ecc-encouragement-speak-max-count 100
@@ -320,9 +320,10 @@ returns nil so the auto-response system stops sending."
            ecc-encouragement--speak-count
 	   ecc-encouragement-speak-max-count)
           nil)
-      ;; Pick a phrase and update tracking
-      (let ((phrase (nth (random (length ecc-encouragement-phrases))
-                         ecc-encouragement-phrases)))
+      ;; Pick a phrase directly from source variable (not cached defvar)
+      (let ((phrase (nth
+		     (random (length ecc-encouragement-phrases-speak))
+                     ecc-encouragement-phrases-speak)))
         (setq ecc-encouragement--speak-count
               (1+ ecc-encouragement--speak-count))
         (setq ecc-encouragement--last-phrase-time now)

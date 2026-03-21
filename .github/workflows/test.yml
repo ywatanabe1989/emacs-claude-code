@@ -16,7 +16,16 @@ on:
       - 'LICENSE'
       - 'CHANGELOG.md'
 jobs:
+  require-integrity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check require integrity
+        run: |
+          chmod +x ./tests/check_requires.sh
+          ./tests/check_requires.sh
   test:
+    needs: require-integrity
     runs-on: ubuntu-24.04
     continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
     strategy:
@@ -40,7 +49,7 @@ jobs:
           sudo apt-get install -y libvterm-dev
       - name: Run tests
         run: |
-          chmod +x ./run_tests.sh
-          ./run_tests.sh
+          chmod +x ./tests/run_tests.sh
+          ./tests/run_tests.sh
 
 # EOF
