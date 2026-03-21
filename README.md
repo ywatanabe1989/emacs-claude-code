@@ -19,6 +19,8 @@ Supports both **Claude Code** (`❯` prompt) and **Codex** (`›` prompt) out of
 - **Buffer Dashboard** - Centralized dashboard with timer status, config, state duration, and live debug log
 - **Audio Notifications** - Async beep tones (400Hz heartbeat / 1400Hz sent), pre-recorded TTS, cooldown debounce
 - **Watchdog** - Stuck-state detection with auto re-send; sending guard with timeout; timer lifecycle management
+- **Speaking Flash** - Mode-line flashes green when Claude is speaking via TTS (MCP audio)
+- **Tab Highlight** - Tab-bar tabs pulse red/green/yellow to reflect Claude buffer state
 - **Yank-as-File** - Yank large contents as file for clean terminal, with remote host support
 
 ---
@@ -167,6 +169,22 @@ Yank-as-file saves content to `~/.emacs-claude-code/` by default. You can custom
 (define-key vterm-mode-map (kbd "C-c C-a") 'ecc-auto-toggle)
 (define-key vterm-mode-map (kbd "C-c C-y") 'ecc-vterm-yank-as-file)
 ```
+
+---
+
+## Testing
+
+258 tests across 24 test files covering all 23 source modules (100% file coverage).
+
+```bash
+# Run all tests with report generation
+./tests/run_tests.sh
+
+# Run require integrity check only (no Emacs needed)
+./tests/check_requires.sh
+```
+
+CI runs a `require-integrity` pre-check before the test matrix to catch missing files early.
 
 ---
 
