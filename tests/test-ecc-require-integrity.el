@@ -10,6 +10,7 @@
 ;;; Prevents issue #20: missing files that break loading for users.
 
 (require 'ert)
+(require 'subr-x)  ; string-empty-p is in subr-x on Emacs 28, subr.el on Emacs 29+
 
 (defun test-ecc-require--find-project-root ()
   "Find project root by locating the src/ directory.

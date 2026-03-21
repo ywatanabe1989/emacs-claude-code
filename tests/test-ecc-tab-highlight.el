@@ -34,8 +34,10 @@
   (should (functionp 'ecc-tab-highlight--restore)))
 
 (ert-deftest test-ecc-tab-highlight-active-initially-nil ()
-  "Active flag should be nil initially."
-  (should-not ecc-tab-highlight--active))
+  "Active flag should be nil initially.
+Uses let-binding to isolate from global state set by other tests."
+  (let ((ecc-tab-highlight--active nil))
+    (should-not ecc-tab-highlight--active)))
 
 (ert-deftest test-ecc-tab-highlight-compute-face-no-buffers ()
   "Compute face should return nil when no registered buffers."

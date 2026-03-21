@@ -219,7 +219,7 @@ EOF
     fi
 
     TEST_OUTPUT_FILE="$THIS_DIR/.test_output_temp.log"
-    eval $emacs_cmd 2>&1 | tee -a $LOG_PATH >$TEST_OUTPUT_FILE
+    eval "$emacs_cmd" 2>&1 | tee -a "$LOG_PATH" | tee "$TEST_OUTPUT_FILE"
     TEST_EXIT_CODE=${PIPESTATUS[0]}
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
