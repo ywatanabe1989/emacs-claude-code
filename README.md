@@ -38,7 +38,8 @@ Both are detected automatically. No configuration needed.
 
 ## State Detection
 
-The auto-response system detects these states from the vterm buffer content:
+<details>
+<summary>Auto-response states and detection priority</summary>
 
 | State | Description | Auto-Response |
 |-------|-------------|---------------|
@@ -51,6 +52,8 @@ The auto-response system detects these states from the vterm buffer content:
 
 Detection priority: Y/Y/N > Suggestion > Y/N > Running > User-Typing > Waiting
 
+</details>
+
 ---
 
 ## Examples
@@ -60,6 +63,11 @@ Detection priority: Y/Y/N > Suggestion > Y/N > Running > User-Typing > Waiting
 *Real-time demonstration of auto-response functionality*
 
 ## Buffer List Dashboard
+
+`M-x ecc-list-buffers` — centralized dashboard with timer status, config, and live debug log.
+
+<details>
+<summary>Dashboard preview</summary>
 
 ``` plaintext
 ECC Claude Buffer List
@@ -88,10 +96,7 @@ Keys: RET=jump o=other a=toggle e=on D=off b=beep c=clear-log g=refresh r=auto q
 Auto-refresh: ON (every 2.0s)
 ```
 
-### Usage
-```elisp
-M-x ecc-list-buffers  ; Open the buffer list dashboard
-```
+</details>
 
 ---
 
@@ -124,6 +129,9 @@ Add to your `init.el`:
 
 ### Basic Configuration
 
+<details>
+<summary>Auto-response, periodic commands, yank-as-file, keybindings</summary>
+
 ```elisp
 ;; Auto-response mapping (defaults shown)
 (setq --ecc-auto-response-responses
@@ -141,34 +149,17 @@ Add to your `init.el`:
 (setq ecc-auto-periodical-commands
   '((10 . "/compact")     ; Run /compact every 10 interactions
     (20 . "/git")))       ; Run /git every 20 interactions
-```
 
----
-
-## Custom CLI Commands
-
-In Claude Code, custom slash commands can be created by adding .md files to `.claude/commands/` in your project or `~/.claude/commands/` for commands that work in any project. See [Anthropic's Official Documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details.
-
----
-
-## Yank Target Directory
-
-Yank-as-file saves content to `~/.emacs-claude-code/` by default. You can customize this directory:
-
-```elisp
-;; Set custom yank directory
+;; Yank-as-file target directory (default: ~/.emacs-claude-code/)
 (setq ecc-directory-for-yank-as-file "~/my-custom-yank-dir/")
-```
 
----
-
-## Optional Keybindings
-
-```elisp
+;; Optional keybindings
 (define-key vterm-mode-map (kbd "C-c C-l") 'ecc-list-buffers)
 (define-key vterm-mode-map (kbd "C-c C-a") 'ecc-auto-toggle)
 (define-key vterm-mode-map (kbd "C-c C-y") 'ecc-vterm-yank-as-file)
 ```
+
+</details>
 
 ---
 
@@ -200,30 +191,51 @@ See [`src/README.md`](./src/README.md) for:
 
 ## Appendix: Author's Custom Workflow Reference
 
-### Bash Commands
-Example bash functions for Claude Code workflow management (see `docs/example_bash_config/`):
+<details>
+<summary>Bash Commands (~/.bash.d/all/010_claude/)</summary>
 
-- `cld_forget [n]` - Delete latest n JSONL files from Claude project history (default: 1)
-- `cld_logout` - Clear Claude account credentials
-- `cld` - Start Claude session with project-specific configurations and MCP support
-- `cld_worktree_toggle` (alias: `ct`) - Toggle between original project and Claude worktree directories
+| Category | Commands | Description |
+|----------|----------|-------------|
+| **Session** | `cld`, `cc` | Start Claude session with project-specific config and MCP |
+| **History** | `cld_forget [n]` | Delete latest n JSONL files from project history |
+| **Account** | `cld_logout`, `cld-switch` | Logout or switch between Claude accounts |
+| **Usage** | `cld-usage`, `cld-usage-today`, `cld-usage-live` | Track API usage stats |
+| **Worktree** | `cldw`, `cldw-ls`, `cldw-rm`, `cldw-cleanup` | Git worktree management for parallel sessions |
+| **Commands** | `cldc-ls`, `cldc-sync`, `cldc-validate` | Manage `.claude/commands/` across projects |
+| **Skills** | `clds-ls`, `clds-create`, `clds-sync` | Manage `.claude/skills/` across projects |
+| **Agents** | `clda-ls`, `clda-validate`, `clda-fix` | Manage `.claude/agents/` definitions |
+| **Hooks** | `cldh-ls`, `cldh-edit`, `cldh-enable/disable` | Manage Claude Code hooks |
 
-### Project Context Directory
+</details>
 
-The `./docs/to_claude/` directory contains project-specific context files that are automatically synced and made read-only by the `cld` command:
+<details>
+<summary>Claude Slash Commands (.claude/commands/)</summary>
+
+Custom `/` commands for Claude Code workflow. See [Anthropic's documentation](https://www.anthropic.com/engineering/claude-code-best-practices) for details on custom commands.
+
+| Category | Commands |
+|----------|----------|
+| **Core Workflow** | `/auto`, `/plan`, `/tests`, `/git`, `/workflow` |
+| **Code Quality** | `/refactor`, `/cleanup`, `/factor-out`, `/rename`, `/minimize-api` |
+| **Project Mgmt** | `/progress`, `/timeline`, `/finalize`, `/evaluate-project` |
+| **Issue Tracking** | `/bug-report`, `/feature-request-create`, `/feature-request-check` |
+| **Version Control** | `/worktree`, `/rollback`, `/resolve-conflicts`, `/version-bump` |
+| **Communication** | `/speak`, `/speak-signature`, `/call`, `/communicate` |
+| **Audit** | `/audit`, `/audit-paper`, `/critic` |
+| **Deployment** | `/scitex-deploy-staging`, `/scitex-deploy-prod` |
+
+</details>
+
+<details>
+<summary>Project Context Directory (docs/to_claude/)</summary>
+
+Project-specific context files automatically synced and made read-only by the `cld` command:
 
 - `guidelines/` - Project guidelines and coding standards
 - `bin/` - Project-specific scripts and utilities
 - `examples/` - Code examples and templates
 
-### Claude Commands
-Custom `/` commands for Claude Code workflow (see `./.claude/commands/`):
-
-- `/auto`, `/plan`, `/tests`, `/git`, `/refactor`, `/cleanup`
-- `/bug-report`, `/feature-request`, `/progress`, `/timeline`, `/finalize`
-- `/worktree`, `/rollback`, `/resolve-conflicts`, `/factor-out`, `/rename`
-
-These are reference command templates that can be customized for your project workflow. Please see [Anthropic's documentation](https://www.anthropic.com/engineering/claude-code-best-practices) to understand where to place such markdown files for custom commands.
+</details>
 
 ---
 
