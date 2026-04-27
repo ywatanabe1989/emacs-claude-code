@@ -13,7 +13,7 @@
   :prefix "--ecc-"
   :group 'tools)
 
-(defconst --ecc-version "3.3.0"
+(defconst --ecc-version "3.4.0"
   "Current version of the emacs-claude-code package.")
 
 ;; 2. Dependencies
