@@ -203,7 +203,7 @@ send-response(state, buffer)
 │  └─ re-detect ──▶ upgrade to :y/y/n if Y/Y/N now visible
 │
 ├─ Lookup response:
-│  ├─ :waiting ──▶ encouragement system ──▶ "/speak-signature"
+│  ├─ :waiting ──▶ encouragement system ──▶ "/speak-and-call"
 │  ├─ :y/n ─────▶ "1"
 │  ├─ :y/y/n ───▶ "2"
 │  └─ :suggestion ──▶ (from responses alist)
@@ -284,7 +284,7 @@ For a :waiting prompt (direct, no recheck):
 Timer fires ──▶ detect :waiting
                 ──▶ sit-for 1.0s (safe-interval)
                 ──▶ recheck (user-typing guard)
-                ──▶ vterm-send-string "/speak-signature"
+                ──▶ vterm-send-string "/speak-and-call"
                 ──▶ sit-for 0.5s
                 ──▶ vterm-send-return
                 ──▶ sit-for 1.0s (safe-interval)
