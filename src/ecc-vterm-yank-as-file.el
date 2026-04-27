@@ -1,6 +1,6 @@
 ;;; -*- coding: utf-8; lexical-binding: t -*-
 ;;; Author: ywatanabe
-;;; Timestamp: <2026-03-18 10:50:00>
+;;; Timestamp: <2026-03-28 21:02:32>
 ;;; File: /home/ywatanabe/.emacs.d/lisp/emacs-claude-code/src/ecc-vterm-yank-as-file.el
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
@@ -171,7 +171,7 @@ If not provided, uses current system's hostname."
   (let* ((host (or hostname (system-name)))
          (command
           (format
-           "\n\n1. Read or view (%s)\n%s\n2. Understand user's intent.\n3. Move to action.\n(4. If the file not found on your machine, please check by ssh ($ ssh %s cat %s))"
+           "\n\n1. Read or view (%s) on your machine\n%s\n2. Understand user's intent.\n3. Move to action.\n(4. If the file is not found, machine might be different. Please try ssh in such a case ($ ssh %s cat %s))."
            host filepath host filepath)))
     (if (fboundp 'vterm-send-string)
         (vterm-send-string command)
