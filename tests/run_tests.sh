@@ -3,6 +3,10 @@
 # Timestamp: "2025-05-25 00:36:50 (ywatanabe)"
 # File: ./run_tests.sh
 
+# Pin sort order so test-file load order matches CI (which runs under
+# C locale). Locale-dependent ordering previously masked a real bug.
+export LC_ALL=C
+
 THIS_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 # When run from tests/, project root is parent directory
 if [ -d "$THIS_DIR/src" ]; then

@@ -33,41 +33,42 @@
 (declare-function --ecc-auto-response--notify-sent
 		  "ecc-auto-response-beep" ())
 
-;; Variable stubs (defined in ecc-auto-response.el)
+;; Forward declarations for variables owned by ecc-auto-response.el.
+;; Bare `(defvar SYMBOL)` — no initial value — so loading this module
+;; first does not pre-bind the variable and silently shadow the real
+;; defcustom default (and any saved user customization).
+
+(defvar --ecc-auto-response-interval)
+
+(defvar --ecc-auto-response-use-idle-timer)
+
+(defvar --ecc-auto-response-periodic-interval)
+
+(defvar --ecc-auto-response-periodic-enabled)
+
+(defvar --ecc-auto-response-max-buffers-per-cycle)
+
+(defvar --ecc-auto-response-verbose-logging)
+
+(defvar --ecc-auto-response-skip-unchanged-buffers)
+
+(defvar --ecc-auto-response-same-state-delay)
+
+(defvar --ecc-auto-response-burst-window)
+
+(defvar --ecc-auto-response-burst-limit)
+
+(defvar --ecc-auto-response-safe-interval)
+
+(defvar --ecc-auto-response-responses)
+
+;; Internal state owned by this module.
 
 (defvar --ecc-auto-response--timer nil)
 
-(defvar --ecc-auto-response-interval 1.5)
-
-(defvar --ecc-auto-response-use-idle-timer nil)
-
 (defvar --ecc-auto-response--periodic-timer nil)
 
-(defvar --ecc-auto-response-periodic-interval 300.0)
-
-(defvar --ecc-auto-response-periodic-enabled t)
-
-(defvar --ecc-auto-response-max-buffers-per-cycle 3)
-
 (defvar --ecc-auto-response--buffer-rotation-index 0)
-
-(defvar --ecc-auto-response-verbose-logging nil)
-
-(defvar --ecc-auto-response-skip-unchanged-buffers t)
-
-(defvar --ecc-auto-response-same-state-delay 1.5)
-
-(defvar --ecc-auto-response-burst-window 3)
-
-(defvar --ecc-auto-response-burst-limit 10)
-
-(defvar --ecc-auto-response-safe-interval 1.0)
-
-;; Forward declaration — no initial value, so we don't shadow the real
-;; defcustom in ecc-auto-response.el when this file is loaded first
-;; (e.g. through a test that requires ecc-auto-response-core directly).
-
-(defvar --ecc-auto-response-responses)
 
 (defvar-local --ecc-auto-response--enabled nil)
 
