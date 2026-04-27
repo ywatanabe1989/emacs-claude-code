@@ -33,6 +33,8 @@
 (require 'ecc-encouragement)
 (require 'ecc-anti-flicker)
 (require 'ecc-smart-yank)
+(require 'ecc-self-compact)
+(require 'ecc-monitoring-tab)
 
 ;; 3. Main entry point
 ;; ----------------------------------------
