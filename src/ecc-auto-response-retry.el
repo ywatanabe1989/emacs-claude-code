@@ -5,7 +5,6 @@
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
-
 ;;; Commentary:
 ;;; Retry and verification logic for ecc-auto-response.
 ;;; Separated from core to keep each module focused.
@@ -19,7 +18,7 @@
 
 ;; Function stubs
 (declare-function --ecc-auto-response--show-encouragement
-		          "ecc-auto-response-ui" (buffer text))
+		  "ecc-auto-response-ui" (buffer text))
 
 ;; 2. Configuration
 ;; ----------------------------------------
@@ -103,10 +102,36 @@ Multi-tier retry:
 ;; 5. Accumulation Detection
 ;; ----------------------------------------
 
+(defun --ecc-auto-response--slash-command-name (response)
+  "If RESPONSE is a slash command like \"/foo\", return \"foo\"; else nil.
+Used to also match Claude Code's expanded UI form
+\"/.claude:commands:foo\" or similar namespaced renderings."
+  (when (and (stringp response)
+             (string-match "\\`/\\([A-Za-z0-9][A-Za-z0-9_-]*\\)\\'"
+			   response))
+    (match-string 1 response)))
+
+(defun --ecc-auto-response--accumulation-pattern (response)
+  "Build a regex matching RESPONSE or its expanded slash-command form.
+Recent Claude Code versions render \"/foo\" in the UI as
+\"/.claude:commands:foo\" (or other \"namespace:foo\" forms), which broke
+literal-substring accumulation detection."
+  (let* ((normalized (--ecc-state-detection--normalize-text response))
+         (cmd (--ecc-auto-response--slash-command-name normalized)))
+    (if cmd
+        (concat "\\(?:"
+                (regexp-quote normalized)
+                "\\|/\\(?:[A-Za-z0-9._-]+:\\)+"
+                (regexp-quote cmd)
+                "\\)")
+      (regexp-quote normalized))))
+
 (defun --ecc-auto-response--response-accumulated-p (buffer response)
   "Return t if RESPONSE already appears in BUFFER tail too many times.
 Counts occurrences in the last `--ecc-state-detection-buffer-size'
-characters.  Returns t when count >= `--ecc-auto-response-accumulation-max'."
+characters.  Returns t when count >= `--ecc-auto-response-accumulation-max'.
+Also matches Claude Code's expanded slash-command rendering
+\(e.g. \"/.claude:commands:speak-and-call\" for \"/speak-and-call\")."
   (when (and (buffer-live-p buffer) response)
     (with-current-buffer buffer
       (let* ((text (buffer-substring-no-properties
@@ -115,8 +140,8 @@ characters.  Returns t when count >= `--ecc-auto-response-accumulation-max'."
                             --ecc-state-detection-buffer-size))
                     (point-max)))
              (normalized (--ecc-state-detection--normalize-text text))
-             (pattern (regexp-quote
-                       (--ecc-state-detection--normalize-text response)))
+             (pattern
+	      (--ecc-auto-response--accumulation-pattern response))
              (count 0)
              (start 0))
         (while (string-match pattern normalized start)
@@ -195,7 +220,6 @@ Rechecks state before sending to avoid interrupting user typing."
 
 (when (not load-file-name)
   (message "ecc-auto-response-retry.el loaded."))
-
 
 (provide 'ecc-auto-response-retry)
 
