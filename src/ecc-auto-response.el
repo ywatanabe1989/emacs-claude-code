@@ -142,7 +142,7 @@
 (defcustom --ecc-auto-response-responses
   '((:y/n . "1")
     (:y/y/n . "2")
-    (:waiting . "/speak-signature"))
+    (:waiting . "/speak-and-call"))
   "Alist of auto-responses for different Claude states."
   :type '(alist :key-type symbol :value-type string)
   :group 'ecc)

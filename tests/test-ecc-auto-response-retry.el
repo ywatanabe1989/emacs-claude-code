@@ -72,6 +72,26 @@
       (should-not (--ecc-auto-response--response-accumulated-p
                    (current-buffer) "unique-text-not-present")))))
 
+(ert-deftest test-ecc-auto-response-retry-accumulated-p-expanded-slash
+    ()
+  "Accumulation must match Claude Code's expanded /.claude:commands:NAME form."
+  (with-temp-buffer
+    (insert "❯ /.claude:commands:speak-and-call\n")
+    (let ((--ecc-state-detection-buffer-size 1000)
+          (--ecc-auto-response-accumulation-max 1))
+      (should (--ecc-auto-response--response-accumulated-p
+               (current-buffer) "/speak-and-call")))))
+
+(ert-deftest
+    test-ecc-auto-response-retry-accumulated-p-literal-still-works ()
+  "Literal slash command still matches when buffer shows the unexpanded form."
+  (with-temp-buffer
+    (insert "❯ /speak-and-call\n")
+    (let ((--ecc-state-detection-buffer-size 1000)
+          (--ecc-auto-response-accumulation-max 1))
+      (should (--ecc-auto-response--response-accumulated-p
+               (current-buffer) "/speak-and-call")))))
+
 (ert-deftest test-ecc-auto-response-retry-verify-send-dead-buffer ()
   "Verify send should handle dead buffers gracefully."
   (let ((dead-buf (generate-new-buffer " *test-dead*")))

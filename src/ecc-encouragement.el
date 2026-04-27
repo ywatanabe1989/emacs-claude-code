@@ -242,7 +242,7 @@
   "Workflow continuation phrases.")
 
 (defvar ecc-encouragement-phrases-speak
-  '("/speak-signature")
+  '("/speak-and-call")
   "Workflow reporting commands.")
 
 (defcustom ecc-encouragement-speak-max-count 100

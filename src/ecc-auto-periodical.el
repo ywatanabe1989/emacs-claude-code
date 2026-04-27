@@ -5,7 +5,6 @@
 
 ;;; Copyright (C) 2026 Yusuke Watanabe (ywatanabe@scitex.ai)
 
-
 ;;; Commentary:
 ;;; Automatically execute predefined commands at regular interaction intervals.
 
@@ -42,6 +41,17 @@ COMMAND is the string to send to the buffer."
   :type 'boolean
   :group 'ecc)
 
+(defcustom ecc-auto-periodical-pre-compact-warning 3
+  "Number of interactions before compact to send a warning to the agent.
+When set to 3 (default), the agent receives a warning at interaction N-3
+so it can save context to memory/issues before compact fires at N."
+  :type 'integer
+  :group 'ecc)
+
+(defvar-local --ecc-auto-periodical-warning-sent
+    (make-hash-table :test 'equal)
+  "Hash table tracking which warning counts have been sent.")
+
 ;; 3. Variables
 ;; ----------------------------------------
 
@@ -76,12 +86,41 @@ COMMAND is the string to send to the buffer."
     (ecc-auto-periodical-check)))
 
 (defun ecc-auto-periodical-check ()
-  "Check if any periodic command should be executed."
+  "Check if any periodic command should be executed.
+Also sends pre-compact warnings N steps before execution."
   (dolist (entry ecc-auto-periodical-commands)
     (let ((interval (car entry))
           (command (cdr entry)))
+      ;; Pre-compact warning: notify the agent N steps before compact fires
+      (ecc-auto-periodical--maybe-warn interval command)
+      ;; Execute if threshold reached
       (when (ecc-auto-periodical--should-execute-p interval command)
         (ecc-auto-periodical-execute command interval)))))
+
+(defun ecc-auto-periodical--maybe-warn (interval command)
+  "Send pre-compact warning to the Claude session if within warning window.
+Warning fires at INTERVAL - `ecc-auto-periodical-pre-compact-warning' interactions.
+This tells the agent to save context before compact arrives."
+  (let* ((warn-offset ecc-auto-periodical-pre-compact-warning)
+         (warn-at (- interval warn-offset))
+         (counter --ecc-auto-periodical-interaction-counter)
+         (steps-until (mod counter interval))
+         (warn-key (format "%s-%d" command counter)))
+    (when (and (> counter 0)
+               (> warn-at 0)
+               (= steps-until warn-at)
+               ;; Don't warn twice at same count
+               (not
+		(gethash warn-key --ecc-auto-periodical-warning-sent)))
+      (puthash warn-key t --ecc-auto-periodical-warning-sent)
+      (message
+       "[ECC] ⚠️ Compact in %d steps (count: %d/%d). Save context now."
+       warn-offset counter interval)
+      ;; Send warning text to the Claude session so the agent sees it
+      (ecc-auto-periodical--send-command
+       (format
+	"# ⚠️ AUTO-COMPACT WARNING: /compact will fire in %d interactions. Save important context to memory/GitHub Issues NOW."
+        warn-offset)))))
 
 (defun ecc-auto-periodical--should-execute-p (interval command)
   "Check if COMMAND should be executed based on INTERVAL."
@@ -106,6 +145,11 @@ COMMAND is the string to send to the buffer."
       (message
        "[ECC Auto-Periodical] 🔄 Executing: %s (every %d interactions, count: %d)"
        command interval --ecc-auto-periodical-interaction-counter))
+
+    ;; Send pre-compact context-save instruction to the agent
+    (when (string= command "/compact")
+      (ecc-auto-periodical--send-command
+       "# COMPACTING NOW: Save any in-flight context to memory/GitHub Issues. Notify user via Telegram: compactします。"))
 
     ;; Execute the command
     (ecc-auto-periodical--send-command command)
@@ -214,7 +258,6 @@ COMMAND is the string to send to the buffer."
   (--ecc-debug-message "ecc-auto-periodical.el loaded."
                        (file-name-nondirectory
                         (or load-file-name buffer-file-name))))
-
 
 (provide 'ecc-auto-periodical)
 

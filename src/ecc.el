@@ -13,7 +13,7 @@
   :prefix "--ecc-"
   :group 'tools)
 
-(defconst --ecc-version "3.3.0"
+(defconst --ecc-version "3.4.0"
   "Current version of the emacs-claude-code package.")
 
 ;; 2. Dependencies
@@ -33,6 +33,8 @@
 (require 'ecc-encouragement)
 (require 'ecc-anti-flicker)
 (require 'ecc-smart-yank)
+(require 'ecc-self-compact)
+(require 'ecc-monitoring-tab)
 
 ;; 3. Main entry point
 ;; ----------------------------------------
