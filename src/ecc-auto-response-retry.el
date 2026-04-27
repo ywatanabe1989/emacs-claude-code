@@ -55,11 +55,13 @@ Fewer than :waiting retries since these need full text re-send."
 ;; 3. Variables
 ;; ----------------------------------------
 
-(defvar --ecc-auto-response-responses nil
-  "Stub; real value defined in ecc-auto-response.el.")
+;; Forward declarations — no initial value, so we don't shadow the real
+;; defcustom in ecc-auto-response.el when this file is loaded first
+;; (e.g. through a test that requires ecc-auto-response-retry directly).
 
-(defvar --ecc-auto-response-safe-interval 1.0
-  "Stub; real value defined in ecc-auto-response.el.")
+(defvar --ecc-auto-response-responses)
+
+(defvar --ecc-auto-response-safe-interval)
 
 ;; 4. Main Entry Points
 ;; ----------------------------------------
