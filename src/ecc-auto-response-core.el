@@ -63,7 +63,11 @@
 
 (defvar --ecc-auto-response-safe-interval 1.0)
 
-(defvar --ecc-auto-response-responses nil)
+;; Forward declaration — no initial value, so we don't shadow the real
+;; defcustom in ecc-auto-response.el when this file is loaded first
+;; (e.g. through a test that requires ecc-auto-response-core directly).
+
+(defvar --ecc-auto-response-responses)
 
 (defvar-local --ecc-auto-response--enabled nil)
 
