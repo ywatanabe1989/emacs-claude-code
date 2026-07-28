@@ -20,8 +20,13 @@ jobs:
   # present on the Spartan self-hosted node (RHEL 9.8, git 2.52, bash 5.1.8,
   # PCRE grep), so this job carries no GitHub-hosted dependency and moves to
   # the org pool per the no-hosted-runners mandate (2026-07-14).
+  # Label set matches the org convention (all 8 jobs across the six
+  # scitex-ai/.github reusables use exactly this list). Deliberately NOT
+  # `scitex-ci`: only 1 of the 3 online runners carries that label, whereas
+  # `spartan-cpu` matches all 3. Both are registered destinations, so both
+  # satisfy PS-224; this one just has 3x the dispatch capacity.
   require-integrity:
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    runs-on: [self-hosted, Linux, X64, spartan-cpu]
     steps:
       - uses: actions/checkout@v4
       - name: Check require integrity
