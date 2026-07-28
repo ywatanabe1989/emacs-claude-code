@@ -1,0 +1,67 @@
+# scitex-dev project config for emacs-claude-code.
+#
+# This repo is an EMACS LISP package, not a Python distribution. The fleet
+# CI template does not apply here: `scitex-dev ecosystem ci-template apply`
+# refuses outright with `error: no pyproject.toml`, and all three
+# test-shaped org reusables (pytest-matrix, import-smoke, quality-audit)
+# are hard-wired to uv + `src/<pkg>` + pyproject and expose zero inputs, so
+# none can run an ERT suite.
+
+audit:
+  exemptions:
+    # PS-224 — `runs-on` must name a destination the machine registry serves.
+    #
+    # NOTE FOR THE READER: as of scitex-dev 0.38.0 these entries are INERT.
+    # `_run_checks.py` calls `check_ps224_runner_destinations(repo_root,
+    # Violation, violations)` with no `config` argument, and the checker
+    # never calls `exemption_for`, so PS-224 cannot currently be exempted
+    # even though its own docstring and violation text advertise this exact
+    # surface. Only PS-220/PS-222/PS-223 consult exemptions today. These
+    # entries are written to the documented schema so they take effect the
+    # moment PS-224 is wired up (PS-222 already has the line-less precedent:
+    # `exemption_for("PS-222", rel, _NO_LINE)` with `_NO_LINE = 0`).
+    PS-224:
+      - path: .github/workflows/test.yml
+        line: 0
+        reason: >-
+          Job `test` cannot run on the Spartan self-hosted pool, which is an
+          UNPRIVILEGED HPC compute node (RHEL 9.8, bare metal, no root, no
+          systemd, no package manager), measured 2026-07-28. Three
+          independent hard blockers, any one of which is fatal:
+          (1) `purcell/setup-emacs@master` is a thin wrapper that installs
+          NIX -- its install.sh shells install-nix.sh, which requires root
+          (`sudo mkdir -p /etc/nix`, or a `--daemon` install needing
+          systemd) and then `nix profile install
+          github:purcell/nix-emacs-ci#emacs-<ver>`. The node has no nix and
+          no /nix, and `sudo` is refused cluster-wide.
+          (2) The build step runs `sudo apt-get install -y libvterm-dev`.
+          The node is RHEL, has NO apt-get at all, and no sudo, so the
+          vterm headers cannot be obtained.
+          (3) The matrix pins five Emacs versions (28.2, 29.1, 29.4, 30.1,
+          snapshot). The node offers only system Emacs 27.2 and module
+          Emacs/28.1 -- NONE of the five. Testing across released Emacs
+          versions is the entire purpose of this job, so dropping the matrix
+          would delete the coverage rather than relocate it.
+          The `ubuntu-24.04` pin is therefore load-bearing in the weak sense
+          that the job needs a Debian-family image with apt and root; it is
+          NOT load-bearing on 24.04 specifically (this repo ran the same job
+          on ubuntu-22.04 until commit d14a30d flipped it to 24.04 with no
+          incident). Sibling job `require-integrity` in this same file HAS
+          been migrated to the org pool -- only `test` is exempt.
+          Revisit if Emacs is ever baked into the ci-cpu Apptainer image.
+      - path: .github/workflows/test-local.yml
+        line: 0
+        reason: >-
+          Job `test` in test-local.yml is a LOCAL-ONLY harness for
+          nektos/act (`act -j test`), gated `on: workflow_dispatch` so it
+          never runs on GitHub in normal operation. Under act,
+          `ubuntu-latest` is not a GitHub-hosted runner label at all -- it
+          is the key act maps to a Docker image
+          (catthehacker/ubuntu:act-latest). Rewriting it to self-hosted
+          labels would break the file's only purpose without moving any
+          real CI, since the actual CI lives in test.yml. PS-224's stated
+          harm -- "GitHub queues an unmatchable job forever" -- cannot occur
+          here: the job is never auto-dispatched, and on the rare manual
+          dispatch `ubuntu-latest` IS served by GitHub and runs fine.
+          It also inherits blockers (1) and (2) from the test.yml entry,
+          since it performs the same setup-emacs + apt-get steps.

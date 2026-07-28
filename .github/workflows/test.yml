@@ -16,14 +16,24 @@ on:
       - 'LICENSE'
       - 'CHANGELOG.md'
 jobs:
+  # Pure-shell gate: bash + git + GNU grep -oP only, no Emacs. Verified
+  # present on the Spartan self-hosted node (RHEL 9.8, git 2.52, bash 5.1.8,
+  # PCRE grep), so this job carries no GitHub-hosted dependency and moves to
+  # the org pool per the no-hosted-runners mandate (2026-07-14).
   require-integrity:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Check require integrity
         run: |
           chmod +x ./tests/check_requires.sh
           ./tests/check_requires.sh
+  # STAYS GitHub-hosted — deliberately, not by omission. See
+  # .scitex/dev/config.yaml `audit.exemptions` (PS-224) for the full reason:
+  # purcell/setup-emacs installs Nix (needs root), the build needs
+  # `sudo apt-get install libvterm-dev`, and none of the five matrix Emacs
+  # versions exists on the Spartan node. All three are impossible on an
+  # unprivileged HPC compute node.
   test:
     needs: require-integrity
     runs-on: ubuntu-24.04
