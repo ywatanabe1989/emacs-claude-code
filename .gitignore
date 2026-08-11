@@ -719,4 +719,10 @@ flycheck_*.el
 
 ### Source: /home/ywatanabe/.git-templates/.gitignore-templates/Custom/SLURM.gitignore ###
 slurm_logs
-docs/to_claude/
+
+# Claude-Code tooling mirror (rsync target from ~/.claude/to_claude via the
+# now-disabled dotfiles cld sync mechanism) -- the anchored "docs/to_claude/"
+# form above never matched the actual nested src/docs/to_claude, which is
+# exactly how 243 files ended up tracked despite this rule already existing.
+# **/ matches at any depth regardless of where cld happens to be invoked from.
+**/docs/to_claude/
